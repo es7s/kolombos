@@ -38,7 +38,7 @@ _preview() {
              -e "s/^.*(.{$ADDR_WIDTH})\t/$ADDR_PAD\1$ADDR_PAD│ /"
 }
 _preprocess() {
-    tr -s "[:space:]" <<< "$INPUT_RAW"
+    tr -s "[:space:]" <<< "$INPUT_RAW" | sed -z '$ s/\n$//'
 }
 _postprocess() {
     sed -E -e "s/\t/│/g" \
