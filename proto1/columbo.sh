@@ -7,6 +7,14 @@ COMMONS_PATH="$HOME/.es7s/_common.sh"
 # shellcheck source=../core/_common.sh
 . "$COMMONS_PATH"
 # ------------------------------------------------------------------------------
+_main() {
+    _header
+    _preview
+    _table_line '' '' '┬'
+    _preprocess | _hexdump | _postprocess
+    _footer
+}
+
 _table_line() {
     _s $(( ADDR_WIDTH + ${#ADDR_PAD}*2 )) "${1:-"─"}"
     _s 1 "${2:-"┼"}"
@@ -19,16 +27,9 @@ _header() { _table_line '' '┬' '─' ; }
 _footer() { _table_line '' '┴' '┴' ; }
 _dupline() { _table_line '-' '│' '│' ; }
 
-function debug_str {
-    _header
-    _preview
-    _table_line '' '' '┬'
-    _preprocess | _hexdump | _postprocess
-    _footer
-}
 _preview() {
     # shellcheck disable=SC2086
-    local preview="$( grep ^ -bT --binary-files=without-match 2>/dev/null <<< "$INPUT_RAW" )"
+    local preview="$( printf %s "$INPUT_RAW" | grep ^ -bT --binary-files=without-match 2>/dev/null )"
     if grep -Ee "Binary file \(standard input\) matches" <<< "$preview" >/dev/null ; then
         return 0
     fi
@@ -48,19 +49,8 @@ _hexdump() {
     hexdump -e '1 "'"$ADDR_PAD"'%'$ADDR_WIDTH'_ad'"$ADDR_PAD"'" "\t'"$HEX_PAD_LEFT"'"' \
             -e '16/1 "%03.2x" "'"$HEX_PAD_RIGHT"'\t'"$PRINT_PAD"'"' \
             -e '16/1 "%_p" "'"$PRINT_PAD"'\n"' \
-            -e '1 "'"$(_s $((ADDR_WIDTH + ${#ADDR_PAD}*2)))"'\t'"$HEX_PAD_LEFT"'"' \
-            -e '16/1 "%03.3_u" "'"$HEX_PAD_RIGHT"'\t\n"'
-}
-
-function debug_strx {
-    # String breakdown, used for \e[Xm debugging.
-    # Reads stdin; squeezes whitespace; displays printable chars.
-    local input_arr input ; mapfile -t input_arr
-    input="$( _jb $'\n' "${input_arr[@]}" | tr "[:space:]" " " | tr -s " " )"
-
-    printfn "$input"
-    _sep $_gr 80
-    printf "%s" "$input" | od -t a -t cz -Ax -w16
+            #-e '1 "'"$(_s $((ADDR_WIDTH + ${#ADDR_PAD}*2)))"'\t'"$HEX_PAD_LEFT"'"' \
+            #-e '16/1 "%03.3_u" "'"$HEX_PAD_RIGHT"'\t\n"'
 }
 # ------------------------------------------------------------------------------
 declare SELF="${0##*/}"
@@ -85,4 +75,4 @@ ADDR_WIDTH=$ADDR_CHARS
 HEX_WIDTH=48
 PRINT_WIDTH=16
 
-debug_str
+_main
