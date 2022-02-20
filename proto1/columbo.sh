@@ -3,9 +3,8 @@
 # es7s/columbo [hexdump wrapper]
 # (C) 2021-2022 A. Shavykin <0.delameter@gmail.com>
 # ------------------------------------------------------------------------------
-COMMONS_PATH="$HOME/.es7s/_common.sh"
 # shellcheck source=../core/_common.sh
-. "$COMMONS_PATH"
+source "$HOME/.es7s/_common.sh" || exit 127
 # ------------------------------------------------------------------------------
 # echo "   ______      __                __"
 # echo "  / ____/___  / /_  ______ ___  / /_  ____"
