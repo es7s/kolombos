@@ -3,8 +3,10 @@
 # es7s/columbo [hexdump wrapper]
 # (C) 2021-2022 A. Shavykin <0.delameter@gmail.com>
 # ------------------------------------------------------------------------------
-# shellcheck source=../core/_common.sh
-source "$HOME/.es7s/_common.sh" || exit 127
+cd "$(dirname "$(readlink -f "$0")")" || exit 127
+# shellcheck source=../core/_commons.sh
+[[ -f "$HOME/.es7s/_commons.sh" ]] && source "$HOME/.es7s/_commons.sh"
+[[ -z "$ES7S_COMMONS_LOADED" ]] && { source "../core/_commons.sh" || exit 127 ; }
 # ------------------------------------------------------------------------------
 # echo "   ______      __                __"
 # echo "  / ____/___  / /_  ______ ___  / /_  ____"
