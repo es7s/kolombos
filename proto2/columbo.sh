@@ -1,4 +1,5 @@
 #!/usr/bin/bash
+#   ~~~ ~~~ ~~~ ~~~ ~~~ ~~~ D E P R E C A T E D ~~~ ~~~ ~~~  ~~~ ~~~ ~~~
 # ------------------------------------------------------------------------------
 # es7s/columbo [hexdump wrapper]
 # (C) 2021-2022 A. Shavykin <0.delameter@gmail.com>
