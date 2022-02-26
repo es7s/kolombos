@@ -6,8 +6,10 @@
 # ------------------------------------------------------------------------------
 cd "$(dirname "$(readlink -f "$0")")" || exit 127
 # shellcheck source=../core/_commons.sh
-[[ -f "$HOME/.es7s/_commons.sh" ]] && source "$HOME/.es7s/_commons.sh"
-[[ -z "$ES7S_COMMONS_LOADED" ]] && { source "../core/_commons.sh" || exit 127 ; }
+[[ -z "$ES7S_COMMONS_LOADED" ]] && [[ -f "$ES7S_COMMONS_PATH" ]]  && source  "$ES7S_COMMONS_PATH"
+[[ -z "$ES7S_COMMONS_LOADED" ]] && [[ -f "../core/_commons.sh" ]] && source "../core/_commons.sh"
+[[ -z "$ES7S_COMMONS_LOADED" ]] && printf "%s\n" "ERROR: es7s/commons internal library not found" \
+                                   "Reinstall es7s or provider valid path in \$ES7S_COMMONS_PATH" && exit 88
 # ------------------------------------------------------------------------------
 # echo "   ______      __                __"
 # echo "  / ____/___  / /_  ______ ___  / /_  ____"
