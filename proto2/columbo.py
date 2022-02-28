@@ -140,6 +140,7 @@ class SequenceRegistry:
     inverse = SequenceEnclosing(SgrSequnce(SgrParam.INVERSED), SgrSequnce(SgrParam.INVERSED_OFF))
     red = SequenceEnclosing(SgrSequnce(SgrParam.RED), TEXT_COLOR_OFF)
     green = SequenceEnclosing(SgrSequnce(SgrParam.GREEN), TEXT_COLOR_OFF)
+    cyan = SequenceEnclosing(SgrSequnce(SgrParam.CYAN), TEXT_COLOR_OFF)
 
 
 
@@ -167,28 +168,32 @@ class Formatter:
         self._copty = SequenceRegistry()
 
     def format(self, raw_input, offset):
-        if type(raw_input) is str:  # or type(raw_input) is list:
+        if type(raw_input) is str or type(raw_input) is list:
             self.__format_text(raw_input, offset)
         elif type(raw_input) is bytes:
             self.__format_binary(raw_input, offset)
         else:
             raise NotImplementedError(type(raw_input))
 
-    def __format_text(self, raw_input: str, offset: int):
-        processed_input = raw_input.translate({
-            0x20: 0x2423,
-            0x00: self._copty.red.wrap('\u00d8'),
-            0x0a: self._copty.inverse.wrap('\u21b5') + '\u000a',
-            0x1b: self._copty.inverse.wrap('ɘ') + '\033',
-        })
+    def __format_text(self, raw_input: Union[str, List[str]], offset: int):
+        if type(raw_input) is str:
+            raw_input = [raw_input]
 
-        formatted_input = "{}{} ".format(
-            self._copty.green.wrap(str(offset + 1)),
-            self._copty.green.wrap(':')
-        ) + processed_input
+        for raw_input_line in raw_input:
+            processed_input = raw_input_line.translate({
+                0x20: 0x2423,
+                0x00: self._copty.red.wrap('\u00d8'),
+                0x0a: self._copty.inverse.wrap('\u21b5') + '\u000a',
+                0x1b: self._copty.inverse.wrap('ɘ') + '\033',
+            })
 
-        self._writer.write_line(formatted_input)
-        offset += 1
+            formatted_input = "{}{} ".format(
+                self._copty.green.wrap(str(offset + 1)),
+                self._copty.cyan.wrap(':')
+            ) + processed_input
+
+            self._writer.write_line(formatted_input)
+            offset += 1
 
     def __format_binary(self, raw_input: bytes, offset: int):
         processed_line_hex = raw_input.hex(" ")
@@ -210,13 +215,18 @@ class Reader:
             self.__open(mode)
             if self._f.seekable():
                 self._f.seek(0)
-            while raw_input := self._f.read():
-                self._formatter.format(raw_input, self._offset)
-                self._offset += len(raw_input)
+            if mode == AppMode.TEXT:
+                while raw_input := self._f.readlines(1): # @ReFACtrOR
+                    self._formatter.format(raw_input, self._offset)
+                    self._offset += len(raw_input)
+            elif mode == AppMode.BINARY:
+                while raw_input := self._f.read(1024): # @ReFACtrOR
+                    self._formatter.format(raw_input, self._offset)
+                    self._offset += len(raw_input)
         finally:
             self.__close()
 
-    def __open(self, mode: AppMode): # @ReFACtrOR
+    def __open(self, mode: AppMode):  # @ReFACtrOR
         self._offset = 0
         if mode == AppMode.TEXT:
             self._read_chunk_size = 1
