@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
+
 from __future__ import annotations
+
+import abc
 import os
+import re
 import sys
 import traceback
 from argparse import Namespace
 from enum import Enum
+from functools import reduce
 from typing import IO, AnyStr, Optional, List, Union
+
 
 # ------------------------------------------------------------------------------
 # echo "   ______      __                __"
@@ -14,10 +20,11 @@ from typing import IO, AnyStr, Optional, List, Union
 # echo "/ /___/ /_/ / / /_/ / / / / / / /_/ / /_/ /"
 # echo "\____/\____/_/\____/_/ /_/ /_/_.___/\____/"
 
-#_cs 48 05 26
+# _cs 48 05 26
 
 
-class SgrParam(Enum):
+class SGRParam(Enum):
+    RESET = 0
     BOLD = 1
     DIM = 2
     ITALIC = 3
@@ -46,7 +53,7 @@ class SgrParam(Enum):
     BLUE = 34
     MAGNETA = 35
     CYAN = 36
-    GRAY = 37
+    WHITE = 37
 
     BG_BLACK = 40
     BG_RED = 41
@@ -55,15 +62,16 @@ class SgrParam(Enum):
     BG_BLUE = 44
     BG_MAGNETA = 45
     BG_CYAN = 46
-    BG_GRAY = 47
+    BG_WHITE = 47
 
+    GRAY = 90
     HI_RED = 91
     HI_GREEN = 92
     HI_YELLOW = 93
     HI_BLUE = 94
     HI_MAGNETA = 95
     HI_CYAN = 96
-    HI_GRAY = 97
+    HI_WHITE = 97
 
     TEXT_COLOR_OFF = 39
     BG_COLOR_OFF = 49
@@ -78,75 +86,77 @@ class Sequence:
     def __str__(self):
         return self._payload
 
+    def __add__(self, other: Sequence) -> Sequence:
+        return Sequence(self._payload + (str(other)))
 
-class SgrSequnce(Sequence):
+
+class SGRSequnce(Sequence):
     _INTRODUCER = '\033['
     _TERMINATOR = 'm'
 
     def __init__(self, params_raw: Union[int, Enum[int], str, List]):
-        norm_params = self.__normalize_params(params_raw)
-        encoded_params = self.__encode_params(norm_params)
-        super().__init__(self.__build_sgr_sequence(encoded_params))
+        super().__init__(self._build_sgr_sequence(params_raw))
 
-    def __normalize_params(self, params_raw: Union[int, SgrParam, str, List]) -> List[str]:
+    def _build_sgr_sequence(self, params_raw: Union[int, Enum[int], str, List]) -> AnyStr:
+        return '{}{}{}'.format(self._INTRODUCER, ';'.join(self._normalize_params(params_raw)), self._TERMINATOR)
+
+    def _normalize_params(self, params_raw: Union[int, SGRParam, str, List]) -> List[str]:
         if type(params_raw) is list:
             norm_params = params_raw
         else:
             norm_params = [params_raw]
 
-        norm_params = list(map(self.__map_param, norm_params))
+        norm_params = list(map(self._map_param, norm_params))
         norm_params = list(filter(lambda p: len(p) > 0 and p != '0', norm_params))
         return norm_params
 
-    def __map_param(self, param_raw: Union[int, SgrParam, str]) -> AnyStr:
+    def _map_param(self, param_raw: Union[int, SGRParam, str]) -> AnyStr:
         if type(param_raw) in (int, str):
             return str(param_raw)
-        elif type(param_raw) is SgrParam:
+        elif type(param_raw) is SGRParam:
             return str(param_raw.value)
         raise RuntimeError("Illegal seq param type {}".format(type(param_raw)))
-
-    def __encode_params(self, norm_params: List[str]) -> str:
-        return ';'.join(norm_params)
-
-    def __build_sgr_sequence(self, encoded_params: str) -> AnyStr:
-        return '{}{}{}'.format(self._INTRODUCER, encoded_params, self._TERMINATOR)
 
 
 class SequenceEnclosing:
     _lead: Sequence
+    _paloyad: AnyStr
     _trail: Optional[Sequence]
 
-    def __init__(self, lead: Sequence, trail: Optional[Sequence]):
+    def __init__(self, lead: Sequence, trail: Optional[Sequence] = None, value: AnyStr = None):
         self._lead = lead
         self._trail = trail
+        self._payload = value
 
-    def open(self) -> AnyStr:
+    def wrap(self, payload_override: Optional[AnyStr] = None) -> AnyStr:
+        if payload_override:
+            return self.open + payload_override + self.close
+        if self._payload:
+            return self.open + self._payload + self.close
+        return self.open + self.close
+
+    @property
+    def open(self):
         return str(self._lead)
 
-    def close(self) -> AnyStr:
+    @property
+    def close(self):
         return str(self._trail) if self._trail else ''
 
-    def wrap(self, payload: str) -> AnyStr:
-        return self.open() + payload + self.close()
 
-    def wrap_hard(self, payload: str) -> AnyStr:
-        return self.open() + payload + SequenceRegistry.RESET
+class PyTermor:
+    RESET = SGRSequnce(SGRParam.RESET)
+    TEXT_COLOR_OFF = SGRSequnce(SGRParam.TEXT_COLOR_OFF)
 
-
-class SequenceRegistry:
-    RESET = str(SgrSequnce(0))
-    TEXT_COLOR_OFF = SgrSequnce(SgrParam.TEXT_COLOR_OFF)
-
-    inverse = SequenceEnclosing(SgrSequnce(SgrParam.INVERSED), SgrSequnce(SgrParam.INVERSED_OFF))
-    red = SequenceEnclosing(SgrSequnce(SgrParam.RED), TEXT_COLOR_OFF)
-    green = SequenceEnclosing(SgrSequnce(SgrParam.GREEN), TEXT_COLOR_OFF)
-    cyan = SequenceEnclosing(SgrSequnce(SgrParam.CYAN), TEXT_COLOR_OFF)
-
-
-
-class AppMode(Enum):
-    TEXT = "TEXT"
-    BINARY = "BINARY"
+    dim = SequenceEnclosing(SGRSequnce(SGRParam.DIM), SGRSequnce(SGRParam.DIM_BOLD_OFF))
+    inverse = SequenceEnclosing(SGRSequnce(SGRParam.INVERSED), SGRSequnce(SGRParam.INVERSED_OFF))
+    underline = SequenceEnclosing(SGRSequnce(SGRParam.UNDERLINED), SGRSequnce(SGRParam.UNDERLINED_OFF))
+    overline = SequenceEnclosing(SGRSequnce(SGRParam.OVERLINED), SGRSequnce(SGRParam.OVERLINED_OFF))
+    red = SequenceEnclosing(SGRSequnce(SGRParam.RED), TEXT_COLOR_OFF)
+    yellow = SequenceEnclosing(SGRSequnce(SGRParam.YELLOW), TEXT_COLOR_OFF)
+    green = SequenceEnclosing(SGRSequnce(SGRParam.GREEN), TEXT_COLOR_OFF)
+    cyan = SequenceEnclosing(SGRSequnce(SGRParam.CYAN), TEXT_COLOR_OFF)
+    gray = SequenceEnclosing(SGRSequnce(SGRParam.GRAY), TEXT_COLOR_OFF)
 
 
 class Writer:
@@ -159,132 +169,203 @@ class Writer:
         self._f.write(formatted_line)
 
 
-class Formatter:
+class AbstractFormatter:
+    pass
+
+
+class Formatter(AbstractFormatter):
     _writer: Writer
-    _copty: SequenceRegistry
+
+    _excluded_content_output_sgr_params: list = list(map(lambda v: str(v.value), [
+        SGRParam.RESET, SGRParam.INVERSED, SGRParam.INVERSED_OFF
+    ]))
+    _unknown_esq_marker: SequenceEnclosing = \
+        SequenceEnclosing(SGRSequnce([SGRParam.BG_BLACK, SGRParam.HI_YELLOW, SGRParam.INVERSED]), PyTermor.RESET)
 
     def __init__(self, _writer: Writer):
         self._writer = _writer
-        self._copty = SequenceRegistry()
 
     def format(self, raw_input, offset):
         if type(raw_input) is str or type(raw_input) is list:
-            self.__format_text(raw_input, offset)
+            self._format_text(raw_input, offset)
         elif type(raw_input) is bytes:
-            self.__format_binary(raw_input, offset)
+            self._format_binary(raw_input, offset)
         else:
             raise NotImplementedError(type(raw_input))
 
-    def __format_text(self, raw_input: Union[str, List[str]], offset: int):
+    def _format_text(self, raw_input: Union[str, List[str]], offset: int):
         if type(raw_input) is str:
             raw_input = [raw_input]
 
         for raw_input_line in raw_input:
             processed_input = raw_input_line.translate({
-                0x20: 0x2423,
-                0x00: self._copty.red.wrap('\u00d8'),
-                0x0a: self._copty.inverse.wrap('\u21b5') + '\u000a',
-                0x1b: self._copty.inverse.wrap('ɘ') + '\033',
+                0x20: '\u2423',
+                0x0a: PyTermor.gray.open + PyTermor.inverse.wrap('\u21b5') + str(PyTermor.TEXT_COLOR_OFF) + '\u000a',
+                0x00: PyTermor.red.wrap('\u00d8'),
+                0x1b: '\0',
             })
+            # expandtabs
+          #  pr/    ocessed_input = re.sub(
+          #       '\0(\\[[0;]*m)',
+          #       PyTermor.inverse.wrap('Ǝ') + '\033\\1',
+          #       processed_input
+          #  )
+            processed_input = re.sub(
+                '\0([0-9:;<=>?])([0-9;]*)([@A-Z[\]^_`a-z{|}~])',
+                self._format_escape_sequence,
+                processed_input
+            )
+        #    processed_input = re.sub(
+         #       '(\0)(\\[[;0-9]+m)',
+         #       '\033\\2' + PyTermor.inverse.wrap('ɘ') + '\\2' +  str(PyTermor.RESET),
+         #       processed_input
+         #   )
+         #   processed_input = re.sub(
+        #      '(\0)(\\[[;0-9]+m)',
+        #       str(PyTermor.reset) + PyTermor.inverse.open + PyTermor.gray('ɘ') + '\033\\2' + '\\2' + str(PyTermor.reset),
+        #       processed_input
+        #   )
+            processed_input = re.sub('\0', self._unknown_esq_marker.wrap('ɘ'), processed_input)
 
             formatted_input = "{}{} ".format(
-                self._copty.green.wrap(str(offset + 1)),
-                self._copty.cyan.wrap(':')
+                PyTermor.green.wrap(str(offset + 1)),
+                PyTermor.cyan.wrap(':')
             ) + processed_input
 
             self._writer.write_line(formatted_input)
             offset += 1
 
-    def __format_binary(self, raw_input: bytes, offset: int):
+    def _format_escape_sequence(self, match) -> AnyStr:
+        esq_match = match.group(1)
+        esq_params_splitted = re.split('[^0-9]+', esq_match)
+        esq_params = list(filter(lambda p: p and
+                                           len(p) > 0 and
+                                           p not in Formatter._excluded_content_output_sgr_params,
+                                 esq_params_splitted))
+
+        if len(esq_params) == 0:
+            return PyTermor.inverse.wrap('Ǝ') + str(PyTermor.RESET)
+
+        for i, v in enumerate(esq_params):
+            if i % 2 == 0:
+                esq_params[i] = PyTermor.underline.wrap(v)
+            else:
+                esq_params[i] = PyTermor.overline.wrap(v)
+
+        return PyTermor.inverse.wrap('ɘ') + \
+               ('\033' + esq_match) + \
+               ''.join(esq_params) + \
+               str(PyTermor.RESET)
+
+    def _process_esq(self, m):
+        esq = m.group(1)
+        esq_params = list(filter(lambda p: p, re.split('[^0-9]', esq)))
+        esq_params_packed = ''.join([p +( PyTermor.underline.open if i % 2 == 0 else PyTermor.underline.close) for i, p in enumerate(esq_params)])
+        return PyTermor.inverse.wrap('ɘ')+   '\033' + esq + ''.join(esq_params_packed )+ str(PyTermor.RESET)
+
+    def _format_binary(self, raw_input: bytes, offset: int):
         processed_line_hex = raw_input.hex(" ")
         print(processed_line_hex)
 
-class Reader:
-    _filename: Optional[str]
-    _f : Optional
-    _mode: AppMode
-    _formatter: Formatter
-    _read_chunk_size: int
 
-    def __init__(self, filename: Optional[str], formatter: Formatter):
+class AbstractReader(metaclass=abc.ABCMeta):
+    _filename: Optional[str]
+    _io: Optional
+    _formatter: AbstractFormatter
+    _offset: int = 0
+
+    def __init__(self, filename: Optional[str], formatter: AbstractFormatter):
         self._filename = filename
         self._formatter = formatter
 
-    def read(self, mode: AppMode):
+    def read(self):
+        self._open()
         try:
-            self.__open(mode)
-            if self._f.seekable():
-                self._f.seek(0)
-            if mode == AppMode.TEXT:
-                while raw_input := self._f.readlines(1): # @ReFACtrOR
-                    self._formatter.format(raw_input, self._offset)
-                    self._offset += len(raw_input)
-            elif mode == AppMode.BINARY:
-                while raw_input := self._f.read(1024): # @ReFACtrOR
-                    self._formatter.format(raw_input, self._offset)
-                    self._offset += len(raw_input)
+            self._read_loop()
+        except KeyboardInterrupt:
+            pass
         finally:
-            self.__close()
+            self._close()
 
-    def __open(self, mode: AppMode):  # @ReFACtrOR
-        self._offset = 0
-        if mode == AppMode.TEXT:
-            self._read_chunk_size = 1
-            if self._filename:
-                self._f = open(self._filename, 'rt', newline=os.linesep)
-            else:
-                self._f = sys.stdin
+    @abc.abstractmethod
+    def _open(self) -> None:
+        pass
 
-        elif mode == AppMode.BINARY:
-            self._read_chunk_size = 1024
-            if self._filename:
-                self._f = open(self._filename, 'rb')
-            else:
-                self._f = sys.stdin.buffer #open(sys.stdin.buffer, 'rb')
+    @abc.abstractmethod
+    def _read_loop(self) -> None:
+        pass
+
+    def _close(self):
+        if self._io and not self._io.closed:
+            self._io.close()
 
 
-    def __close(self):
-        if self._f and not self._f.closed:
-            self._f.close()
+class TextReader(AbstractReader):
+    _READ_LINES_COUNT: int = 10
+
+    def __init__(self, filename: Optional[str], formatter: AbstractFormatter):
+        super().__init__(filename, formatter)
+
+    def _open(self) -> None:
+        if self._filename:
+            self._io = open(self._filename, 'rt')
+        else:
+            self._io = sys.stdin
+
+    def _read_loop(self) -> None:
+        while raw_input := self._io.readlines(TextReader._READ_LINES_COUNT):
+            self._formatter.format(raw_input, self._offset)
+            self._offset += len(raw_input)
 
 
-class App:
+class BinaryReader(AbstractReader):
+    _READ_CHUNK_SIZE: int = 1024
+
+    def __init__(self, filename: Optional[str], formatter: AbstractFormatter):
+        super().__init__(filename, formatter)
+
+    def _open(self) -> None:
+        if self._filename:
+            self._io = open(self._filename, 'rb')
+        else:
+            self._io = sys.stdin.buffer
+
+    def _read_loop(self) -> None:
+        while raw_input := self._io.read(BinaryReader._READ_CHUNK_SIZE):
+            self._formatter.format(raw_input, self._offset)
+            self._offset += len(raw_input)
+
+
+class Colombo:
     _args: Namespace
-    _writer: Writer
-    _formatter: Formatter
-    _reader: Reader
 
     def run(self):
         try:
-            self.__invoke()
+            self._invoke()
         except Exception as e:
-            self.__handle(e)
+            self._handle(e)
         exit(0)
 
-    def __invoke(self):
+    def _invoke(self):
         # parse args
-        self._writer = Writer()
-        self._formatter = Formatter(self._writer)
-        self._reader = Reader(
+        writer = Writer()
+        reader = TextReader(
             sys.argv[1] if len(sys.argv) > 1 else None,
-            self._formatter
+            Formatter(writer)
         )
-        try:
-            self._reader.read(AppMode.TEXT)
-        except UnicodeDecodeError:
-            self._reader.read(AppMode.BINARY)
+        reader.read()
 
-    def __handle(self, e: Exception):
-        #if self.args.verbose:
-        self.__log_traceback(e)  # TODO logging
+    def _handle(self, e: Exception):
+        # if self.args.verbose:
+        self._log_traceback(e)  # TODO logging
         print(str(e), file=sys.stderr)
         exit(1)
 
-    def __log_traceback(self, e: Exception):
+    def _log_traceback(self, e: Exception):
         ex_traceback = e.__traceback__
         tb_lines = [line.rstrip('\n') for line in traceback.format_exception(e.__class__, e, ex_traceback)]
         print("\n".join(tb_lines), file=sys.stderr)
 
 
 if __name__ == '__main__':
-    App().run()
+    Colombo().run()
