@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 import abc
-import os
 import re
 import sys
 import traceback
-from argparse import Namespace
-from enum import Enum
-from functools import reduce
 from typing import IO, AnyStr, Optional, List, Union
+
+from pytermor.format import Format
+from pytermor.pytermor import PyTermor
+from pytermor.sequence import SGRSequence, Preset
 
 
 # ------------------------------------------------------------------------------
@@ -22,248 +22,107 @@ from typing import IO, AnyStr, Optional, List, Union
 
 # _cs 48 05 26
 
-
-class SGRParam(Enum):
-    RESET = 0
-    BOLD = 1
-    DIM = 2
-    ITALIC = 3
-    UNDERLINED = 4
-    BLINK_SLOW = 5
-    BLINK_FAST = 6
-    INVERSED = 7
-    HIDDEN = 8
-    CROSSLINED = 9
-    UNDERLINED_X2 = 21
-    OVERLINED = 53
-
-    DIM_BOLD_OFF = 22
-    ITALIC_OFF = 23
-    UNDERLINED_OFF = 24
-    BLINK_OFF = 25
-    INVERSED_OFF = 27
-    HIDDEN_OFF = 28
-    CROSSLINED_OFF = 29
-    OVERLINED_OFF = 55
-
-    BLACK = 30
-    RED = 31
-    GREEN = 32
-    YELLOW = 33
-    BLUE = 34
-    MAGNETA = 35
-    CYAN = 36
-    WHITE = 37
-
-    BG_BLACK = 40
-    BG_RED = 41
-    BG_GREEN = 42
-    BG_YELLOW = 43
-    BG_BLUE = 44
-    BG_MAGNETA = 45
-    BG_CYAN = 46
-    BG_WHITE = 47
-
-    GRAY = 90
-    HI_RED = 91
-    HI_GREEN = 92
-    HI_YELLOW = 93
-    HI_BLUE = 94
-    HI_MAGNETA = 95
-    HI_CYAN = 96
-    HI_WHITE = 97
-
-    TEXT_COLOR_OFF = 39
-    BG_COLOR_OFF = 49
-
-
-class Sequence:
-    _payload: AnyStr
-
-    def __init__(self, payload: AnyStr):
-        self._payload = payload
-
-    def __str__(self):
-        return self._payload
-
-    def __add__(self, other: Sequence) -> Sequence:
-        return Sequence(self._payload + (str(other)))
-
-
-class SGRSequnce(Sequence):
-    _INTRODUCER = '\033['
-    _TERMINATOR = 'm'
-
-    def __init__(self, params_raw: Union[int, Enum[int], str, List]):
-        super().__init__(self._build_sgr_sequence(params_raw))
-
-    def _build_sgr_sequence(self, params_raw: Union[int, Enum[int], str, List]) -> AnyStr:
-        return '{}{}{}'.format(self._INTRODUCER, ';'.join(self._normalize_params(params_raw)), self._TERMINATOR)
-
-    def _normalize_params(self, params_raw: Union[int, SGRParam, str, List]) -> List[str]:
-        if type(params_raw) is list:
-            norm_params = params_raw
-        else:
-            norm_params = [params_raw]
-
-        norm_params = list(map(self._map_param, norm_params))
-        norm_params = list(filter(lambda p: len(p) > 0 and p != '0', norm_params))
-        return norm_params
-
-    def _map_param(self, param_raw: Union[int, SGRParam, str]) -> AnyStr:
-        if type(param_raw) in (int, str):
-            return str(param_raw)
-        elif type(param_raw) is SGRParam:
-            return str(param_raw.value)
-        raise RuntimeError("Illegal seq param type {}".format(type(param_raw)))
-
-
-class SequenceEnclosing:
-    _lead: Sequence
-    _paloyad: AnyStr
-    _trail: Optional[Sequence]
-
-    def __init__(self, lead: Sequence, trail: Optional[Sequence] = None, value: AnyStr = None):
-        self._lead = lead
-        self._trail = trail
-        self._payload = value
-
-    def wrap(self, payload_override: Optional[AnyStr] = None) -> AnyStr:
-        if payload_override:
-            return self.open + payload_override + self.close
-        if self._payload:
-            return self.open + self._payload + self.close
-        return self.open + self.close
-
-    @property
-    def open(self):
-        return str(self._lead)
-
-    @property
-    def close(self):
-        return str(self._trail) if self._trail else ''
-
-
-class PyTermor:
-    RESET = SGRSequnce(SGRParam.RESET)
-    TEXT_COLOR_OFF = SGRSequnce(SGRParam.TEXT_COLOR_OFF)
-
-    dim = SequenceEnclosing(SGRSequnce(SGRParam.DIM), SGRSequnce(SGRParam.DIM_BOLD_OFF))
-    inverse = SequenceEnclosing(SGRSequnce(SGRParam.INVERSED), SGRSequnce(SGRParam.INVERSED_OFF))
-    underline = SequenceEnclosing(SGRSequnce(SGRParam.UNDERLINED), SGRSequnce(SGRParam.UNDERLINED_OFF))
-    overline = SequenceEnclosing(SGRSequnce(SGRParam.OVERLINED), SGRSequnce(SGRParam.OVERLINED_OFF))
-    red = SequenceEnclosing(SGRSequnce(SGRParam.RED), TEXT_COLOR_OFF)
-    yellow = SequenceEnclosing(SGRSequnce(SGRParam.YELLOW), TEXT_COLOR_OFF)
-    green = SequenceEnclosing(SGRSequnce(SGRParam.GREEN), TEXT_COLOR_OFF)
-    cyan = SequenceEnclosing(SGRSequnce(SGRParam.CYAN), TEXT_COLOR_OFF)
-    gray = SequenceEnclosing(SGRSequnce(SGRParam.GRAY), TEXT_COLOR_OFF)
-
-
 class Writer:
-    _f: IO
-
     def __init__(self):
-        self._f = sys.stdout
+        self._io_primary: IO = sys.stdout
+        self._io_support: IO = sys.stderr
 
-    def write_line(self, formatted_line):
-        self._f.write(formatted_line)
+    def write_line(self, output_line: AnyStr, helper_line: AnyStr):
+        self._io_primary.write(output_line)
+
+        if Colombo.ORIGINAL_STDERR:
+            self._io_support.write(helper_line)
+            self._io_support.write('-' * 80 + '\n')
+            self._io_primary.flush()
+            self._io_support.flush()
 
 
-class AbstractFormatter:
-    pass
+class AbstractFormatter(metaclass=abc.ABCMeta):
+    @abc.abstractmethod
+    def format(self, raw_input: Union[AnyStr, List[AnyStr]], offset: int):
+        pass
 
 
-class Formatter(AbstractFormatter):
-    _writer: Writer
+class TextFormatter(AbstractFormatter):
+    _space_marker = Format(Preset.GRAY, Preset.RESET).wrap('\u00b7')  # ·    # 2423 ␣
+    _newline_marker = Format(Preset.GRAY, Preset.RESET).wrap('\u21b5')  # ↵
+    _null_marker = Format\
+        (Preset.INVERSED + Preset.RED)\
+        .wrap('\u00d8')  # Ø
 
-    _excluded_content_output_sgr_params: list = list(map(lambda v: str(v.value), [
-        SGRParam.RESET, SGRParam.INVERSED, SGRParam.INVERSED_OFF
-    ]))
-    _unknown_esq_marker: SequenceEnclosing = \
-        SequenceEnclosing(SGRSequnce([SGRParam.BG_BLACK, SGRParam.HI_YELLOW, SGRParam.INVERSED]), PyTermor.RESET)
+    _reset_esq_maker = Format\
+        (Preset.RESET + Preset.INVERSED + PyTermor.build_text256_seq(231), Preset.RESET)\
+        .wrap('\u018e')  # Ǝ
+
+    _known_esq_marker_format = Format(Preset.INVERSED, Preset.INVERSED_OFF)
+    _known_esq_marker = Preset.RESET.str + _known_esq_marker_format.wrap('\u0258')  # ɘ
+
+    _unknown_esq_marker = Format(
+        Preset.INVERSED + Preset.HI_YELLOW + Preset.BG_BLACK)\
+            .wrap('\u03f4')  # ϴ
 
     def __init__(self, _writer: Writer):
         self._writer = _writer
 
-    def format(self, raw_input, offset):
-        if type(raw_input) is str or type(raw_input) is list:
-            self._format_text(raw_input, offset)
-        elif type(raw_input) is bytes:
-            self._format_binary(raw_input, offset)
-        else:
-            raise NotImplementedError(type(raw_input))
-
-    def _format_text(self, raw_input: Union[str, List[str]], offset: int):
+    def format(self, raw_input: Union[str, List[str]], offset: int):
         if type(raw_input) is str:
             raw_input = [raw_input]
 
         for raw_input_line in raw_input:
             processed_input = raw_input_line.translate({
-                0x20: '\u2423',
-                0x0a: PyTermor.gray.open + PyTermor.inverse.wrap('\u21b5') + str(PyTermor.TEXT_COLOR_OFF) + '\u000a',
-                0x00: PyTermor.red.wrap('\u00d8'),
+                0x20: self._space_marker, # @TODO OPTIMIZE OMFG
+                0x0a: self._newline_marker + '\u000a',  # actual newline
+                0x00: self._null_marker,
                 0x1b: '\0',
             })
-            # expandtabs
-          #  pr/    ocessed_input = re.sub(
-          #       '\0(\\[[0;]*m)',
-          #       PyTermor.inverse.wrap('Ǝ') + '\033\\1',
-          #       processed_input
-          #  )
+            # @TODO expandtabs
             processed_input = re.sub(
-                '\0\\[([0-9:;<=>?])([0-9;]*)([@A-Z\\[\\]^_`a-z{|}~])',
+                '\0(\\[)([0-9;:<=>?]*)([@A-Za-z\\[])',  # group 3 : 0x40–0x7E ASCII      @A–Z[\]^_`a–z{|}~
                 self._format_escape_sequence,
                 processed_input
             )
-        #    processed_input = re.sub(
-         #       '(\0)(\\[[;0-9]+m)',
-         #       '\033\\2' + PyTermor.inverse.wrap('ɘ') + '\\2' +  str(PyTermor.RESET),
-         #       processed_input
-         #   )
-         #   processed_input = re.sub(
-        #      '(\0)(\\[[;0-9]+m)',
-        #       str(PyTermor.reset) + PyTermor.inverse.open + PyTermor.gray('ɘ') + '\033\\2' + '\\2' + str(PyTermor.reset),
-        #       processed_input
-        #   )
-            processed_input = re.sub('\0', self._unknown_esq_marker.wrap('ɘ'), processed_input)
+            processed_input = re.sub('\0', self._unknown_esq_marker, processed_input)
 
-            formatted_input = "{}{} ".format(
-                PyTermor.green.wrap(str(offset + 1)),
-                PyTermor.cyan.wrap(':')
-            ) + processed_input
+            line_no = PyTermor.green.wrap('{0:2d}'.format(offset + 1)) + \
+                      PyTermor.cyan.wrap('\u2502')
+            formatted_input = line_no + processed_input
+            aligned_raw_input = (PyTermor.sanitize(line_no)) + raw_input_line
 
-            self._writer.write_line(formatted_input)
+            self._writer.write_line(formatted_input, aligned_raw_input)
             offset += 1
 
     def _format_escape_sequence(self, match) -> AnyStr:
-        esq_match = match.group(1)
+        esq_match = match.group(2)
         esq_params_splitted = re.split('[^0-9]+', esq_match)
-        esq_params = list(filter(lambda p: p and
-                                           len(p) > 0 and
-                                           p not in Formatter._excluded_content_output_sgr_params,
-                                 esq_params_splitted))
+        esq_params_values = list(filter(lambda p: len(p) > 0 and p != '0', esq_params_splitted))
+        if len(esq_params_values) == 0:
+            return self._reset_esq_maker
 
-        if len(esq_params) == 0:
-            return PyTermor.inverse.wrap('Ǝ') + str(PyTermor.RESET)
+        if Colombo.ESQ_INFO_LEVEL == 0:
+            esq_params_formatted = match.group(3)
+        elif Colombo.ESQ_INFO_LEVEL == 1:
+            esq_params_formatted = ';'.join(esq_params_values)
+        else:
+            esq_params_formatted = match.group(1) + ';'.join(esq_params_values) + match.group(3)
 
-        for i, v in enumerate(esq_params):
-            if i % 2 == 0:
-                esq_params[i] = PyTermor.underline.wrap(v)
-            else:
-                esq_params[i] = PyTermor.overline.wrap(v)
+        esq_marker = self._known_esq_marker
+        esq_marker_params = self._known_esq_marker_format.wrap(esq_params_formatted)
+        esq_actual = Format(SGRSequence(*esq_params_values), Preset.RESET)
 
-        return PyTermor.inverse.wrap('ɘ') + \
-               ('\033' + esq_match) + \
-               ''.join(esq_params) + \
-               str(PyTermor.RESET)
+        if Colombo.CONTENT_DIRECT_COLORIZING:
+            # even though we allow to colorize content, we'll explicitly disable any inversion
+            # effect to guarantee that the only inversed things on the screen are our markers
+            result = esq_marker + esq_marker_params + esq_actual.open + Preset.INVERSED_OFF.str
+        else:
+            result = esq_marker + esq_actual.open + esq_marker_params + esq_actual.close
+        return result
 
-    def _process_esq(self, m):
-        esq = m.group(1)
-        esq_params = list(filter(lambda p: p, re.split('[^0-9]', esq)))
-        esq_params_packed = ''.join([p +( PyTermor.underline.open if i % 2 == 0 else PyTermor.underline.close) for i, p in enumerate(esq_params)])
-        return PyTermor.inverse.wrap('ɘ')+   '\033' + esq + ''.join(esq_params_packed )+ str(PyTermor.RESET)
 
-    def _format_binary(self, raw_input: bytes, offset: int):
+class BinaryFormatter(AbstractFormatter):
+    def __init__(self, _writer: Writer):
+        self._writer = _writer
+
+    def format(self, raw_input: bytes, offset: int):
         processed_line_hex = raw_input.hex(" ")
         print(processed_line_hex)
 
@@ -337,13 +196,20 @@ class BinaryReader(AbstractReader):
 
 
 class Colombo:
-    _args: Namespace
+    ORIGINAL_STDERR = False
+    CONTENT_DIRECT_COLORIZING = True
+    ESQ_INFO_LEVEL = 1
+    FOCUS_WHITESPACE = False
+    VERBOSE = True
+    BINARY = False
 
     def run(self):
+        _hanlder = ExceptionHandler()
         try:
             self._invoke()
         except Exception as e:
-            self._handle(e)
+            _hanlder.handle(e)
+        print()
         exit(0)
 
     def _invoke(self):
@@ -351,20 +217,37 @@ class Colombo:
         writer = Writer()
         reader = TextReader(
             sys.argv[1] if len(sys.argv) > 1 else None,
-            Formatter(writer)
+            TextFormatter(writer)
         )
-        reader.read()
+        try:
+            reader.read()
+        except UnicodeDecodeError:
+            if not self.BINARY:
+                print('Binary data detected, use -b flag to run in binary mode')
+            else:
+                raise
 
-    def _handle(self, e: Exception):
-        # if self.args.verbose:
-        self._log_traceback(e)  # TODO logging
-        print(str(e), file=sys.stderr)
+
+class ExceptionHandler:
+    def __init__(self):
+        self.format: Format = Format(Preset.RED)
+
+    def handle(self, e: Exception):
+        if Colombo.VERBOSE:
+            self._log_traceback(e)
+        else:
+            self._write(str(e))
         exit(1)
+
+    def _write(self, s: str):
+        print(self.format.wrap(s), file=sys.stderr)
 
     def _log_traceback(self, e: Exception):
         ex_traceback = e.__traceback__
-        tb_lines = [line.rstrip('\n') for line in traceback.format_exception(e.__class__, e, ex_traceback)]
-        print("\n".join(tb_lines), file=sys.stderr)
+        tb_lines = [line.rstrip('\n')
+                    for line
+                    in traceback.format_exception(e.__class__, e, ex_traceback)]
+        self._write("\n".join(tb_lines))
 
 
 if __name__ == '__main__':
