@@ -211,7 +211,7 @@ class Formatter(AbstractFormatter):
           #       processed_input
           #  )
             processed_input = re.sub(
-                '\0([0-9:;<=>?])([0-9;]*)([@A-Z[\]^_`a-z{|}~])',
+                '\0\\[([0-9:;<=>?])([0-9;]*)([@A-Z\\[\\]^_`a-z{|}~])',
                 self._format_escape_sequence,
                 processed_input
             )
