@@ -3,15 +3,13 @@
 from __future__ import annotations
 
 import abc
+import os
 import re
 import sys
 import traceback
-from typing import IO, AnyStr, Optional, List, Union
-
-from pytermor.format import Format
-from pytermor.pytermor import PyTermor
-from pytermor.sequence import SGRSequence, Preset
-
+from typing import IO, AnyStr, Optional, List, Union, Match
+from pytermor import sanitize
+from pytermor.preset import *
 
 # ------------------------------------------------------------------------------
 # echo "   ______      __                __"
@@ -21,6 +19,7 @@ from pytermor.sequence import SGRSequence, Preset
 # echo "\____/\____/_/\____/_/ /_/ /_/_.___/\____/"
 
 # _cs 48 05 26
+
 
 class Writer:
     def __init__(self):
@@ -43,79 +42,144 @@ class AbstractFormatter(metaclass=abc.ABCMeta):
         pass
 
 
+class Marker:
+    @staticmethod
+    def make(marker_char: str, opening_seq: Optional[SGRSequence] = None) -> str:
+        return RESET.str + \
+               (opening_seq.str if opening_seq else '') + \
+               marker_char + \
+               RESET.str
+
+
+class MarkerWithInfo(Marker):
+    def __init__(self, marker_char: str, opening_seq: SGRSequence):
+        self._fmt = Format(opening_seq + OVERLINED, reset=True)
+        self._fmt_focus = Format(opening_seq + INVERSED + BG_BLACK, reset=True)
+        self._marker_char_str = marker_char
+
+    def print(self, additional_info: str = '', focused: bool = False):
+        fmt = self._fmt_focus if focused else self._fmt
+        return RESET.str + fmt(self._marker_char_str + additional_info)
+
+
+class SGRMarker(MarkerWithInfo):
+    def __init__(self, marker_char: str):
+        super(SGRMarker, self).__init__(marker_char, HI_WHITE)
+
+    def print(self, additional_info: str = '', seq: SGRSequence = None):
+        fmt = self._fmt_focus if Colombo.FOCUS_CONTROL_SEQUNCE else self._fmt
+
+        result = RESET.str
+        if Colombo.SGR_INFO_COLORIZING:
+            result += fmt(self._marker_char_str) + seq.str + BLINK_OFF.str + fmt_overline(additional_info)
+        else:
+            result += fmt(self._marker_char_str + additional_info) + seq.str
+
+        if Colombo.CONTENT_DIRECT_COLORIZING:
+            # even though we allow to colorize content, we'll explicitly disable any inversion and overline
+            #  effect to guarantee that the only inversed and/or overlined things on the screen are our markers
+            # also disable blinking
+            result += INVERSED_OFF.str + OVERLINED_OFF.str + BLINK_OFF.str  # ... content
+        else:
+            result += RESET.str  # ... content
+        return result
+
+
+class TextFormatRegistry:
+    import pytermor
+
+    marker_null = Marker.make('Ø', INVERSED + RED)
+    marker_space = Marker.make('·', GRAY)
+    marker_space_focus = Marker.make('␣', HI_BLUE + BG_BLACK)
+    marker_newline = Marker.make('↵', GRAY)
+    marker_newline_focus = Marker.make('↵', BOLD + HI_CYAN + BG_BLACK)
+
+    marker_sgr_reset = MarkerWithInfo('ϴ', pytermor.build_text256_seq(231))
+    marker_sgr = SGRMarker('ǝ')
+    marker_csi = MarkerWithInfo('Ͻ', HI_BLUE)
+    marker_nf = MarkerWithInfo('ꟻ', HI_CYAN)
+    marker_esq = MarkerWithInfo('Ǝ', HI_YELLOW)
+
+
 class TextFormatter(AbstractFormatter):
-    _space_marker = Format(Preset.GRAY, Preset.RESET).wrap('\u00b7')  # ·    # 2423 ␣
-    _newline_marker = Format(Preset.GRAY, Preset.RESET).wrap('\u21b5')  # ↵
-    _null_marker = Format\
-        (Preset.INVERSED + Preset.RED)\
-        .wrap('\u00d8')  # Ø
-
-    _reset_esq_maker = Format\
-        (Preset.RESET + Preset.INVERSED + PyTermor.build_text256_seq(231), Preset.RESET)\
-        .wrap('\u018e')  # Ǝ
-
-    _known_esq_marker_format = Format(Preset.INVERSED, Preset.INVERSED_OFF)
-    _known_esq_marker = Preset.RESET.str + _known_esq_marker_format.wrap('\u0258')  # ɘ
-
-    _unknown_esq_marker = Format(
-        Preset.INVERSED + Preset.HI_YELLOW + Preset.BG_BLACK)\
-            .wrap('\u03f4')  # ϴ
-
     def __init__(self, _writer: Writer):
         self._writer = _writer
 
     def format(self, raw_input: Union[str, List[str]], offset: int):
+        from pytermor.preset import fmt_green, fmt_cyan
         if type(raw_input) is str:
             raw_input = [raw_input]
 
         for raw_input_line in raw_input:
             processed_input = raw_input_line.translate({
-                0x20: self._space_marker, # @TODO OPTIMIZE OMFG
-                0x0a: self._newline_marker + '\u000a',  # actual newline
-                0x00: self._null_marker,
+                0x20: TextFormatRegistry.marker_space,  # @TODO OPTIMIZE OMFG
+                0x0a: TextFormatRegistry.marker_newline + '\u000a',  # actual newline
+                0x00: TextFormatRegistry.marker_null,
                 0x1b: '\0',
             })
             # @TODO expandtabs
+
+            # 1) process SGR: 0[...m (e/E)
+            # 2) process CSI: 0[...? (theta)
+            # 3) process generic: 0? (ae)
+
             processed_input = re.sub(
                 '\0(\\[)([0-9;:<=>?]*)([@A-Za-z\\[])',  # group 3 : 0x40–0x7E ASCII      @A–Z[\]^_`a–z{|}~
-                self._format_escape_sequence,
+                self._format_csi_sequence,
                 processed_input
             )
-            processed_input = re.sub('\0', self._unknown_esq_marker, processed_input)
+            processed_input = re.sub(  # nF Escape sequences
+                '\0([\x20-\x2f]+)([\x30-\x7e])',
+                lambda m: self._format_generic_escape_sequence(m, TextFormatRegistry.marker_nf),
+                processed_input,
+            )
+            processed_input = re.sub(  # group 1 : 0x20-0x7E
+                '\0(.)()',
+                lambda m: self._format_generic_escape_sequence(m, TextFormatRegistry.marker_esq),
+                processed_input
+            )
 
-            line_no = PyTermor.green.wrap('{0:2d}'.format(offset + 1)) + \
-                      PyTermor.cyan.wrap('\u2502')
+            line_no = ''
+            if Colombo.LINE_NUMBERS:
+                fmt_green('{0:2d}'.format(offset + 1)) + fmt_cyan('\u2502')
+
             formatted_input = line_no + processed_input
-            aligned_raw_input = (PyTermor.sanitize(line_no)) + raw_input_line
+            aligned_raw_input = (sanitize(line_no)) + raw_input_line
 
             self._writer.write_line(formatted_input, aligned_raw_input)
             offset += 1
 
-    def _format_escape_sequence(self, match) -> AnyStr:
-        esq_match = match.group(2)
-        esq_params_splitted = re.split('[^0-9]+', esq_match)
-        esq_params_values = list(filter(lambda p: len(p) > 0 and p != '0', esq_params_splitted))
-        if len(esq_params_values) == 0:
-            return self._reset_esq_maker
+    def _format_csi_sequence(self, match: Match) -> AnyStr:
+        introducer = match.group(1)  # e.g. '['
+        params = match.group(2)  # e.g. '1;7'
+        terminator = match.group(3)  # e.g. 'm'
 
-        if Colombo.ESQ_INFO_LEVEL == 0:
-            esq_params_formatted = match.group(3)
-        elif Colombo.ESQ_INFO_LEVEL == 1:
-            esq_params_formatted = ';'.join(esq_params_values)
+        params_splitted = re.split('[^0-9;:<=>?]+', params)
+        params_values = list(filter(lambda p: len(p) > 0 and p != '0', params_splitted))
+
+        info = ''
+        if Colombo.ESQ_INFO_LEVEL >= 1:
+            info += SGRSequence.SEPARATOR.join(params_values)
+        if Colombo.ESQ_INFO_LEVEL >= 2:
+            info = introducer + info + terminator
+
+        if terminator == SGRSequence.TERMINATOR:
+            if len(params_values) == 0:
+                return TextFormatRegistry.marker_sgr_reset.print(focused=Colombo.FOCUS_CONTROL_SEQUNCE)
+            return TextFormatRegistry.marker_sgr.print(info, SGRSequence(*params_values))
         else:
-            esq_params_formatted = match.group(1) + ';'.join(esq_params_values) + match.group(3)
+            return TextFormatRegistry.marker_csi.print(info, Colombo.FOCUS_CONTROL_SEQUNCE)
 
-        esq_marker = self._known_esq_marker
-        esq_marker_params = self._known_esq_marker_format.wrap(esq_params_formatted)
-        esq_actual = Format(SGRSequence(*esq_params_values), Preset.RESET)
+    def _format_generic_escape_sequence(self, match: Match, marker: MarkerWithInfo) -> AnyStr:
+        introducer = match.group(1)  # e.g. '('
+        additional = match.group(2)  # e.g. 'B'
+        info = ''
+        if Colombo.ESQ_INFO_LEVEL >= 1:
+            info += introducer
+        if Colombo.ESQ_INFO_LEVEL >= 2:
+            info += additional
 
-        if Colombo.CONTENT_DIRECT_COLORIZING:
-            # even though we allow to colorize content, we'll explicitly disable any inversion
-            # effect to guarantee that the only inversed things on the screen are our markers
-            result = esq_marker + esq_marker_params + esq_actual.open + Preset.INVERSED_OFF.str
-        else:
-            result = esq_marker + esq_actual.open + esq_marker_params + esq_actual.close
-        return result
+        return marker.print(info, Colombo.FOCUS_CONTROL_SEQUNCE)
 
 
 class BinaryFormatter(AbstractFormatter):
@@ -196,11 +260,14 @@ class BinaryReader(AbstractReader):
 
 
 class Colombo:
-    ORIGINAL_STDERR = False
-    CONTENT_DIRECT_COLORIZING = True
-    ESQ_INFO_LEVEL = 1
-    FOCUS_WHITESPACE = False
-    VERBOSE = True
+    ORIGINAL_STDERR = os.environ.get('ORIGINAL_STDERR', False)
+    CONTENT_DIRECT_COLORIZING = os.environ.get('CONTENT_DIRECT_COLORIZING', False)
+    SGR_INFO_COLORIZING = os.environ.get('SGR_INFO_COLORIZING', False)
+    ESQ_INFO_LEVEL = int(os.environ.get('ESQ_INFO_LEVEL', 1))
+    FOCUS_CONTROL_SEQUNCE = os.environ.get('FOCUS_CONTROL_SEQUNCE', False)
+    FOCUS_WHITESPACE = os.environ.get('FOCUS_WHITESPACE', False)
+    LINE_NUMBERS = os.environ.get('LINE_NUMBERS', False)
+    VERBOSE = os.environ.get('VERBOSE', False)
     BINARY = False
 
     def run(self):
@@ -230,7 +297,7 @@ class Colombo:
 
 class ExceptionHandler:
     def __init__(self):
-        self.format: Format = Format(Preset.RED)
+        self.format: Format = fmt_red
 
     def handle(self, e: Exception):
         if Colombo.VERBOSE:
@@ -240,7 +307,7 @@ class ExceptionHandler:
         exit(1)
 
     def _write(self, s: str):
-        print(self.format.wrap(s), file=sys.stderr)
+        print(self.format(s), file=sys.stderr)
 
     def _log_traceback(self, e: Exception):
         ex_traceback = e.__traceback__
