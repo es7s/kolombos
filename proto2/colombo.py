@@ -8,7 +8,7 @@ import os.path
 import re
 import sys
 import traceback
-from argparse import Namespace
+from argparse import Namespace, SUPPRESS
 from typing import IO, AnyStr, Optional, List, Union, Match
 
 import pytermor
@@ -170,24 +170,29 @@ class TextFormatter(AbstractFormatter):
 
         for raw_input_line in raw_input:
             translation_map = {
-                0x00: TextFormatRegistry.marker_null.print(),
-                0x07: TextFormatRegistry.marker_bell.print(),
-                0x08: TextFormatRegistry.marker_backspace.print(),
-                0x09: TextFormatRegistry.marker_tab.print(),
-                0x0b: TextFormatRegistry.marker_vert_tab.print(),
-                0x0c: TextFormatRegistry.marker_form_feed.print(),
-                0x0d: TextFormatRegistry.marker_car_return.print(),
-                0x0a: TextFormatRegistry.marker_newline.print() + '\x0a',  # actual newline
                 0x1b: '\0',
-                0x7f: TextFormatRegistry.marker_delete.print(),
             }
+            if Settings.PRINT_WHITESPACE_MARKER:
+                translation_map.update({
+                    0x09: TextFormatRegistry.marker_tab.print(),
+                    0x0b: TextFormatRegistry.marker_vert_tab.print(),
+                    0x0c: TextFormatRegistry.marker_form_feed.print(),
+                    0x0d: TextFormatRegistry.marker_car_return.print(),
+                    0x0a: TextFormatRegistry.marker_newline.print() + '\x0a',  # actual newline
+                })
+            if Settings.PRINT_CONTROL_MARKER:
+                translation_map.update({
+                    0x00: TextFormatRegistry.marker_null.print(),
+                    0x07: TextFormatRegistry.marker_bell.print(),
+                    0x08: TextFormatRegistry.marker_backspace.print(),
+                    0x7f: TextFormatRegistry.marker_delete.print(),
+                })
+                for i in (list(range(0x01, 0x07)) + list(range(0x0e, 0x20))):
+                    if i == 0x1b:
+                        continue
+                    translation_map[i] = TextFormatRegistry.tpl_marker_ascii_ctrl.print(re.sub('0x0?', '', hex(i)))
 
-            for i in (list(range(0x01, 0x07)) + list(range(0x0e, 0x20))):
-                if i == 0x1b:
-                    continue
-                translation_map[i] = TextFormatRegistry.tpl_marker_ascii_ctrl.print(re.sub('0x0?', '', hex(i)))
             processed_input = raw_input_line.translate(translation_map)
-
             processed_input = re.sub(  # CSI sequences
                 '\0(\\[)([0-9;:<=>?]*)([@A-Za-z\\[])',  # group 3 : 0x40–0x7E ASCII      @A–Z[\]^_`a–z{|}~
                 self._format_csi_sequence,
@@ -203,12 +208,13 @@ class TextFormatter(AbstractFormatter):
                 lambda m: self._format_generic_escape_sequence(m, TextFormatRegistry.marker_escape),
                 processed_input
             )
-            processed_input = re.sub(
-               '(\x20+)',
-               lambda m: MarkerWhitespace.fmt(m.group(1)),
-               processed_input
-            )
-            processed_input = re.sub('\x20', TextFormatRegistry.marker_space.print(), processed_input)
+            if Settings.PRINT_WHITESPACE_MARKER:
+                processed_input = re.sub(
+                   '(\x20+)',
+                   lambda m: MarkerWhitespace.fmt(m.group(1)),
+                   processed_input
+                )
+                processed_input = re.sub('\x20', TextFormatRegistry.marker_space.print(), processed_input)
 
             prefix = ''
             if Settings.LINE_NUMBERS:
@@ -228,6 +234,11 @@ class TextFormatter(AbstractFormatter):
         params_splitted = re.split('[^0-9;:<=>?]+', params)
         params_values = list(filter(lambda p: len(p) > 0 and p != '0', params_splitted))
 
+        if not Settings.PRINT_SEQUENCE_MARKER:
+            if terminator == SGRSequence.TERMINATOR and not Settings.DISABLE_CONTEXT_COLORS:
+                return SGRSequence(*params_values).str
+            return ''
+
         info = ''
         if Settings.ESQ_INFO_LEVEL >= 1:
             info += SGRSequence.SEPARATOR.join(params_values)
@@ -242,6 +253,9 @@ class TextFormatter(AbstractFormatter):
             return TextFormatRegistry.marker_esc_csi.print(info)
 
     def _format_generic_escape_sequence(self, match: Match, marker: MarkerEscapeSeq) -> AnyStr:
+        if not Settings.PRINT_SEQUENCE_MARKER:
+            return ''
+
         introducer = match.group(1)  # e.g. '('
         additional = match.group(2)  # e.g. 'B'
         if introducer == ' ':
@@ -340,6 +354,9 @@ class Settings:
     FOCUS_SEQUENCE: bool
     FOCUS_CONTROL: bool
     FOCUS_WHITESPACE: bool
+    PRINT_SEQUENCE_MARKER: bool
+    PRINT_CONTROL_MARKER: bool
+    PRINT_WHITESPACE_MARKER: bool
     LINE_NUMBERS: bool
     ESQ_INFO_LEVEL: int
     DISABLE_SGR_PARAM_COLORS: bool
@@ -348,14 +365,18 @@ class Settings:
 
     @staticmethod
     def from_args(args: Namespace):
-        Settings.FOCUS_SEQUENCE = args.sequence_focus
-        Settings.FOCUS_CONTROL = args.control_focus
-        Settings.FOCUS_WHITESPACE = args.whitespace_focus
+        Settings.FOCUS_SEQUENCE = args.focus_esq
+        Settings.FOCUS_CONTROL = args.focus_control
+        Settings.FOCUS_WHITESPACE = args.focus_space
+        Settings.PRINT_SEQUENCE_MARKER = not args.no_esq
+        Settings.PRINT_CONTROL_MARKER = not args.no_control
+        Settings.PRINT_WHITESPACE_MARKER = not args.no_space
+
         Settings.LINE_NUMBERS = args.line_number
-        Settings.ESQ_INFO_LEVEL = args.seq_info
-        Settings.DISABLE_SGR_PARAM_COLORS = args.no_color_info
-        Settings.DISABLE_CONTEXT_COLORS = args.no_color_context
-        Settings.PIPE_INPUT_TO_STDERR = args.pipe_input
+        Settings.ESQ_INFO_LEVEL = args.info
+        Settings.DISABLE_SGR_PARAM_COLORS = args.no_color_mark
+        Settings.DISABLE_CONTEXT_COLORS = args.no_color_content
+        Settings.PIPE_INPUT_TO_STDERR = args.pipe_stderr
 
 
 class Colombo:
@@ -372,26 +393,37 @@ class Colombo:
 
     def _invoke(self):
         parser = argparse.ArgumentParser(
-            description='Control characters and escape sequences visualiser',
-            epilog='If FILE is not supplied or is "-", read standard input.',
-            formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=27)
+            description='control characters and escape sequences visualiser',
+            epilog='example: colombo -e -i 2 --no-space file.txt',
+            add_help=False,
+            formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=30)
         )
-        parser.add_argument('filename', metavar='FILE', nargs='?', help='file to read from')
-        parser.add_argument('-b', '--binary', action='store_true', default=False, help='open file in binary mode (default is text mode)')
-        parser.add_argument('-t', '--text', action='store_true', default=True, help='open file in text mode (this is the default)')
-        parser.add_argument('-s', '--sequence-focus', action='store_true', default=False, help='highlight escape sequences')
-        parser.add_argument('-c', '--control-focus', action='store_true', default=False, help='highlight control characters')
-        parser.add_argument('-w', '--whitespace-focus', action='store_true', default=False, help='highlight whitespace characters')
-        parser.add_argument('--legend', action='store_true', help='show annotation symbols list')
+        modes_group = parser.add_argument_group('mode selection')
+        modes_group.add_argument('-t', '--text', action='store_true', default=True, help='open file in text mode (this is the default)')
+        modes_group.add_argument('-b', '--binary', action='store_true', default=False, help='open file in binary mode')
+        modes_group.add_argument('-l', '--legend', action='store_true', help='show annotation symbol list and exit')
+        modes_group.add_argument('-h', '--help', action='help', default=SUPPRESS, help='show this help message and exit')
+
+        generic_group = parser.add_argument_group('generic options')
+        generic_group.add_argument('filename', metavar='<file>', nargs='?', help='file to read from; if empty or "-", read stdin instead')
+        generic_group.add_argument('-e', '--focus-esq', action='store_true', default=False, help='highlight escape sequences markers')
+        generic_group.add_argument('-c', '--focus-control', action='store_true', default=False, help='highlight control char markers')
+        generic_group.add_argument('-s', '--focus-space', action='store_true', default=False, help='highlight whitespace markers')
+        generic_group.add_argument('--no-esq', action='store_true', default=False, help='do not print escape sequence markers')
+        generic_group.add_argument('--no-control', action='store_true', default=False, help='do not print control char markers')
+        generic_group.add_argument('--no-space', action='store_true', default=False, help='do not print whitespace markers')
+
         text_mode_group = parser.add_argument_group('text mode only')
-        text_mode_group.add_argument('-l', '--line-number', action='store_true', default=False, help='print output line numbers (text mode)')
-        text_mode_group.add_argument('--seq-info', action='store', type=int, default=1, help='escape sequence params verbosity (0-2, default 1)')
-        text_mode_group.add_argument('--no-color-info', action='store_true', default=False, help='disable applying color to SGR sequence markers')
-        text_mode_group.add_argument('--no-color-context', action='store_true', default=False, help='disable applying color to file context')
-        text_mode_group.add_argument('--pipe-input', action='store_true', default=False, help='send raw input lines to stderr along with default output')
+        text_mode_group.add_argument('-i', '--info', metavar='<level>', action='store', type=int, default=1, help='escape sequence marker verbosity (0-2, default 1)')
+        text_mode_group.add_argument('-L', '--line-number', action='store_true', default=False, help='print line numbers')
+        text_mode_group.add_argument('--no-color-mark', action='store_true', default=False, help='disable applying color to SGR sequence markers')
+        text_mode_group.add_argument('--no-color-content', action='store_true', default=False, help='disable applying color to file content')
+        text_mode_group.add_argument('--pipe-stderr', action='store_true', default=False, help='send raw input lines to stderr along with default output')
+
         bin_mode_group = parser.add_argument_group('binary mode only')
-        bin_mode_group.add_argument('-n', '--columns', metavar='NUM', action='store', type=int, default=0, help='output NUM bytes per line (default 0=auto)')
+        bin_mode_group.add_argument('-n', metavar='<num>', action='store', type=int, default=0, help='output <num> bytes per line (default 0=auto)')
         args = parser.parse_args()
+
         if args.legend:
             with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'colombo-legend.ansi'), 'rt') as f:
                 print(f.read())
