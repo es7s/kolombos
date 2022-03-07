@@ -62,18 +62,25 @@ class MarkerWithInfo(Marker):
         return RESET.str + fmt(self._marker_char_str + additional_info)
 
 
-class SGRMarker(MarkerWithInfo):
+class SGRMarker(Marker):
     def __init__(self, marker_char: str):
-        super(SGRMarker, self).__init__(marker_char, HI_WHITE)
+        self._marker_char_str = marker_char
 
     def print(self, additional_info: str = '', seq: SGRSequence = None):
-        fmt = self._fmt_focus if Colombo.FOCUS_CONTROL_SEQUNCE else self._fmt
+        marker_seq = HI_WHITE + BG_BLACK
+        if Colombo.FOCUS_CONTROL_SEQUNCE:
+            info_seq = INVERSED
+            if Colombo.SGR_INFO_COLORIZING:
+                info_seq += OVERLINED
+        else:
+            info_seq = OVERLINED
+        marker_seq += info_seq
 
         result = RESET.str
         if Colombo.SGR_INFO_COLORIZING:
-            result += fmt(self._marker_char_str) + seq.str + BLINK_OFF.str + fmt_overline(additional_info)
+            result += marker_seq.str + self._marker_char_str + seq.str + BLINK_OFF.str + info_seq.str + additional_info
         else:
-            result += fmt(self._marker_char_str + additional_info) + seq.str
+            result += marker_seq.str + self._marker_char_str + additional_info + seq.str
 
         if Colombo.CONTENT_DIRECT_COLORIZING:
             # even though we allow to colorize content, we'll explicitly disable any inversion and overline
@@ -88,11 +95,22 @@ class SGRMarker(MarkerWithInfo):
 class TextFormatRegistry:
     import pytermor
 
-    marker_null = Marker.make('Ø', INVERSED + RED)
+    marker_null = Marker.make('Ø', INVERSED + HI_RED)
+    marker_ascii_ctrl = MarkerWithInfo('χ', INVERSED + RED)
+    marker_bell = Marker.make('Ɐ', INVERSED + YELLOW)
+    marker_backspace = Marker.make('⇇', INVERSED + HI_YELLOW)
+    marker_delete = Marker.make('⇉', INVERSED + HI_YELLOW)
+    # 0x80-0x9f: UCC (binary mode only)
+
+    marker_tab = Marker.make('⇥\t', GRAY)  # →
+    #marker_tab = Marker.make('⇥\t', BOLD + HI_CYAN + BG_BLACK)
     marker_space = Marker.make('·', GRAY)
-    marker_space_focus = Marker.make('␣', HI_BLUE + BG_BLACK)
+    #marker_space = Marker.make('␣', HI_BLUE + BG_BLACK)
     marker_newline = Marker.make('↵', GRAY)
-    marker_newline_focus = Marker.make('↵', BOLD + HI_CYAN + BG_BLACK)
+    #marker_newline_focus = Marker.make('↵', BOLD + HI_CYAN + BG_BLACK)
+    marker_vert_tab = Marker.make('⤓', MAGENTA)  # ↓
+    marker_form_feed = Marker.make('↡', MAGENTA)
+    marker_car_return = Marker.make('⇤', MAGENTA)
 
     marker_sgr_reset = MarkerWithInfo('ϴ', pytermor.build_text256_seq(231))
     marker_sgr = SGRMarker('ǝ')
@@ -111,12 +129,25 @@ class TextFormatter(AbstractFormatter):
             raw_input = [raw_input]
 
         for raw_input_line in raw_input:
-            processed_input = raw_input_line.translate({
-                0x20: TextFormatRegistry.marker_space,  # @TODO OPTIMIZE OMFG
-                0x0a: TextFormatRegistry.marker_newline + '\u000a',  # actual newline
+            translation_map = {
                 0x00: TextFormatRegistry.marker_null,
+                0x07: TextFormatRegistry.marker_bell,
+                0x08: TextFormatRegistry.marker_backspace,
+                0x09: TextFormatRegistry.marker_tab,
+                0x0b: TextFormatRegistry.marker_vert_tab,
+                0x0c: TextFormatRegistry.marker_form_feed,
+                0x0d: TextFormatRegistry.marker_car_return,
+                0x0a: TextFormatRegistry.marker_newline + '\x0a',  # actual newline
+                0x20: TextFormatRegistry.marker_space,
                 0x1b: '\0',
-            })
+                0x7f: TextFormatRegistry.marker_delete,
+            }
+
+            for i in (list(range(0x01, 0x07)) + list(range(0x0e, 0x20))):
+                if i == 0x1b:
+                    continue
+                translation_map[i] = TextFormatRegistry.marker_ascii_ctrl.print(re.sub('0x0?', '', hex(i)))
+            processed_input = raw_input_line.translate(translation_map)#.expandtabs(4)
             # @TODO expandtabs
 
             # 1) process SGR: 0[...m (e/E)
