@@ -59,7 +59,7 @@ class Marker(metaclass=abc.ABCMeta):
 
 
 class MarkerWhitespace(Marker):
-    fmt = Format(GRAY, reset=True)
+    fmt = Format(DIM, DIM_BOLD_OFF)
     fmt_focused = Format(BOLD + BG_BLUE + BLACK, reset=True)
 
     def __init__(self, marker_char: str, marker_char_focused_override: Optional[str] = None):
