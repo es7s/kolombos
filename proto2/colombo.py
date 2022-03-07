@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import abc
 import argparse
-import os
+import os.path
 import re
 import sys
 import traceback
@@ -14,15 +14,6 @@ from typing import IO, AnyStr, Optional, List, Union, Match
 import pytermor
 from pytermor import sanitize
 from pytermor.preset import *
-
-# ------------------------------------------------------------------------------
-# echo "   ______      __                __"
-# echo "  / ____/___  / /___  ____ ___  / /_  ____"
-# echo " / /   / __ \/ / __ \/ __ '__ \/ __ \/ __ \ "
-# echo "/ /___/ /_/ / / /_/ / / / / / / /_/ / /_/ /"
-# echo "\____/\____/_/\____/_/ /_/ /_/_.___/\____/"
-
-# _cs 48 05 26
 
 
 class Writer:
@@ -147,19 +138,17 @@ class MarkerSGR(Marker):
 
 
 class TextFormatRegistry:
-    import pytermor
-
     tpl_marker_ascii_ctrl = MarkerControlChar('Ɐ{}', RED)
     marker_null = MarkerControlChar('Ø', HI_RED)
     marker_bell = MarkerControlChar('Ɐ7', HI_YELLOW)
-    marker_backspace = MarkerControlChar('⇇', HI_YELLOW)
-    marker_delete = MarkerControlChar('⇉', HI_YELLOW)
+    marker_backspace = MarkerControlChar('←', HI_YELLOW)
+    marker_delete = MarkerControlChar('→', HI_YELLOW)
     # 0x80-0x9f: UCC (binary mode only)
 
     marker_tab = MarkerWhitespace('⇥\t')  # →
     marker_space = MarkerWhitespace('␣', '·') #HI_BLUE + BG_BLACK)
     marker_newline = MarkerWhitespace('↵')
-    marker_vert_tab = MarkerWhitespace('⤓')  # , MAGENTA)  # ↓
+    marker_vert_tab = MarkerWhitespace('⤓')  # , MAGENTA)
     marker_form_feed = MarkerWhitespace('↡')  #, MAGENTA)
     marker_car_return = MarkerWhitespace('⇤')  #, MAGENTA)
 
@@ -385,7 +374,7 @@ class Colombo:
         parser = argparse.ArgumentParser(
             description='Control characters and escape sequences visualiser',
             epilog='If FILE is not supplied or is "-", read standard input.',
-            formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=27)
+            formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=27)
         )
         parser.add_argument('filename', metavar='FILE', nargs='?', help='file to read from')
         parser.add_argument('-b', '--binary', action='store_true', default=False, help='open file in binary mode (default is text mode)')
@@ -393,6 +382,7 @@ class Colombo:
         parser.add_argument('-s', '--sequence-focus', action='store_true', default=False, help='highlight escape sequences')
         parser.add_argument('-c', '--control-focus', action='store_true', default=False, help='highlight control characters')
         parser.add_argument('-w', '--whitespace-focus', action='store_true', default=False, help='highlight whitespace characters')
+        parser.add_argument('--legend', action='store_true', help='show annotation symbols list')
         text_mode_group = parser.add_argument_group('text mode only')
         text_mode_group.add_argument('-l', '--line-number', action='store_true', default=False, help='print output line numbers (text mode)')
         text_mode_group.add_argument('--seq-info', action='store', type=int, default=1, help='escape sequence params verbosity (0-2, default 1)')
@@ -402,6 +392,11 @@ class Colombo:
         bin_mode_group = parser.add_argument_group('binary mode only')
         bin_mode_group.add_argument('-n', '--columns', metavar='NUM', action='store', type=int, default=0, help='output NUM bytes per line (default 0=auto)')
         args = parser.parse_args()
+        if args.legend:
+            with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'colombo-legend.ansi'), 'rt') as f:
+                print(f.read())
+                exit(0)
+
         Settings.from_args(args)
         Colombo.BINARY_MODE = args.binary
 
