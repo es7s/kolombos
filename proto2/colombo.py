@@ -35,7 +35,6 @@ class Writer:
 
         if Settings.PIPE_INPUT_TO_STDERR:
             self._io_support.write(helper_line)
-            self._io_support.write('-' * 80 + '\n')
             self._io_primary.flush()
             self._io_support.flush()
 
@@ -60,6 +59,19 @@ class Marker(metaclass=abc.ABCMeta):
     @property
     def marker_char(self) -> str:
         return self._marker_char
+
+
+class MarkerControlChar(Marker):
+    def __init__(self, marker_char: str, opening_seq: SGRSequence):
+        super().__init__(marker_char)
+        self._fmt = Format(opening_seq, reset=True)
+        self._fmt_focused = Format(opening_seq + INVERSED + BG_BLACK, reset=True)
+
+    def print(self, *tpl_args):
+        marker = self.marker_char.format(*tpl_args)
+        if Settings.FOCUS_CONTROL:
+            return self._fmt_focused(marker)
+        return self._fmt(marker)
 
 
 class MarkerWhitespace(Marker):
@@ -137,11 +149,11 @@ class MarkerSGR(Marker):
 class TextFormatRegistry:
     import pytermor
 
-    tpl_marker_ascii_ctrl = Marker.make('Ɐ{}', INVERSED + RED)
-    marker_null = Marker.make('Ø', INVERSED + HI_RED)
-    marker_bell = Marker.make('Ɐ7', INVERSED + HI_YELLOW)
-    marker_backspace = Marker.make('⇇', INVERSED + HI_YELLOW)
-    marker_delete = Marker.make('⇉', INVERSED + HI_YELLOW)
+    tpl_marker_ascii_ctrl = MarkerControlChar('Ɐ{}', RED)
+    marker_null = MarkerControlChar('Ø', HI_RED)
+    marker_bell = MarkerControlChar('Ɐ7', HI_YELLOW)
+    marker_backspace = MarkerControlChar('⇇', HI_YELLOW)
+    marker_delete = MarkerControlChar('⇉', HI_YELLOW)
     # 0x80-0x9f: UCC (binary mode only)
 
     marker_tab = MarkerWhitespace('⇥\t')  # →
@@ -169,24 +181,23 @@ class TextFormatter(AbstractFormatter):
 
         for raw_input_line in raw_input:
             translation_map = {
-                0x00: TextFormatRegistry.marker_null,
-                0x07: TextFormatRegistry.marker_bell,
-                0x08: TextFormatRegistry.marker_backspace,
+                0x00: TextFormatRegistry.marker_null.print(),
+                0x07: TextFormatRegistry.marker_bell.print(),
+                0x08: TextFormatRegistry.marker_backspace.print(),
                 0x09: TextFormatRegistry.marker_tab.print(),
                 0x0b: TextFormatRegistry.marker_vert_tab.print(),
                 0x0c: TextFormatRegistry.marker_form_feed.print(),
                 0x0d: TextFormatRegistry.marker_car_return.print(),
                 0x0a: TextFormatRegistry.marker_newline.print() + '\x0a',  # actual newline
                 0x1b: '\0',
-                0x7f: TextFormatRegistry.marker_delete,
+                0x7f: TextFormatRegistry.marker_delete.print(),
             }
 
             for i in (list(range(0x01, 0x07)) + list(range(0x0e, 0x20))):
                 if i == 0x1b:
                     continue
-                translation_map[i] = TextFormatRegistry.tpl_marker_ascii_ctrl.format(re.sub('0x0?', '', hex(i)))
-            processed_input = raw_input_line.translate(translation_map)#.expandtabs(4)
-            # @TODO expandtabs
+                translation_map[i] = TextFormatRegistry.tpl_marker_ascii_ctrl.print(re.sub('0x0?', '', hex(i)))
+            processed_input = raw_input_line.translate(translation_map)
 
             processed_input = re.sub(  # CSI sequences
                 '\0(\\[)([0-9;:<=>?]*)([@A-Za-z\\[])',  # group 3 : 0x40–0x7E ASCII      @A–Z[\]^_`a–z{|}~
@@ -260,7 +271,7 @@ class BinaryFormatter(AbstractFormatter):
         self._writer = _writer
 
     def format(self, raw_input: bytes, offset: int):
-        processed_line_hex = raw_input.hex(" ")
+        processed_line_hex = raw_input.hex()
         print(processed_line_hex)
 
 
@@ -348,9 +359,9 @@ class Settings:
 
     @staticmethod
     def from_args(args: Namespace):
-        Settings.FOCUS_SEQUENCE = args.focus_sequence
-        Settings.FOCUS_CONTROL = args.focus_control
-        Settings.FOCUS_WHITESPACE = args.focus_whitespace
+        Settings.FOCUS_SEQUENCE = args.sequence_focus
+        Settings.FOCUS_CONTROL = args.control_focus
+        Settings.FOCUS_WHITESPACE = args.whitespace_focus
         Settings.LINE_NUMBERS = args.line_number
         Settings.ESQ_INFO_LEVEL = args.seq_info
         Settings.DISABLE_SGR_PARAM_COLORS = args.no_color_info
@@ -359,7 +370,7 @@ class Settings:
 
 
 class Colombo:
-    BINARY = False
+    BINARY_MODE: bool
 
     def run(self):
         _hanlder = ExceptionHandler()
@@ -373,29 +384,39 @@ class Colombo:
     def _invoke(self):
         parser = argparse.ArgumentParser(
             description='Control characters and escape sequences visualiser',
-            epilog='If FILE is not supplied or is "-", read standard input.'
+            epilog='If FILE is not supplied or is "-", read standard input.',
+            formatter_class=lambda prog: argparse.HelpFormatter(prog,max_help_position=27)
         )
         parser.add_argument('filename', metavar='FILE', nargs='?', help='file to read from')
-        parser.add_argument('-b', '--binary', action='store_true', default=False, help='open file in binary mode (default: text mode)')
-        parser.add_argument('-s', '--focus-sequence', action='store_true', default=False, help='highlight escape sequences')
-        parser.add_argument('-c', '--focus-control', action='store_true', default=False, help='highlight control characters')
-        parser.add_argument('-w', '--focus-whitespace', action='store_true', default=False, help='highlight whitespace characters')
-        group = parser.add_argument_group('text mode only')
-        group.add_argument('-n', '--line-number', action='store_true', default=False, help='print output line numbers (text mode)')
-        group.add_argument('--seq-info', action='store', type=int, default=1, help='escape sequence params verbosity (0-2, default 1)')
-        group.add_argument('--no-color-info', action='store_true', default=False, help='disable applying color to SGR sequence markers')
-        group.add_argument('--no-color-context', action='store_true', default=False, help='disable applying color to file context')
-        group.add_argument('--pipe-input', action='store_true', default=False, help='send raw input lines to stderr along with default output')
+        parser.add_argument('-b', '--binary', action='store_true', default=False, help='open file in binary mode (default is text mode)')
+        parser.add_argument('-t', '--text', action='store_true', default=True, help='open file in text mode (this is the default)')
+        parser.add_argument('-s', '--sequence-focus', action='store_true', default=False, help='highlight escape sequences')
+        parser.add_argument('-c', '--control-focus', action='store_true', default=False, help='highlight control characters')
+        parser.add_argument('-w', '--whitespace-focus', action='store_true', default=False, help='highlight whitespace characters')
+        text_mode_group = parser.add_argument_group('text mode only')
+        text_mode_group.add_argument('-l', '--line-number', action='store_true', default=False, help='print output line numbers (text mode)')
+        text_mode_group.add_argument('--seq-info', action='store', type=int, default=1, help='escape sequence params verbosity (0-2, default 1)')
+        text_mode_group.add_argument('--no-color-info', action='store_true', default=False, help='disable applying color to SGR sequence markers')
+        text_mode_group.add_argument('--no-color-context', action='store_true', default=False, help='disable applying color to file context')
+        text_mode_group.add_argument('--pipe-input', action='store_true', default=False, help='send raw input lines to stderr along with default output')
+        bin_mode_group = parser.add_argument_group('binary mode only')
+        bin_mode_group.add_argument('-n', '--columns', metavar='NUM', action='store', type=int, default=0, help='output NUM bytes per line (default 0=auto)')
         args = parser.parse_args()
         Settings.from_args(args)
+        Colombo.BINARY_MODE = args.binary
 
         writer = Writer()
-        reader = TextReader(args.filename, TextFormatter(writer))
+        if self.BINARY_MODE:
+            reader = BinaryReader(args.filename, BinaryFormatter(writer))
+        else:
+            reader = TextReader(args.filename, TextFormatter(writer))
+
         try:
             reader.read()
         except UnicodeDecodeError:
-            if not self.BINARY:
-                print('Binary data detected, use -b flag to run in binary mode')
+            if not self.BINARY_MODE:
+                print('Binary data detected, cannot proceed in text mode')
+                print('Use -b option to run in binary mode')
             else:
                 raise
 
