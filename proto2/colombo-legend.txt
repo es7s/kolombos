@@ -4,25 +4,30 @@
 / /___/ /_/ / / /_/ / / / / / / /_/ / /_/ /
 \____/\____/_/\____/_/ /_/ /_/_.___/\____/
 
+
 ESCAPE SEQUENCES
- ϴ            \e[m    SGR reset sequence
- ǝ     ǝ31    \e[31m  SGR sequence, subclass of CSI
- Ͻ     Ͻ?1    \e[?1h  CSI escape sequence (excluding SGR)
- ꟻ     ꟻ␣1    \e 1    nF escape sequence (introducer char can be space)
- Ǝ     Ǝ~     \e~     other escape sequences (Fe, Fs, Fp)
 
-CONTROL CHARS
- Ø            \0      null byte
- Ɐ     Ɐ1f    0x1f    ASCII control chars [0x01 - 0x07], [0x0e - 0x1f]
- ←            0x08    backspace
- →            0x7f    delete
+  ϴ    ϴ     \e[m     SGR reset sequence
+  ǝ    ǝ31   \e[31m   SGR sequence, subclass of CSI
+  Ͻ    Ͻ?1   \e[?1h   CSI escape sequence (excluding SGR)
+  ꟻ    ꟻ␣1   \e 1     nF escape sequence (introducer char can be space)
+  Ǝ    Ǝ~    \e~      other escape sequences (Fe, Fs, Fp)
 
-WHITESPACE
- ␣            0x20    space (· in whitespace-focused mode)
- ↵            \n      line feed
- ⇤            \r      carriage return
- ⇥            \t      horizontal tab
- ⤓            \v      vertical tab
- ↡            \f      form feed
+WHITESPACE CHARS
 
-[char][exmpl][origin][description]
+  ␣    ␣     \x20     space
+  ·    ·     \x20     space (focused)
+  ↵    ↵     \n       line feed
+  ⇤    ⇤     \r       carriage return
+  ⇥    ⇥     \t       horizontal tab
+  ⤓    ⤓     \v       vertical tab
+  ↡    ↡     \f       form feed
+
+CONTROL CHARACTERS
+
+  ←    ←     \x08     backspace
+  →    →     \x7f     delete
+  Ɐ    Ɐ1f   \x1f     other ASCII control chars (01-07, 0e-1f)
+  Ø    Ø     \0       null byte
+
+[chr output  input    description]

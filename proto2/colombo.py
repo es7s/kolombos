@@ -9,10 +9,11 @@ import re
 import sys
 import traceback
 from argparse import Namespace, SUPPRESS
+from math import floor
 from typing import IO, AnyStr, Optional, List, Union, Match
 
 import pytermor
-from pytermor import sanitize
+from pytermor import sanitize, build_background256_seq, build_text256_seq
 from pytermor.preset import *
 
 
@@ -21,10 +22,10 @@ class Writer:
         self._io_primary: IO = sys.stdout
         self._io_support: IO = sys.stderr
 
-    def write_line(self, output_line: AnyStr, helper_line: AnyStr):
+    def write_line(self, output_line: AnyStr, helper_line: Optional[AnyStr] = None):
         self._io_primary.write(output_line)
 
-        if Settings.PIPE_INPUT_TO_STDERR:
+        if helper_line and Settings.PIPE_INPUT_TO_STDERR:
             self._io_support.write(helper_line)
             self._io_primary.flush()
             self._io_support.flush()
@@ -66,17 +67,21 @@ class MarkerControlChar(Marker):
 
 
 class MarkerWhitespace(Marker):
-    fmt = Format(DIM, DIM_BOLD_OFF)
-    fmt_focused = Format(BOLD + BG_CYAN + BLACK, reset=True)
+    _fmt = Format(DIM, DIM_BOLD_OFF)
+    _fmt_focused = Format(BOLD + BG_CYAN + BLACK, reset=True)
 
     def __init__(self, marker_char: str, marker_char_focused_override: Optional[str] = None):
         super().__init__(marker_char)
         self._marker_char_focused = marker_char_focused_override if marker_char_focused_override else marker_char
 
     def print(self):
+        return self.get_fmt()(self.marker_char)
+
+    @staticmethod
+    def get_fmt() -> Format:
         if Settings.FOCUS_WHITESPACE:
-            return self.fmt_focused(self.marker_char)
-        return self.fmt(self.marker_char)
+            return MarkerWhitespace._fmt_focused
+        return MarkerWhitespace._fmt
 
     @property
     def marker_char(self) -> str:
@@ -137,7 +142,7 @@ class MarkerSGR(Marker):
         return result
 
 
-class TextFormatRegistry:
+class FormatRegistry:
     tpl_marker_ascii_ctrl = MarkerControlChar('Ɐ{}', RED)
     marker_null = MarkerControlChar('Ø', HI_RED)
     marker_bell = MarkerControlChar('Ɐ7', HI_YELLOW)
@@ -158,6 +163,8 @@ class TextFormatRegistry:
     marker_esc_nf = MarkerEscapeSeq('ꟻ', HI_MAGENTA)
     marker_escape = MarkerEscapeSeq('Ǝ', HI_YELLOW)
 
+    fmt_first_chunk_col = Format(build_text256_seq(231) + build_background256_seq(238), COLOR_OFF + BG_COLOR_OFF)
+    fmt_nth_row_col = Format(build_text256_seq(231) + build_background256_seq(238) + OVERLINED, COLOR_OFF + BG_COLOR_OFF + OVERLINED_OFF)
 
 class TextFormatter(AbstractFormatter):
     def __init__(self, _writer: Writer):
@@ -174,23 +181,23 @@ class TextFormatter(AbstractFormatter):
             }
             if Settings.PRINT_WHITESPACE_MARKER:
                 translation_map.update({
-                    0x09: TextFormatRegistry.marker_tab.print(),
-                    0x0b: TextFormatRegistry.marker_vert_tab.print(),
-                    0x0c: TextFormatRegistry.marker_form_feed.print(),
-                    0x0d: TextFormatRegistry.marker_car_return.print(),
-                    0x0a: TextFormatRegistry.marker_newline.print() + '\x0a',  # actual newline
+                    0x09: FormatRegistry.marker_tab.print(),
+                    0x0b: FormatRegistry.marker_vert_tab.print(),
+                    0x0c: FormatRegistry.marker_form_feed.print(),
+                    0x0d: FormatRegistry.marker_car_return.print(),
+                    0x0a: FormatRegistry.marker_newline.print() + '\x0a',  # actual newline
                 })
             if Settings.PRINT_CONTROL_MARKER:
                 translation_map.update({
-                    0x00: TextFormatRegistry.marker_null.print(),
-                    0x07: TextFormatRegistry.marker_bell.print(),
-                    0x08: TextFormatRegistry.marker_backspace.print(),
-                    0x7f: TextFormatRegistry.marker_delete.print(),
+                    0x00: FormatRegistry.marker_null.print(),
+                    0x07: FormatRegistry.marker_bell.print(),
+                    0x08: FormatRegistry.marker_backspace.print(),
+                    0x7f: FormatRegistry.marker_delete.print(),
                 })
                 for i in (list(range(0x01, 0x07)) + list(range(0x0e, 0x20))):
                     if i == 0x1b:
                         continue
-                    translation_map[i] = TextFormatRegistry.tpl_marker_ascii_ctrl.print(re.sub('0x0?', '', hex(i)))
+                    translation_map[i] = FormatRegistry.tpl_marker_ascii_ctrl.print(re.sub('0x0?', '', hex(i)))
 
             processed_input = raw_input_line.translate(translation_map)
             processed_input = re.sub(  # CSI sequences
@@ -200,21 +207,21 @@ class TextFormatter(AbstractFormatter):
             )
             processed_input = re.sub(  # nF Escape sequences
                 '\0([\x20-\x2f]+)([\x30-\x7e])',
-                lambda m: self._format_generic_escape_sequence(m, TextFormatRegistry.marker_esc_nf),
+                lambda m: self._format_generic_escape_sequence(m, FormatRegistry.marker_esc_nf),
                 processed_input,
             )
             processed_input = re.sub(  # other escape sequences
                 '\0(.)()',  # group 1 : 0x20-0x7E
-                lambda m: self._format_generic_escape_sequence(m, TextFormatRegistry.marker_escape),
+                lambda m: self._format_generic_escape_sequence(m, FormatRegistry.marker_escape),
                 processed_input
             )
             if Settings.PRINT_WHITESPACE_MARKER:
                 processed_input = re.sub(
                    '(\x20+)',
-                   lambda m: MarkerWhitespace.fmt(m.group(1)),
+                   lambda m: MarkerWhitespace.get_fmt()(m.group(1)),
                    processed_input
                 )
-                processed_input = re.sub('\x20', TextFormatRegistry.marker_space.print(), processed_input)
+                processed_input = re.sub('\x20', FormatRegistry.marker_space.marker_char, processed_input)
 
             prefix = ''
             if Settings.LINE_NUMBERS:
@@ -247,10 +254,10 @@ class TextFormatter(AbstractFormatter):
 
         if terminator == SGRSequence.TERMINATOR:
             if len(params_values) == 0:
-                return TextFormatRegistry.marker_sgr_reset.print()
-            return TextFormatRegistry.marker_sgr.print(info, SGRSequence(*params_values))
+                return FormatRegistry.marker_sgr_reset.print()
+            return FormatRegistry.marker_sgr.print(info, SGRSequence(*params_values))
         else:
-            return TextFormatRegistry.marker_esc_csi.print(info)
+            return FormatRegistry.marker_esc_csi.print(info)
 
     def _format_generic_escape_sequence(self, match: Match, marker: MarkerEscapeSeq) -> AnyStr:
         if not Settings.PRINT_SEQUENCE_MARKER:
@@ -259,7 +266,7 @@ class TextFormatter(AbstractFormatter):
         introducer = match.group(1)  # e.g. '('
         additional = match.group(2)  # e.g. 'B'
         if introducer == ' ':
-            introducer = TextFormatRegistry.marker_space.marker_char
+            introducer = FormatRegistry.marker_space.marker_char
         info = ''
         if Settings.ESQ_INFO_LEVEL >= 1:
             info += introducer
@@ -271,11 +278,120 @@ class TextFormatter(AbstractFormatter):
 
 class BinaryFormatter(AbstractFormatter):
     def __init__(self, _writer: Writer):
+        self.BYTE_CHUNK_LEN = 4
+
+        self.PADDING_SECTION = 3*' '
+        self.PADDING_HEX_CHUNK = 2 * ' '
+
         self._writer = _writer
+        self._buffer: bytes = bytes()
+        self._row_num = 0
+
+        hexlist = ''
+        for i in range(0, 0x100):
+            if i <= 0x1f or 0x7f <= i:
+                hexlist += '{:02x}'.format(ord('.'))
+            else:
+                hexlist += '{:02x}'.format(i)
+        self._table = bytes.fromhex(hexlist)
 
     def format(self, raw_input: bytes, offset: int):
-        processed_line_hex = raw_input.hex()
-        print(processed_line_hex)
+        offset -= len(self._buffer)
+        self._buffer += raw_input
+
+        if Settings.COLS_NUM > 0:
+            cols = Settings.COLS_NUM
+        else:
+            cols = self._compute_cols_num(len(self._format_offset(offset)))
+
+        max_buffer_len = cols
+        if len(raw_input) == 0:  # reading finished, we must empty the buffer completely
+            max_buffer_len = 0
+
+        while len(self._buffer) > max_buffer_len:
+            is_guide_row = (Settings.OVERLAY_GRID and (self._row_num % (2 * self.BYTE_CHUNK_LEN)) == 0)
+            row = self._buffer[:cols]
+
+            processed_row = '{}{}{}'.format(
+                self._print_offset(offset),
+                self._format_hex_row(row, cols, is_guide_row),
+                self._format_decoded_row(row, cols, is_guide_row)
+            )
+            if is_guide_row:
+                processed_row = FormatRegistry.fmt_nth_row_col(processed_row)
+
+            self._writer.write_line(processed_row + '\n')
+
+            offset += len(row)
+            self._buffer = self._buffer[len(row):]
+            self._row_num += 1
+
+        if len(raw_input) == 0:
+            self._writer.write_line(self._print_offset(offset, True) + '\n')
+
+    def _format_offset(self, offset: int) -> AnyStr:
+        return '{:08x}{}'.format(offset, self.PADDING_SECTION)
+
+    def _print_offset(self, offset: int, is_total: bool = False):
+        fmt = fmt_green
+        if is_total:
+            fmt = Format(HI_BLUE)
+        return re.sub('^(0+)(\S+)(\s)', fmt(DIM.str + '\\1' + DIM_BOLD_OFF.str + '\\2') + fmt_cyan('│'), self._format_offset(offset))
+
+    def _format_hex_row(self, row: bytes, cols: int, is_guide_row: bool = False) -> AnyStr:
+        chunks = []
+        for i in range(0, cols, self.BYTE_CHUNK_LEN):
+            row_part = row[i:i+self.BYTE_CHUNK_LEN]
+            hexs = row_part.hex()
+            if len(row_part) < self.BYTE_CHUNK_LEN:
+                hexs += '  ' * (self.BYTE_CHUNK_LEN - len(row_part))
+            hexs = ' '.join(re.findall('(..)', hexs))
+            chunks.append(hexs)
+
+        chunks_len = len(chunks)
+        chunks_x2 = [chunks[i] + self.PADDING_HEX_CHUNK + chunks[i + 1] for i in range(0, chunks_len - 1, 2)]
+        if chunks_len % 2 == 1:
+            chunks_x2.append(chunks[chunks_len-1])
+
+        if Settings.OVERLAY_GRID and not is_guide_row:
+            for i, chunk_x2 in enumerate(chunks_x2):
+                chunks_x2[i] = re.sub('^(..)', FormatRegistry.fmt_first_chunk_col('\\1'), chunk_x2)
+
+        result = self.PADDING_HEX_CHUNK.join(chunks_x2) + self.PADDING_SECTION
+        return result
+
+    def _format_decoded_row(self, row: bytes, cols: int, is_guide_row: bool) -> AnyStr:
+        decoded = row.translate(self._table).decode()
+        decoded += ' ' * (cols - len(decoded))
+        if Settings.OVERLAY_GRID and not is_guide_row:
+            decoded = re.sub('(.)(.{,7})', FormatRegistry.fmt_first_chunk_col('\\1') + '\\2', decoded)
+        return decoded
+
+    def _get_terminal_width(self):
+        try:
+            import shutil as _shutil
+            width = _shutil.get_terminal_size().columns - 2
+            return width
+        except ImportError:
+            return 80
+
+    def _compute_cols_num(self, offset_len: int):
+        width = self._get_terminal_width()
+        # offset section
+
+        # content: 3F # 2 chars hex
+        #          @  # 1 char decoded
+        # plus N-1 chars for hex padding
+        # plus 2 chars for every N bytes (for chunk separators)
+
+        # will operate with N-byte sequences
+
+        available_total = width - offset_len - 1  # [ 81 be␣␣␣... ] 1st and 2nd spaces are countied within chunk calc, but not 3rd
+        chunk_len = (3 * self.BYTE_CHUNK_LEN) + \
+                    (self.BYTE_CHUNK_LEN - 1) + \
+                    len(self.PADDING_HEX_CHUNK)
+        chunk_fit = floor(available_total / chunk_len)
+        return chunk_fit * self.BYTE_CHUNK_LEN
 
 
 class AbstractReader(metaclass=abc.ABCMeta):
@@ -333,7 +449,7 @@ class TextReader(AbstractReader):
 
 
 class BinaryReader(AbstractReader):
-    _READ_CHUNK_SIZE: int = 1024
+    _READ_CHUNK_SIZE: int = 4096
 
     def __init__(self, filename: Optional[str], formatter: AbstractFormatter):
         super().__init__(filename, formatter)
@@ -348,6 +464,7 @@ class BinaryReader(AbstractReader):
         while raw_input := self._io.read(BinaryReader._READ_CHUNK_SIZE):
             self._formatter.format(raw_input, self._offset)
             self._offset += len(raw_input)
+        self._formatter.format(bytes(), self._offset)
 
 
 class Settings:
@@ -362,6 +479,8 @@ class Settings:
     DISABLE_SGR_PARAM_COLORS: bool
     DISABLE_CONTEXT_COLORS: bool
     PIPE_INPUT_TO_STDERR: bool
+    COLS_NUM: bool
+    OVERLAY_GRID: bool
 
     @staticmethod
     def from_args(args: Namespace):
@@ -374,9 +493,12 @@ class Settings:
 
         Settings.LINE_NUMBERS = args.line_number
         Settings.ESQ_INFO_LEVEL = args.info
-        Settings.DISABLE_SGR_PARAM_COLORS = args.no_color_mark
+        Settings.DISABLE_SGR_PARAM_COLORS = args.no_color_marker
         Settings.DISABLE_CONTEXT_COLORS = args.no_color_content
         Settings.PIPE_INPUT_TO_STDERR = args.pipe_stderr
+
+        Settings.COLS_NUM = args.columns
+        Settings.OVERLAY_GRID = args.grid
 
 
 class Colombo:
@@ -389,11 +511,10 @@ class Colombo:
         except Exception as e:
             _hanlder.handle(e)
         print()
-        exit(0)
 
     def _invoke(self):
         parser = argparse.ArgumentParser(
-            description='control characters and escape sequences visualiser',
+            description='escape sequences and control characters visualiser',
             epilog='example: colombo -e -i 2 --no-space file.txt',
             add_help=False,
             formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=30)
@@ -407,21 +528,22 @@ class Colombo:
         generic_group = parser.add_argument_group('generic options')
         generic_group.add_argument('filename', metavar='<file>', nargs='?', help='file to read from; if empty or "-", read stdin instead')
         generic_group.add_argument('-e', '--focus-esq', action='store_true', default=False, help='highlight escape sequences markers')
-        generic_group.add_argument('-c', '--focus-control', action='store_true', default=False, help='highlight control char markers')
         generic_group.add_argument('-s', '--focus-space', action='store_true', default=False, help='highlight whitespace markers')
-        generic_group.add_argument('--no-esq', action='store_true', default=False, help='do not print escape sequence markers')
-        generic_group.add_argument('--no-control', action='store_true', default=False, help='do not print control char markers')
-        generic_group.add_argument('--no-space', action='store_true', default=False, help='do not print whitespace markers')
+        generic_group.add_argument('-c', '--focus-control', action='store_true', default=False, help='highlight control char markers')
+        generic_group.add_argument('-E', '--no-esq', action='store_true', default=False, help='do not print escape sequence markers')
+        generic_group.add_argument('-S', '--no-space', action='store_true', default=False, help='do not print whitespace markers')
+        generic_group.add_argument('-C', '--no-control', action='store_true', default=False, help='do not print control char markers')
 
         text_mode_group = parser.add_argument_group('text mode only')
         text_mode_group.add_argument('-i', '--info', metavar='<level>', action='store', type=int, default=1, help='escape sequence marker verbosity (0-2, default 1)')
         text_mode_group.add_argument('-L', '--line-number', action='store_true', default=False, help='print line numbers')
-        text_mode_group.add_argument('--no-color-mark', action='store_true', default=False, help='disable applying color to SGR sequence markers')
-        text_mode_group.add_argument('--no-color-content', action='store_true', default=False, help='disable applying color to file content')
+        text_mode_group.add_argument('--no-color-marker', action='store_true', default=False, help='disable applying file content formatting to SGR markers')
+        text_mode_group.add_argument('--no-color-content', action='store_true', default=False, help='disable applying file content formatting to the output')
         text_mode_group.add_argument('--pipe-stderr', action='store_true', default=False, help='send raw input lines to stderr along with default output')
 
         bin_mode_group = parser.add_argument_group('binary mode only')
-        bin_mode_group.add_argument('-n', metavar='<num>', action='store', type=int, default=0, help='output <num> bytes per line (default 0=auto)')
+        bin_mode_group.add_argument('-n', '--columns', metavar='<num>', action='store', type=int, default=0, help='output <num> bytes per line (default is 0 = auto)')
+        bin_mode_group.add_argument('-g', '--grid', action='store_true', default=False, help='overlay table with 8x8 grid')
         args = parser.parse_args()
 
         if args.legend:

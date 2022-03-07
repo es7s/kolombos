@@ -1,28 +1,33 @@
-   ______      __                __
-  / ____/___  / /___  ____ ___  / /_  ____
- / /   / __ \/ / __ \/ __ '__ \/ __ \/ __ \
-/ /___/ /_/ / / /_/ / / / / / / /_/ / /_/ /
-\____/\____/_/\____/_/ /_/ /_/_.___/\____/
+[34m   ______      __                [37m__[m
+[34m  ◢█████◤[34m___  [94m◢█◤[34m___  ____ _[37m__  [97m◢█◤[37m_  ____[m [8mǝǝǝ[m
+[2;94m ◢█◤   ◢████◣[22m◢█[7m╱[27m████◣◢████████◣[0;97m◢████◣◢████◣
+[2;34m◢█◤[36m___[34m◢█◤[36m_[34m◢█[7m╱[27m[34;44m◣[22m[34;49m[7m╱[27m█◤[2;36m_[22;34m◢█[7m╱[27m[34m█◤ ◢█◤ ◢█[7m╱[27m[44m[94m◥[0;94m◤[36m_[94m◢█[7m╱[27m█◤[36m_[94m◢█◤[m
+[2;36m◥████◤◥████[7m╱[27m█◤[22m◥████[7m╱[27m█◤ ◢█◤ ◢█[7m╱[27m██[96m[46m◥[0;96m██◤◥████◤[m
 
-ESCAPE SEQUENCES
- ϴ     [7;38;5;231mϴ[m      \e[m    SGR reset sequence
- ǝ     [7;37;40;53mǝ[31;25m31[m    \e[31m  SGR sequence, subclass of CSI
- Ͻ     [7;94;40mϽ?1[m    \e[?1h  CSI escape sequence (excluding SGR)
- ꟻ     ꟻ␣1    \e 1    nF escape sequence (introducer char can be space)
- Ǝ     Ǝ~     \e~     other escape sequences (Fe, Fs, Fp)
 
-CONTROL CHARS
- Ø     Ø      \0      null byte
- Ɐ     Ɐ1f    0x1f    ASCII control chars [0x01 - 0x07], [0x0e - 0x1f]
- ←     ←      0x08    backspace
- →     →      0x7f    delete
+[1mESCAPE SEQUENCES[m
 
-WHITESPACE
- ␣     ␣      0x20    space (· in whitespace-focused mode)
- ↵     ↵      \n      line feed
- ⇤     ⇤      \r      carriage return
- ⇥     ⇥      \t      horizontal tab
- ⤓     ⤓      \v      vertical tab
- ↡     ↡      \f      form feed
+  ϴ    [7;38;5;231mϴ[m     \e[m     SGR reset sequence [2m(focused)[22m
+  ǝ    [37;40;53mǝ[31;25m31[m   \e[31m   SGR sequence, subclass of CSI
+  Ͻ    [94;53mϽ?1[m   \e[?1h   CSI escape sequence (excluding SGR)
+  ꟻ    [95;53mꟻ␣1[m   \e 1     nF escape sequence (introducer char can be space)
+  Ǝ    [93;53mƎ~[m    \e~      other escape sequences (Fe, Fs, Fp)
 
-[char][exmpl][origin][description]
+[1mWHITESPACE CHARS[m
+
+  ␣    [2m␣[m     \x20     space
+  ·    [1;46;30m·[m     \x20     space [2m(focused, this and subsequent)[22m
+  ↵    [1;46;30m↵[m     \n       line feed
+  ⇤    [1;46;30m⇤[m     \r       carriage return
+  ⇥    [1;46;30m⇥[m     \t       horizontal tab
+  ⤓    [1;46;30m⤓[m     \v       vertical tab
+  ↡    [1;46;30m↡[m     \f       form feed
+
+[1mCONTROL CHARACTERS[m
+
+  ←    [93;7;40m←[m     \x08     backspace
+  →    [93;7;40m→[m     \x7f     delete
+  Ɐ    [31;7;40mⱯ1f[m   \x1f     other ASCII control chars (01-07, 0e-1f)
+  Ø    [91;7;40mØ[m     \0       null byte
+
+[2m[chr output  input    description][22m
