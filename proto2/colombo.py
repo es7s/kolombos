@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 import abc
+import argparse
 import os
 import re
 import sys
 import traceback
+from argparse import Namespace
 from typing import IO, AnyStr, Optional, List, Union, Match
+
+import pytermor
 from pytermor import sanitize
 from pytermor.preset import *
 
@@ -77,6 +81,7 @@ class MarkerWhitespace(Marker):
             return self._marker_char_focused
         return self._marker_char
 
+
 class MarkerEscapeSeq(Marker):
     def __init__(self, marker_char: str, opening_seq: SGRSequence):
         super().__init__(marker_char)
@@ -88,12 +93,23 @@ class MarkerEscapeSeq(Marker):
         return RESET.str + fmt(self._marker_char + additional_info)
 
 
-class SGRMarker(Marker):
+class MarkerSGRReset(Marker):
+    def __init__(self, marker_char: str):
+        super().__init__(marker_char)
+        self._fmt = Format(OVERLINED + pytermor.build_text256_seq(231), reset=True)
+        self._fmt_focused = Format(INVERSED + pytermor.build_text256_seq(231), reset=True)
+
+    def print(self):
+        fmt = self._fmt_focused if Colombo.FOCUS_CONTROL_SEQUENCE else self._fmt
+        return RESET.str + fmt(self._marker_char)
+
+
+class MarkerSGR(Marker):
     def __init__(self, marker_char: str):
         super().__init__(marker_char)
 
     def print(self, additional_info: str = '', seq: SGRSequence = None):
-        marker_seq = HI_WHITE + BG_BLACK
+        marker_seq = WHITE + BG_BLACK
         if Colombo.FOCUS_CONTROL_SEQUENCE:
             info_seq = INVERSED
             if Colombo.SGR_INFO_COLORIZING:
@@ -112,7 +128,7 @@ class SGRMarker(Marker):
             # even though we allow to colorize content, we'll explicitly disable any inversion and overline
             #  effect to guarantee that the only inversed and/or overlined things on the screen are our markers
             # also disable blinking
-            result += BG_COLOR_OFF.str + INVERSED_OFF.str + OVERLINED_OFF.str + BLINK_OFF.str  # ... content
+            result += INVERSED_OFF.str + OVERLINED_OFF.str + BLINK_OFF.str  # ... content
         else:
             result += RESET.str  # ... content
         return result
@@ -121,9 +137,9 @@ class SGRMarker(Marker):
 class TextFormatRegistry:
     import pytermor
 
-    tpl_marker_ascii_ctrl = Marker.make('χ{}', INVERSED + RED)
+    tpl_marker_ascii_ctrl = Marker.make('Ɐ{}', INVERSED + RED)
     marker_null = Marker.make('Ø', INVERSED + HI_RED)
-    marker_bell = Marker.make('Ɐ', INVERSED + YELLOW)
+    marker_bell = Marker.make('Ɐ7', INVERSED + HI_YELLOW)
     marker_backspace = Marker.make('⇇', INVERSED + HI_YELLOW)
     marker_delete = Marker.make('⇉', INVERSED + HI_YELLOW)
     # 0x80-0x9f: UCC (binary mode only)
@@ -135,8 +151,8 @@ class TextFormatRegistry:
     marker_form_feed = MarkerWhitespace('↡') #, MAGENTA)
     marker_car_return = MarkerWhitespace('⇤') #, MAGENTA)
 
-    marker_sgr_reset = MarkerEscapeSeq('ϴ', pytermor.build_text256_seq(231))
-    marker_sgr = SGRMarker('ǝ')
+    marker_sgr_reset = MarkerSGRReset('ϴ')
+    marker_sgr = MarkerSGR('ǝ')
     marker_esc_csi = MarkerEscapeSeq('Ͻ', HI_CYAN)
     marker_esc_nf = MarkerEscapeSeq('ꟻ', HI_MAGENTA)
     marker_escape = MarkerEscapeSeq('Ǝ', HI_YELLOW)
@@ -194,12 +210,12 @@ class TextFormatter(AbstractFormatter):
             )
             processed_input = re.sub('\x20', TextFormatRegistry.marker_space.print(), processed_input)
 
-            line_no = ''
-            if Colombo.LINE_NUMBERS:
-                fmt_green('{0:2d}'.format(offset + 1)) + fmt_cyan('\u2502')
+            prefix = ''
+            if Settings.LINE_NUMBERS:
+                prefix = fmt_green('{0:2d}'.format(offset + 1)) + fmt_cyan('│')
 
-            formatted_input = line_no + processed_input
-            aligned_raw_input = (sanitize(line_no)) + raw_input_line
+            formatted_input = prefix + processed_input
+            aligned_raw_input = (sanitize(prefix)) + raw_input_line
 
             self._writer.write_line(formatted_input, aligned_raw_input)
             offset += 1
@@ -275,6 +291,10 @@ class AbstractReader(metaclass=abc.ABCMeta):
     def _read_loop(self) -> None:
         pass
 
+    @property
+    def _is_arg_stdin(self) -> bool:
+        return not self._filename or self._filename == '-'
+
     def _close(self):
         if self._io and not self._io.closed:
             self._io.close()
@@ -287,10 +307,10 @@ class TextReader(AbstractReader):
         super().__init__(filename, formatter)
 
     def _open(self) -> None:
-        if self._filename:
-            self._io = open(self._filename, 'rt')
-        else:
+        if self._is_arg_stdin:
             self._io = sys.stdin
+        else:
+            self._io = open(self._filename, 'rt')
 
     def _read_loop(self) -> None:
         while raw_input := self._io.readlines(TextReader._READ_LINES_COUNT):
@@ -305,10 +325,10 @@ class BinaryReader(AbstractReader):
         super().__init__(filename, formatter)
 
     def _open(self) -> None:
-        if self._filename:
-            self._io = open(self._filename, 'rb')
-        else:
+        if self._is_arg_stdin:
             self._io = sys.stdin.buffer
+        else:
+            self._io = open(self._filename, 'rb')
 
     def _read_loop(self) -> None:
         while raw_input := self._io.read(BinaryReader._READ_CHUNK_SIZE):
@@ -316,15 +336,21 @@ class BinaryReader(AbstractReader):
             self._offset += len(raw_input)
 
 
+class Settings:
+    LINE_NUMBERS = False
+
+    @staticmethod
+    def from_args(args: Namespace):
+        Settings.LINE_NUMBERS = args.line_number
+
+
 class Colombo:
     ORIGINAL_STDERR = os.environ.get('ORIGINAL_STDERR', False)
     CONTENT_DIRECT_COLORIZING = os.environ.get('CONTENT_DIRECT_COLORIZING', True)
     SGR_INFO_COLORIZING = os.environ.get('SGR_INFO_COLORIZING', True)
     ESQ_INFO_LEVEL = int(os.environ.get('ESQ_INFO_LEVEL', 1))
-    FOCUS_CONTROL_SEQUENCE = os.environ.get('FOCUS_CONTROL_SEQUENCE', True)
+    FOCUS_CONTROL_SEQUENCE = os.environ.get('FOCUS_CONTROL_SEQUENCE', False)
     FOCUS_WHITESPACE = os.environ.get('FOCUS_WHITESPACE', False)
-    LINE_NUMBERS = os.environ.get('LINE_NUMBERS', False)
-    VERBOSE = os.environ.get('VERBOSE', True)
     BINARY = False
 
     def run(self):
@@ -337,12 +363,26 @@ class Colombo:
         exit(0)
 
     def _invoke(self):
-        # parse args
-        writer = Writer()
-        reader = TextReader(
-            sys.argv[1] if len(sys.argv) > 1 else None,
-            TextFormatter(writer)
+        parser = argparse.ArgumentParser(
+            description='Control characters and escape sequences visualiser',
+            epilog='If FILE is not supplied or is "-", read standard input.'
         )
+        parser.add_argument('filename', metavar='FILE', nargs='?', help='file to read from')
+        parser.add_argument('-b', '--binary', action='store_true', help='open file in binary mode (default: text mode)')
+        parser.add_argument('-s', '--focus-sequence', action='store_true', help='highlight escape sequences')
+        parser.add_argument('-c', '--focus-control', action='store_true', help='highlight control characters')
+        parser.add_argument('-w', '--focus-whitespace', action='store_true', help='highlight whitespace characters')
+        group = parser.add_argument_group('text mode only')
+        group.add_argument('-n', '--line-number', action='store_true', help='print output line numbers (text mode)')
+        group.add_argument('--seq-info', action='store', type=int, default=1, help='escape sequence params verbosity (0-2, default 1)')
+        group.add_argument('--no-color-info', action='store_true', help='disable applying color to SGR sequence markers')
+        group.add_argument('--no-color-context', action='store_true', help='disable applying color to file context')
+        group.add_argument('--pipe-input', action='store_true', help='send raw input lines to stderr along with default output')
+        args = parser.parse_args()
+        Settings.from_args(args)
+
+        writer = Writer()
+        reader = TextReader(args.filename, TextFormatter(writer))
         try:
             reader.read()
         except UnicodeDecodeError:
@@ -357,10 +397,8 @@ class ExceptionHandler:
         self.format: Format = fmt_red
 
     def handle(self, e: Exception):
-        if Colombo.VERBOSE:
-            self._log_traceback(e)
-        else:
-            self._write(str(e))
+        self._log_traceback(e)
+        print()
         exit(1)
 
     def _write(self, s: str):
