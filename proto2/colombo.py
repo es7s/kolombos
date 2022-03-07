@@ -33,7 +33,7 @@ class Writer:
     def write_line(self, output_line: AnyStr, helper_line: AnyStr):
         self._io_primary.write(output_line)
 
-        if Colombo.ORIGINAL_STDERR:
+        if Settings.PIPE_INPUT_TO_STDERR:
             self._io_support.write(helper_line)
             self._io_support.write('-' * 80 + '\n')
             self._io_primary.flush()
@@ -64,20 +64,20 @@ class Marker(metaclass=abc.ABCMeta):
 
 class MarkerWhitespace(Marker):
     fmt = Format(DIM, DIM_BOLD_OFF)
-    fmt_focused = Format(BOLD + BG_BLUE + BLACK, reset=True)
+    fmt_focused = Format(BOLD + BG_CYAN + BLACK, reset=True)
 
     def __init__(self, marker_char: str, marker_char_focused_override: Optional[str] = None):
         super().__init__(marker_char)
         self._marker_char_focused = marker_char_focused_override if marker_char_focused_override else marker_char
 
     def print(self):
-        if Colombo.FOCUS_WHITESPACE:
+        if Settings.FOCUS_WHITESPACE:
             return self.fmt_focused(self.marker_char)
         return self.fmt(self.marker_char)
 
     @property
     def marker_char(self) -> str:
-        if Colombo.FOCUS_WHITESPACE:
+        if Settings.FOCUS_WHITESPACE:
             return self._marker_char_focused
         return self._marker_char
 
@@ -89,7 +89,7 @@ class MarkerEscapeSeq(Marker):
         self._fmt_focused = Format(opening_seq + INVERSED + BG_BLACK, reset=True)
 
     def print(self, additional_info: str = ''):
-        fmt = self._fmt_focused if Colombo.FOCUS_CONTROL_SEQUENCE else self._fmt
+        fmt = self._fmt_focused if Settings.FOCUS_SEQUENCE else self._fmt
         return RESET.str + fmt(self._marker_char + additional_info)
 
 
@@ -100,7 +100,7 @@ class MarkerSGRReset(Marker):
         self._fmt_focused = Format(INVERSED + pytermor.build_text256_seq(231), reset=True)
 
     def print(self):
-        fmt = self._fmt_focused if Colombo.FOCUS_CONTROL_SEQUENCE else self._fmt
+        fmt = self._fmt_focused if Settings.FOCUS_SEQUENCE else self._fmt
         return RESET.str + fmt(self._marker_char)
 
 
@@ -110,27 +110,27 @@ class MarkerSGR(Marker):
 
     def print(self, additional_info: str = '', seq: SGRSequence = None):
         marker_seq = WHITE + BG_BLACK
-        if Colombo.FOCUS_CONTROL_SEQUENCE:
+        if Settings.FOCUS_SEQUENCE:
             info_seq = INVERSED
-            if Colombo.SGR_INFO_COLORIZING:
+            if not Settings.DISABLE_SGR_PARAM_COLORS:
                 info_seq += OVERLINED
         else:
             info_seq = OVERLINED
         marker_seq += info_seq
 
         result = RESET.str
-        if Colombo.SGR_INFO_COLORIZING:
-            result += marker_seq.str + self._marker_char + seq.str + BLINK_OFF.str + info_seq.str + additional_info
-        else:
+        if Settings.DISABLE_SGR_PARAM_COLORS:
             result += marker_seq.str + self._marker_char + additional_info + seq.str
+        else:
+            result += marker_seq.str + self._marker_char + seq.str + BLINK_OFF.str + info_seq.str + additional_info
 
-        if Colombo.CONTENT_DIRECT_COLORIZING:
+        if Settings.DISABLE_CONTEXT_COLORS:
+            result += RESET.str  # ... content
+        else:
             # even though we allow to colorize content, we'll explicitly disable any inversion and overline
             #  effect to guarantee that the only inversed and/or overlined things on the screen are our markers
             # also disable blinking
             result += INVERSED_OFF.str + OVERLINED_OFF.str + BLINK_OFF.str  # ... content
-        else:
-            result += RESET.str  # ... content
         return result
 
 
@@ -147,13 +147,13 @@ class TextFormatRegistry:
     marker_tab = MarkerWhitespace('⇥\t')  # →
     marker_space = MarkerWhitespace('␣', '·') #HI_BLUE + BG_BLACK)
     marker_newline = MarkerWhitespace('↵')
-    marker_vert_tab = MarkerWhitespace('⤓') # , MAGENTA)  # ↓
-    marker_form_feed = MarkerWhitespace('↡') #, MAGENTA)
-    marker_car_return = MarkerWhitespace('⇤') #, MAGENTA)
+    marker_vert_tab = MarkerWhitespace('⤓')  # , MAGENTA)  # ↓
+    marker_form_feed = MarkerWhitespace('↡')  #, MAGENTA)
+    marker_car_return = MarkerWhitespace('⇤')  #, MAGENTA)
 
     marker_sgr_reset = MarkerSGRReset('ϴ')
     marker_sgr = MarkerSGR('ǝ')
-    marker_esc_csi = MarkerEscapeSeq('Ͻ', HI_CYAN)
+    marker_esc_csi = MarkerEscapeSeq('Ͻ', HI_BLUE)
     marker_esc_nf = MarkerEscapeSeq('ꟻ', HI_MAGENTA)
     marker_escape = MarkerEscapeSeq('Ǝ', HI_YELLOW)
 
@@ -229,9 +229,9 @@ class TextFormatter(AbstractFormatter):
         params_values = list(filter(lambda p: len(p) > 0 and p != '0', params_splitted))
 
         info = ''
-        if Colombo.ESQ_INFO_LEVEL >= 1:
+        if Settings.ESQ_INFO_LEVEL >= 1:
             info += SGRSequence.SEPARATOR.join(params_values)
-        if Colombo.ESQ_INFO_LEVEL >= 2:
+        if Settings.ESQ_INFO_LEVEL >= 2:
             info = introducer + info + terminator
 
         if terminator == SGRSequence.TERMINATOR:
@@ -247,9 +247,9 @@ class TextFormatter(AbstractFormatter):
         if introducer == ' ':
             introducer = TextFormatRegistry.marker_space.marker_char
         info = ''
-        if Colombo.ESQ_INFO_LEVEL >= 1:
+        if Settings.ESQ_INFO_LEVEL >= 1:
             info += introducer
-        if Colombo.ESQ_INFO_LEVEL >= 2:
+        if Settings.ESQ_INFO_LEVEL >= 2:
             info += additional
 
         return marker.print(info)
@@ -337,20 +337,28 @@ class BinaryReader(AbstractReader):
 
 
 class Settings:
-    LINE_NUMBERS = False
+    FOCUS_SEQUENCE: bool
+    FOCUS_CONTROL: bool
+    FOCUS_WHITESPACE: bool
+    LINE_NUMBERS: bool
+    ESQ_INFO_LEVEL: int
+    DISABLE_SGR_PARAM_COLORS: bool
+    DISABLE_CONTEXT_COLORS: bool
+    PIPE_INPUT_TO_STDERR: bool
 
     @staticmethod
     def from_args(args: Namespace):
+        Settings.FOCUS_SEQUENCE = args.focus_sequence
+        Settings.FOCUS_CONTROL = args.focus_control
+        Settings.FOCUS_WHITESPACE = args.focus_whitespace
         Settings.LINE_NUMBERS = args.line_number
+        Settings.ESQ_INFO_LEVEL = args.seq_info
+        Settings.DISABLE_SGR_PARAM_COLORS = args.no_color_info
+        Settings.DISABLE_CONTEXT_COLORS = args.no_color_context
+        Settings.PIPE_INPUT_TO_STDERR = args.pipe_input
 
 
 class Colombo:
-    ORIGINAL_STDERR = os.environ.get('ORIGINAL_STDERR', False)
-    CONTENT_DIRECT_COLORIZING = os.environ.get('CONTENT_DIRECT_COLORIZING', True)
-    SGR_INFO_COLORIZING = os.environ.get('SGR_INFO_COLORIZING', True)
-    ESQ_INFO_LEVEL = int(os.environ.get('ESQ_INFO_LEVEL', 1))
-    FOCUS_CONTROL_SEQUENCE = os.environ.get('FOCUS_CONTROL_SEQUENCE', False)
-    FOCUS_WHITESPACE = os.environ.get('FOCUS_WHITESPACE', False)
     BINARY = False
 
     def run(self):
@@ -368,16 +376,16 @@ class Colombo:
             epilog='If FILE is not supplied or is "-", read standard input.'
         )
         parser.add_argument('filename', metavar='FILE', nargs='?', help='file to read from')
-        parser.add_argument('-b', '--binary', action='store_true', help='open file in binary mode (default: text mode)')
-        parser.add_argument('-s', '--focus-sequence', action='store_true', help='highlight escape sequences')
-        parser.add_argument('-c', '--focus-control', action='store_true', help='highlight control characters')
-        parser.add_argument('-w', '--focus-whitespace', action='store_true', help='highlight whitespace characters')
+        parser.add_argument('-b', '--binary', action='store_true', default=False, help='open file in binary mode (default: text mode)')
+        parser.add_argument('-s', '--focus-sequence', action='store_true', default=False, help='highlight escape sequences')
+        parser.add_argument('-c', '--focus-control', action='store_true', default=False, help='highlight control characters')
+        parser.add_argument('-w', '--focus-whitespace', action='store_true', default=False, help='highlight whitespace characters')
         group = parser.add_argument_group('text mode only')
-        group.add_argument('-n', '--line-number', action='store_true', help='print output line numbers (text mode)')
+        group.add_argument('-n', '--line-number', action='store_true', default=False, help='print output line numbers (text mode)')
         group.add_argument('--seq-info', action='store', type=int, default=1, help='escape sequence params verbosity (0-2, default 1)')
-        group.add_argument('--no-color-info', action='store_true', help='disable applying color to SGR sequence markers')
-        group.add_argument('--no-color-context', action='store_true', help='disable applying color to file context')
-        group.add_argument('--pipe-input', action='store_true', help='send raw input lines to stderr along with default output')
+        group.add_argument('--no-color-info', action='store_true', default=False, help='disable applying color to SGR sequence markers')
+        group.add_argument('--no-color-context', action='store_true', default=False, help='disable applying color to file context')
+        group.add_argument('--pipe-input', action='store_true', default=False, help='send raw input lines to stderr along with default output')
         args = parser.parse_args()
         Settings.from_args(args)
 
