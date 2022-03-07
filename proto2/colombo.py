@@ -42,7 +42,10 @@ class AbstractFormatter(metaclass=abc.ABCMeta):
         pass
 
 
-class Marker:
+class Marker(metaclass=abc.ABCMeta):
+    def __init__(self, marker_char: str):
+        self._marker_char = marker_char
+
     @staticmethod
     def make(marker_char: str, opening_seq: Optional[SGRSequence] = None) -> str:
         return RESET.str + \
@@ -50,25 +53,48 @@ class Marker:
                marker_char + \
                RESET.str
 
+    @property
+    def marker_char(self) -> str:
+        return self._marker_char
 
-class MarkerWithInfo(Marker):
+
+class MarkerWhitespace(Marker):
+    fmt = Format(GRAY, reset=True)
+    fmt_focused = Format(BOLD + BG_BLUE + BLACK, reset=True)
+
+    def __init__(self, marker_char: str, marker_char_focused_override: Optional[str] = None):
+        super().__init__(marker_char)
+        self._marker_char_focused = marker_char_focused_override if marker_char_focused_override else marker_char
+
+    def print(self):
+        if Colombo.FOCUS_WHITESPACE:
+            return self.fmt_focused(self.marker_char)
+        return self.fmt(self.marker_char)
+
+    @property
+    def marker_char(self) -> str:
+        if Colombo.FOCUS_WHITESPACE:
+            return self._marker_char_focused
+        return self._marker_char
+
+class MarkerEscapeSeq(Marker):
     def __init__(self, marker_char: str, opening_seq: SGRSequence):
+        super().__init__(marker_char)
         self._fmt = Format(opening_seq + OVERLINED, reset=True)
-        self._fmt_focus = Format(opening_seq + INVERSED + BG_BLACK, reset=True)
-        self._marker_char_str = marker_char
+        self._fmt_focused = Format(opening_seq + INVERSED + BG_BLACK, reset=True)
 
-    def print(self, additional_info: str = '', focused: bool = False):
-        fmt = self._fmt_focus if focused else self._fmt
-        return RESET.str + fmt(self._marker_char_str + additional_info)
+    def print(self, additional_info: str = ''):
+        fmt = self._fmt_focused if Colombo.FOCUS_CONTROL_SEQUENCE else self._fmt
+        return RESET.str + fmt(self._marker_char + additional_info)
 
 
 class SGRMarker(Marker):
     def __init__(self, marker_char: str):
-        self._marker_char_str = marker_char
+        super().__init__(marker_char)
 
     def print(self, additional_info: str = '', seq: SGRSequence = None):
         marker_seq = HI_WHITE + BG_BLACK
-        if Colombo.FOCUS_CONTROL_SEQUNCE:
+        if Colombo.FOCUS_CONTROL_SEQUENCE:
             info_seq = INVERSED
             if Colombo.SGR_INFO_COLORIZING:
                 info_seq += OVERLINED
@@ -78,15 +104,15 @@ class SGRMarker(Marker):
 
         result = RESET.str
         if Colombo.SGR_INFO_COLORIZING:
-            result += marker_seq.str + self._marker_char_str + seq.str + BLINK_OFF.str + info_seq.str + additional_info
+            result += marker_seq.str + self._marker_char + seq.str + BLINK_OFF.str + info_seq.str + additional_info
         else:
-            result += marker_seq.str + self._marker_char_str + additional_info + seq.str
+            result += marker_seq.str + self._marker_char + additional_info + seq.str
 
         if Colombo.CONTENT_DIRECT_COLORIZING:
             # even though we allow to colorize content, we'll explicitly disable any inversion and overline
             #  effect to guarantee that the only inversed and/or overlined things on the screen are our markers
             # also disable blinking
-            result += INVERSED_OFF.str + OVERLINED_OFF.str + BLINK_OFF.str  # ... content
+            result += BG_COLOR_OFF.str + INVERSED_OFF.str + OVERLINED_OFF.str + BLINK_OFF.str  # ... content
         else:
             result += RESET.str  # ... content
         return result
@@ -95,28 +121,25 @@ class SGRMarker(Marker):
 class TextFormatRegistry:
     import pytermor
 
+    tpl_marker_ascii_ctrl = Marker.make('χ{}', INVERSED + RED)
     marker_null = Marker.make('Ø', INVERSED + HI_RED)
-    marker_ascii_ctrl = MarkerWithInfo('χ', INVERSED + RED)
     marker_bell = Marker.make('Ɐ', INVERSED + YELLOW)
     marker_backspace = Marker.make('⇇', INVERSED + HI_YELLOW)
     marker_delete = Marker.make('⇉', INVERSED + HI_YELLOW)
     # 0x80-0x9f: UCC (binary mode only)
 
-    marker_tab = Marker.make('⇥\t', GRAY)  # →
-    #marker_tab = Marker.make('⇥\t', BOLD + HI_CYAN + BG_BLACK)
-    marker_space = Marker.make('·', GRAY)
-    #marker_space = Marker.make('␣', HI_BLUE + BG_BLACK)
-    marker_newline = Marker.make('↵', GRAY)
-    #marker_newline_focus = Marker.make('↵', BOLD + HI_CYAN + BG_BLACK)
-    marker_vert_tab = Marker.make('⤓', MAGENTA)  # ↓
-    marker_form_feed = Marker.make('↡', MAGENTA)
-    marker_car_return = Marker.make('⇤', MAGENTA)
+    marker_tab = MarkerWhitespace('⇥\t')  # →
+    marker_space = MarkerWhitespace('␣', '·') #HI_BLUE + BG_BLACK)
+    marker_newline = MarkerWhitespace('↵')
+    marker_vert_tab = MarkerWhitespace('⤓') # , MAGENTA)  # ↓
+    marker_form_feed = MarkerWhitespace('↡') #, MAGENTA)
+    marker_car_return = MarkerWhitespace('⇤') #, MAGENTA)
 
-    marker_sgr_reset = MarkerWithInfo('ϴ', pytermor.build_text256_seq(231))
+    marker_sgr_reset = MarkerEscapeSeq('ϴ', pytermor.build_text256_seq(231))
     marker_sgr = SGRMarker('ǝ')
-    marker_csi = MarkerWithInfo('Ͻ', HI_BLUE)
-    marker_nf = MarkerWithInfo('ꟻ', HI_CYAN)
-    marker_esq = MarkerWithInfo('Ǝ', HI_YELLOW)
+    marker_esc_csi = MarkerEscapeSeq('Ͻ', HI_CYAN)
+    marker_esc_nf = MarkerEscapeSeq('ꟻ', HI_MAGENTA)
+    marker_escape = MarkerEscapeSeq('Ǝ', HI_YELLOW)
 
 
 class TextFormatter(AbstractFormatter):
@@ -133,12 +156,11 @@ class TextFormatter(AbstractFormatter):
                 0x00: TextFormatRegistry.marker_null,
                 0x07: TextFormatRegistry.marker_bell,
                 0x08: TextFormatRegistry.marker_backspace,
-                0x09: TextFormatRegistry.marker_tab,
-                0x0b: TextFormatRegistry.marker_vert_tab,
-                0x0c: TextFormatRegistry.marker_form_feed,
-                0x0d: TextFormatRegistry.marker_car_return,
-                0x0a: TextFormatRegistry.marker_newline + '\x0a',  # actual newline
-                0x20: TextFormatRegistry.marker_space,
+                0x09: TextFormatRegistry.marker_tab.print(),
+                0x0b: TextFormatRegistry.marker_vert_tab.print(),
+                0x0c: TextFormatRegistry.marker_form_feed.print(),
+                0x0d: TextFormatRegistry.marker_car_return.print(),
+                0x0a: TextFormatRegistry.marker_newline.print() + '\x0a',  # actual newline
                 0x1b: '\0',
                 0x7f: TextFormatRegistry.marker_delete,
             }
@@ -146,29 +168,31 @@ class TextFormatter(AbstractFormatter):
             for i in (list(range(0x01, 0x07)) + list(range(0x0e, 0x20))):
                 if i == 0x1b:
                     continue
-                translation_map[i] = TextFormatRegistry.marker_ascii_ctrl.print(re.sub('0x0?', '', hex(i)))
+                translation_map[i] = TextFormatRegistry.tpl_marker_ascii_ctrl.format(re.sub('0x0?', '', hex(i)))
             processed_input = raw_input_line.translate(translation_map)#.expandtabs(4)
             # @TODO expandtabs
 
-            # 1) process SGR: 0[...m (e/E)
-            # 2) process CSI: 0[...? (theta)
-            # 3) process generic: 0? (ae)
-
-            processed_input = re.sub(
+            processed_input = re.sub(  # CSI sequences
                 '\0(\\[)([0-9;:<=>?]*)([@A-Za-z\\[])',  # group 3 : 0x40–0x7E ASCII      @A–Z[\]^_`a–z{|}~
                 self._format_csi_sequence,
                 processed_input
             )
             processed_input = re.sub(  # nF Escape sequences
                 '\0([\x20-\x2f]+)([\x30-\x7e])',
-                lambda m: self._format_generic_escape_sequence(m, TextFormatRegistry.marker_nf),
+                lambda m: self._format_generic_escape_sequence(m, TextFormatRegistry.marker_esc_nf),
                 processed_input,
             )
-            processed_input = re.sub(  # group 1 : 0x20-0x7E
-                '\0(.)()',
-                lambda m: self._format_generic_escape_sequence(m, TextFormatRegistry.marker_esq),
+            processed_input = re.sub(  # other escape sequences
+                '\0(.)()',  # group 1 : 0x20-0x7E
+                lambda m: self._format_generic_escape_sequence(m, TextFormatRegistry.marker_escape),
                 processed_input
             )
+            processed_input = re.sub(
+               '(\x20+)',
+               lambda m: MarkerWhitespace.fmt(m.group(1)),
+               processed_input
+            )
+            processed_input = re.sub('\x20', TextFormatRegistry.marker_space.print(), processed_input)
 
             line_no = ''
             if Colombo.LINE_NUMBERS:
@@ -196,21 +220,23 @@ class TextFormatter(AbstractFormatter):
 
         if terminator == SGRSequence.TERMINATOR:
             if len(params_values) == 0:
-                return TextFormatRegistry.marker_sgr_reset.print(focused=Colombo.FOCUS_CONTROL_SEQUNCE)
+                return TextFormatRegistry.marker_sgr_reset.print()
             return TextFormatRegistry.marker_sgr.print(info, SGRSequence(*params_values))
         else:
-            return TextFormatRegistry.marker_csi.print(info, Colombo.FOCUS_CONTROL_SEQUNCE)
+            return TextFormatRegistry.marker_esc_csi.print(info)
 
-    def _format_generic_escape_sequence(self, match: Match, marker: MarkerWithInfo) -> AnyStr:
+    def _format_generic_escape_sequence(self, match: Match, marker: MarkerEscapeSeq) -> AnyStr:
         introducer = match.group(1)  # e.g. '('
         additional = match.group(2)  # e.g. 'B'
+        if introducer == ' ':
+            introducer = TextFormatRegistry.marker_space.marker_char
         info = ''
         if Colombo.ESQ_INFO_LEVEL >= 1:
             info += introducer
         if Colombo.ESQ_INFO_LEVEL >= 2:
             info += additional
 
-        return marker.print(info, Colombo.FOCUS_CONTROL_SEQUNCE)
+        return marker.print(info)
 
 
 class BinaryFormatter(AbstractFormatter):
@@ -292,13 +318,13 @@ class BinaryReader(AbstractReader):
 
 class Colombo:
     ORIGINAL_STDERR = os.environ.get('ORIGINAL_STDERR', False)
-    CONTENT_DIRECT_COLORIZING = os.environ.get('CONTENT_DIRECT_COLORIZING', False)
-    SGR_INFO_COLORIZING = os.environ.get('SGR_INFO_COLORIZING', False)
+    CONTENT_DIRECT_COLORIZING = os.environ.get('CONTENT_DIRECT_COLORIZING', True)
+    SGR_INFO_COLORIZING = os.environ.get('SGR_INFO_COLORIZING', True)
     ESQ_INFO_LEVEL = int(os.environ.get('ESQ_INFO_LEVEL', 1))
-    FOCUS_CONTROL_SEQUNCE = os.environ.get('FOCUS_CONTROL_SEQUNCE', False)
+    FOCUS_CONTROL_SEQUENCE = os.environ.get('FOCUS_CONTROL_SEQUENCE', True)
     FOCUS_WHITESPACE = os.environ.get('FOCUS_WHITESPACE', False)
     LINE_NUMBERS = os.environ.get('LINE_NUMBERS', False)
-    VERBOSE = os.environ.get('VERBOSE', False)
+    VERBOSE = os.environ.get('VERBOSE', True)
     BINARY = False
 
     def run(self):
