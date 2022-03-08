@@ -10,8 +10,8 @@
   ϴ    [7;38;5;231mϴ[m     \e[m     SGR reset sequence [2m(focused)[22m
   ǝ    [37;40;53mǝ[31;25m31[m   \e[31m   SGR sequence, subclass of CSI
   Ͻ    [94;53mϽ?1[m   \e[?1h   CSI escape sequence (excluding SGR)
-  ꟻ    [95;53mꟻ␣1[m   \e 1     nF escape sequence (introducer char can be space)
-  Ǝ    [93;53mƎ~[m    \e~      other escape sequences (Fe, Fs, Fp)
+  ꟻ    [92;53mꟻ␣1[m   \e 1     nF escape sequence (introducer char can be space)
+  Ǝ    [33;53mƎ~[m    \e~      other escape sequences (Fe, Fs, Fp)
 
 [1mWHITESPACE CHARS[m
 
