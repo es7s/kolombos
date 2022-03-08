@@ -7,16 +7,16 @@
 
 [1mESCAPE SEQUENCES[m
 
-  ϴ    [7;38;5;231mϴ[m     \e[m     SGR reset sequence [2m(focused)[22m
-  ǝ    [37;40;53mǝ[31;25m31[m   \e[31m   SGR sequence, subclass of CSI
-  Ͻ    [94;53mϽ?1[m   \e[?1h   CSI escape sequence (excluding SGR)
-  ꟻ    [92;53mꟻ␣1[m   \e 1     nF escape sequence (introducer char can be space)
+  ϴ    [7;38;5;231mϴ[m     \e[m     SGR reset sequence [2m(focused mode)[22m
+  ǝ    [37;40;53mǝ[34;25m34[m   \e[34m   SGR sequence [2m(params' color is same as content color)[22m
+  Ͻ    [32;53mϽ?1[m   \e[?1h   CSI escape sequence (excluding SGR)
+  ꟻ    [32;53mꟻ␣1[m   \e 1     nF escape sequence (introducer char can be space)
   Ǝ    [33;53mƎ~[m    \e~      other escape sequences (Fe, Fs, Fp)
 
-[1mWHITESPACE CHARS[m
+[1mWHITESPACE CHARACTERS[m
 
   ␣    [2m␣[m     \x20     space
-  ·    [1;46;30m·[m     \x20     space [2m(focused, this and subsequent)[22m
+  ·    [1;46;30m·[m     \x20     space [2m(focused; this and subsequent)[22m
   ↵    [1;46;30m↵[m     \n       line feed
   ⇤    [1;46;30m⇤[m     \r       carriage return
   ⇥    [1;46;30m⇥[m     \t       horizontal tab
@@ -29,5 +29,13 @@
   →    [93;7;40m→[m     \x7f     delete
   Ɐ    [31;7;40mⱯ1f[m   \x1f     other ASCII control chars (01-07, 0e-1f)
   Ø    [91;7;40mØ[m     \0       null byte
-
 [2m[chr output  input    description][22m
+
+[1mBINARY MODE HEX COLORS[m
+                                 ## regular[m                    pro
+  [m21 31 7e[m
+  [2m20 0e 0a[m
+  [91m00 [31m01[m
+  [33m1b [93m08[m
+  [1m1b [1m08[m
+  [36m 80 90 ff[m

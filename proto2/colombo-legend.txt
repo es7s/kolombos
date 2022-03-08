@@ -8,7 +8,7 @@
 ESCAPE SEQUENCES
 
   ϴ    ϴ     \e[m     SGR reset sequence
-  ǝ    ǝ31   \e[31m   SGR sequence, subclass of CSI
+  ǝ    ǝ34   \e[34m   SGR sequence, subclass of CSI
   Ͻ    Ͻ?1   \e[?1h   CSI escape sequence (excluding SGR)
   ꟻ    ꟻ␣1   \e 1     nF escape sequence (introducer char can be space)
   Ǝ    Ǝ~    \e~      other escape sequences (Fe, Fs, Fp)

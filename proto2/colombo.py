@@ -229,8 +229,8 @@ class FormatRegistry:
 
     marker_sgr_reset = MarkerSGRReset('ϴ')
     marker_sgr = MarkerSGR('ǝ')
-    marker_esc_csi = MarkerEscapeSeq('Ͻ', MAGENTA)
-    marker_esc_nf = MarkerEscapeSeq('ꟻ', HI_MAGENTA)
+    marker_esc_csi = MarkerEscapeSeq('Ͻ', GREEN)
+    marker_esc_nf = MarkerEscapeSeq('ꟻ', GREEN)
     marker_escape = MarkerEscapeSeq('Ǝ', YELLOW)
 
     fmt_first_chunk_col = Format(build_text256_seq(231) + build_background256_seq(238), COLOR_OFF + BG_COLOR_OFF)
@@ -257,19 +257,20 @@ class AbstractFormatter(metaclass=abc.ABCMeta):
         pass
 
     def _process_input(self, translated_input: str) -> str:
+        control_char = '\x1b' if Colombo.BINARY_MODE else '\0'
         processed_input = re.sub(  # CSI sequences
-            '\0(\\[)([0-9;:<=>?]*)([@A-Za-z\\[])',  # group 3 : 0x40–0x7E ASCII      @A–Z[\]^_`a–z{|}~
+            control_char + '(\\[)([0-9;:<=>?]*)([@A-Za-z\\[])',  # group 3 : 0x40–0x7E ASCII      @A–Z[\]^_`a–z{|}~
             self._format_csi_sequence,
             translated_input
         )
         processed_input = re.sub(  # nF Escape sequences
-            '\0([\x20-\x2f]+)([\x30-\x7e])',
+            control_char + '([\x20-\x2f]+)([\x30-\x7e])',
             lambda m: self._format_generic_escape_sequence(m, FormatRegistry.marker_esc_nf),
             processed_input,
         )
         if not Colombo.BINARY_MODE:
             processed_input = re.sub(  # other escape sequences
-                '\0(.)()',  # group 1 : 0x20-0x7E
+                control_char + '(.)()',  # group 1 : 0x20-0x7E
                 lambda m: self._format_generic_escape_sequence(m, FormatRegistry.marker_escape),
                 processed_input
             )
@@ -518,7 +519,7 @@ class BinaryFormatter(AbstractFormatter):
 
             processed_row = self._apply_matches(buffer_processed[:cols], local_min_pos, local_max_pos) + RESET.str
             hex_row = self._format_hex_row(raw_row, cols, is_guide_row)
-            hex_row = self._apply_matches(hex_row, local_min_pos, local_max_pos, True) + RESET.str
+            hex_row = self._apply_matches(hex_row, local_min_pos, local_max_pos, True) + RESET.str + self.PADDING_SECTION
 
             # @TODO: control char focus
             # @TODO whitespace focus
@@ -566,7 +567,7 @@ class BinaryFormatter(AbstractFormatter):
             for i, chunk_x2 in enumerate(chunks_x2):
                 chunks_x2[i] = re.sub('^(..)', FormatRegistry.fmt_first_chunk_col('\\1'), chunk_x2)
 
-        result = self.PADDING_HEX_CHUNK.join(chunks_x2) + RESET.str + self.PADDING_SECTION
+        result = self.PADDING_HEX_CHUNK.join(chunks_x2)  #+ RESET.str + self.PADDING_SECTION
         return result
 
     def _format_csi_sequence(self, match: Match) -> AnyStr:
