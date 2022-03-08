@@ -10,7 +10,7 @@ import sys
 import traceback
 from argparse import Namespace, SUPPRESS
 from math import floor
-from typing import IO, AnyStr, Optional, List, Union, Match
+from typing import IO, AnyStr, Optional, List, Union, Match, Dict
 
 import pytermor
 from pytermor import sanitize, build_background256_seq, build_text256_seq
@@ -29,12 +29,6 @@ class Writer:
             self._io_support.write(helper_line)
             self._io_primary.flush()
             self._io_support.flush()
-
-
-class AbstractFormatter(metaclass=abc.ABCMeta):
-    @abc.abstractmethod
-    def format(self, raw_input: Union[AnyStr, List[AnyStr]], offset: int):
-        pass
 
 
 class Marker(metaclass=abc.ABCMeta):
@@ -166,72 +160,75 @@ class FormatRegistry:
     fmt_first_chunk_col = Format(build_text256_seq(231) + build_background256_seq(238), COLOR_OFF + BG_COLOR_OFF)
     fmt_nth_row_col = Format(build_text256_seq(231) + build_background256_seq(238) + OVERLINED, COLOR_OFF + BG_COLOR_OFF + OVERLINED_OFF)
 
-class TextFormatter(AbstractFormatter):
+
+class AbstractFormatter(metaclass=abc.ABCMeta):
     def __init__(self, _writer: Writer):
         self._writer = _writer
+        self._translation_map: Dict = dict()
 
-    def format(self, raw_input: Union[str, List[str]], offset: int):
-        from pytermor.preset import fmt_green, fmt_cyan
-        if type(raw_input) is str:
-            raw_input = [raw_input]
+    def _get_translation_map(self) -> Dict:
+        if not self._translation_map:
+            self._build_translation_map()
+        return self._translation_map
 
-        for raw_input_line in raw_input:
-            translation_map = {
-                0x1b: '\0',
-            }
-            if Settings.PRINT_WHITESPACE_MARKER:
-                translation_map.update({
-                    0x09: FormatRegistry.marker_tab.print(),
-                    0x0b: FormatRegistry.marker_vert_tab.print(),
-                    0x0c: FormatRegistry.marker_form_feed.print(),
-                    0x0d: FormatRegistry.marker_car_return.print(),
-                    0x0a: FormatRegistry.marker_newline.print() + '\x0a',  # actual newline
-                })
-            if Settings.PRINT_CONTROL_MARKER:
-                translation_map.update({
-                    0x00: FormatRegistry.marker_null.print(),
-                    0x07: FormatRegistry.marker_bell.print(),
-                    0x08: FormatRegistry.marker_backspace.print(),
-                    0x7f: FormatRegistry.marker_delete.print(),
-                })
-                for i in (list(range(0x01, 0x07)) + list(range(0x0e, 0x20))):
-                    if i == 0x1b:
-                        continue
-                    translation_map[i] = FormatRegistry.tpl_marker_ascii_ctrl.print(re.sub('0x0?', '', hex(i)))
+    def _build_translation_map(self):
+        self._translation_map = {
+            0x1b: '\0',
+        }
+        if Settings.PRINT_WHITESPACE_MARKER:
+            self._translation_map.update(self._get_whitespace_translation_map())
+        if Settings.PRINT_CONTROL_MARKER:
+            self._translation_map.update(self._get_control_translation_map())
+            for i in (list(range(0x01, 0x07)) + list(range(0x0e, 0x20))):
+                if i == 0x1b:
+                    continue
+                self._translation_map[i] = FormatRegistry.tpl_marker_ascii_ctrl.print(re.sub('0x0?', '', hex(i)))
 
-            processed_input = raw_input_line.translate(translation_map)
-            processed_input = re.sub(  # CSI sequences
-                '\0(\\[)([0-9;:<=>?]*)([@A-Za-z\\[])',  # group 3 : 0x40–0x7E ASCII      @A–Z[\]^_`a–z{|}~
-                self._format_csi_sequence,
+    def _get_whitespace_translation_map(self) -> dict:
+        return {
+            0x09: FormatRegistry.marker_tab.print(),
+            0x0b: FormatRegistry.marker_vert_tab.print(),
+            0x0c: FormatRegistry.marker_form_feed.print(),
+            0x0d: FormatRegistry.marker_car_return.print(),
+            0x0a: FormatRegistry.marker_newline.print() + ('' if Colombo.BINARY_MODE else '\x0a'),  # actual newline
+        }
+
+    def _get_control_translation_map(self) -> dict:
+        return {
+            0x00: FormatRegistry.marker_null.print(),
+            0x07: FormatRegistry.marker_bell.print(),
+            0x08: FormatRegistry.marker_backspace.print(),
+            0x7f: FormatRegistry.marker_delete.print(),
+        }
+
+    @abc.abstractmethod
+    def format(self, raw_input: Union[AnyStr, List[AnyStr]], offset: int):
+        pass
+
+    def _process_input(self, translated_input: str) -> str:
+        processed_input = re.sub(  # CSI sequences
+            '\0(\\[)([0-9;:<=>?]*)([@A-Za-z\\[])',  # group 3 : 0x40–0x7E ASCII      @A–Z[\]^_`a–z{|}~
+            self._format_csi_sequence,
+            translated_input
+        )
+        processed_input = re.sub(  # nF Escape sequences
+            '\0([\x20-\x2f]+)([\x30-\x7e])',
+            lambda m: self._format_generic_escape_sequence(m, FormatRegistry.marker_esc_nf),
+            processed_input,
+        )
+        processed_input = re.sub(  # other escape sequences
+            '\0(.)()',  # group 1 : 0x20-0x7E
+            lambda m: self._format_generic_escape_sequence(m, FormatRegistry.marker_escape),
+            processed_input
+        )
+        if Settings.PRINT_WHITESPACE_MARKER:
+            processed_input = re.sub(
+                '(\x20+)',
+                lambda m: MarkerWhitespace.get_fmt()(m.group(1)),
                 processed_input
             )
-            processed_input = re.sub(  # nF Escape sequences
-                '\0([\x20-\x2f]+)([\x30-\x7e])',
-                lambda m: self._format_generic_escape_sequence(m, FormatRegistry.marker_esc_nf),
-                processed_input,
-            )
-            processed_input = re.sub(  # other escape sequences
-                '\0(.)()',  # group 1 : 0x20-0x7E
-                lambda m: self._format_generic_escape_sequence(m, FormatRegistry.marker_escape),
-                processed_input
-            )
-            if Settings.PRINT_WHITESPACE_MARKER:
-                processed_input = re.sub(
-                   '(\x20+)',
-                   lambda m: MarkerWhitespace.get_fmt()(m.group(1)),
-                   processed_input
-                )
-                processed_input = re.sub('\x20', FormatRegistry.marker_space.marker_char, processed_input)
-
-            prefix = ''
-            if Settings.LINE_NUMBERS:
-                prefix = fmt_green('{0:2d}'.format(offset + 1)) + fmt_cyan('│')
-
-            formatted_input = prefix + processed_input
-            aligned_raw_input = (sanitize(prefix)) + raw_input_line
-
-            self._writer.write_line(formatted_input, aligned_raw_input)
-            offset += 1
+            processed_input = re.sub('\x20', FormatRegistry.marker_space.marker_char, processed_input)
+        return processed_input
 
     def _format_csi_sequence(self, match: Match) -> AnyStr:
         introducer = match.group(1)  # e.g. '['
@@ -253,7 +250,7 @@ class TextFormatter(AbstractFormatter):
             info = introducer + info + terminator
 
         if terminator == SGRSequence.TERMINATOR:
-            if len(params_values) == 0:
+            if len(params_values) == 0 and not Colombo.BINARY_MODE:
                 return FormatRegistry.marker_sgr_reset.print()
             return FormatRegistry.marker_sgr.print(info, SGRSequence(*params_values))
         else:
@@ -276,28 +273,66 @@ class TextFormatter(AbstractFormatter):
         return marker.print(info)
 
 
+class TextFormatter(AbstractFormatter):
+    def __init__(self, _writer: Writer):
+        super().__init__(_writer)
+
+    def format(self, raw_input: Union[str, List[str]], offset: int):
+        from pytermor.preset import fmt_green, fmt_cyan
+        if type(raw_input) is str:
+            raw_input = [raw_input]
+
+        for raw_input_line in raw_input:
+            processed_input = self._process_input(
+                raw_input_line.translate(self._get_translation_map())
+            )
+
+            prefix = ''
+            if Settings.LINE_NUMBERS:
+                prefix = fmt_green('{0:2d}'.format(offset + 1)) + fmt_cyan('│')
+
+            formatted_input = prefix + processed_input
+            aligned_raw_input = (sanitize(prefix)) + raw_input_line
+
+            self._writer.write_line(formatted_input, aligned_raw_input)
+            offset += 1
+
+
 class BinaryFormatter(AbstractFormatter):
     def __init__(self, _writer: Writer):
+        super().__init__(_writer)
+
         self.BYTE_CHUNK_LEN = 4
 
         self.PADDING_SECTION = 3*' '
         self.PADDING_HEX_CHUNK = 2 * ' '
 
-        self._writer = _writer
-        self._buffer: bytes = bytes()
+        self._buffer_raw: bytes = bytes()
+        self._buffer_processed: str = ''
         self._row_num = 0
 
         hexlist = ''
         for i in range(0, 0x100):
-            if i <= 0x1f or 0x7f <= i:
+            if 0x7f <= i:
                 hexlist += '{:02x}'.format(ord('.'))
             else:
                 hexlist += '{:02x}'.format(i)
-        self._table = bytes.fromhex(hexlist)
+        self._byte_table = bytes.fromhex(hexlist)
+
+    def _build_translation_map(self):
+        super()._build_translation_map()
+        if not Settings.PRINT_WHITESPACE_MARKER:
+            self._translation_map.update({
+                0x09: '.',
+                0x0b: '.',
+                0x0c: '.',
+                0x0d: '.',
+                0x0a: '.',
+            })
 
     def format(self, raw_input: bytes, offset: int):
-        offset -= len(self._buffer)
-        self._buffer += raw_input
+        offset -= len(self._buffer_raw)
+        self._buffer_raw += raw_input
 
         if Settings.COLS_NUM > 0:
             cols = Settings.COLS_NUM
@@ -308,22 +343,26 @@ class BinaryFormatter(AbstractFormatter):
         if len(raw_input) == 0:  # reading finished, we must empty the buffer completely
             max_buffer_len = 0
 
-        while len(self._buffer) > max_buffer_len:
-            is_guide_row = (Settings.OVERLAY_GRID and (self._row_num % (2 * self.BYTE_CHUNK_LEN)) == 0)
-            row = self._buffer[:cols]
+        buffer_processed = self._decode_and_process(raw_input, cols)
 
-            processed_row = '{}{}{}'.format(
+        while len(self._buffer_raw) > max_buffer_len:
+            is_guide_row = (Settings.OVERLAY_GRID and (self._row_num % (2 * self.BYTE_CHUNK_LEN)) == 0)
+            raw_row = self._buffer_raw[:cols]
+            processed_row = buffer_processed[:cols]
+
+            merged_row = '{}{}{}'.format(
                 self._print_offset(offset),
-                self._format_hex_row(row, cols, is_guide_row),
-                self._format_decoded_row(row, cols, is_guide_row)
+                self._format_hex_row(raw_row, cols, is_guide_row),
+                processed_row
             )
             if is_guide_row:
-                processed_row = FormatRegistry.fmt_nth_row_col(processed_row)
+                merged_row = FormatRegistry.fmt_nth_row_col(processed_row)
 
-            self._writer.write_line(processed_row + '\n')
+            self._writer.write_line(merged_row + '\n')
 
-            offset += len(row)
-            self._buffer = self._buffer[len(row):]
+            offset += len(raw_row)
+            self._buffer_raw = self._buffer_raw[len(raw_row):]
+            buffer_processed = buffer_processed[len(raw_row):]  # should be equal
             self._row_num += 1
 
         if len(raw_input) == 0:
@@ -360,12 +399,20 @@ class BinaryFormatter(AbstractFormatter):
         result = self.PADDING_HEX_CHUNK.join(chunks_x2) + self.PADDING_SECTION
         return result
 
-    def _format_decoded_row(self, row: bytes, cols: int, is_guide_row: bool) -> AnyStr:
-        decoded = row.translate(self._table).decode()
-        decoded += ' ' * (cols - len(decoded))
-        if Settings.OVERLAY_GRID and not is_guide_row:
-            decoded = re.sub('(.)(.{,7})', FormatRegistry.fmt_first_chunk_col('\\1') + '\\2', decoded)
-        return decoded
+    def _decode_and_process(self, raw_input: bytes, cols: int) -> AnyStr:
+        decoded = raw_input.translate(self._byte_table).decode()
+        formatted = decoded + ' ' * (cols - len(decoded))
+        #if Settings.OVERLAY_GRID and not is_guide_row:
+        #    formatted = re.sub('(.)(.{,7})', FormatRegistry.fmt_first_chunk_col('\\1') + '\\2', formatted)
+
+        translated = formatted.translate(self._get_translation_map())
+        return translated
+        processed = self._process_input(translated)
+        if len(processed) != len(decoded):
+            raise RuntimeError('Fatal: cannot proceed. Processing system failure: length mismatch. Dumps:', {
+                bytes(decoded.encode()).hex(), bytes(processed.encode()).hex()
+            })
+        return processed
 
     def _get_terminal_width(self):
         try:
@@ -500,6 +547,10 @@ class Settings:
         Settings.COLS_NUM = args.columns
         Settings.OVERLAY_GRID = args.grid
 
+        if Colombo.BINARY_MODE:
+            Settings.ESQ_INFO_LEVEL = 2
+            Settings.DISABLE_SGR_PARAM_COLORS = True
+            Settings.DISABLE_CONTEXT_COLORS = True
 
 class Colombo:
     BINARY_MODE: bool
@@ -543,7 +594,7 @@ class Colombo:
 
         bin_mode_group = parser.add_argument_group('binary mode only')
         bin_mode_group.add_argument('-n', '--columns', metavar='<num>', action='store', type=int, default=0, help='output <num> bytes per line (default is 0 = auto)')
-        bin_mode_group.add_argument('-g', '--grid', action='store_true', default=False, help='overlay table with 8x8 grid')
+        bin_mode_group.add_argument('-g', '--grid', action='store_true', default=False, help='display on the table 8x8 overlay grid')
         args = parser.parse_args()
 
         if args.legend:
@@ -551,8 +602,8 @@ class Colombo:
                 print(f.read())
                 exit(0)
 
-        Settings.from_args(args)
         Colombo.BINARY_MODE = args.binary
+        Settings.from_args(args)
 
         writer = Writer()
         if self.BINARY_MODE:
