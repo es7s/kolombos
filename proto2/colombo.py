@@ -17,6 +17,45 @@ from pytermor import sanitize, build_background256_seq, build_text256_seq
 from pytermor.preset import *
 
 
+
+class Settings:
+    FOCUS_SEQUENCE: bool
+    FOCUS_CONTROL: bool
+    FOCUS_WHITESPACE: bool
+    PRINT_SEQUENCE_MARKER: bool
+    PRINT_CONTROL_MARKER: bool
+    PRINT_WHITESPACE_MARKER: bool
+    LINE_NUMBERS: bool
+    ESQ_INFO_LEVEL: int
+    DISABLE_SGR_PARAM_COLORS: bool
+    DISABLE_CONTEXT_COLORS: bool
+    PIPE_INPUT_TO_STDERR: bool
+    COLS_NUM: bool
+    OVERLAY_GRID: bool
+
+    @staticmethod
+    def from_args(args: Namespace):
+        Settings.FOCUS_SEQUENCE = args.focus_esq
+        Settings.FOCUS_CONTROL = args.focus_control
+        Settings.FOCUS_WHITESPACE = args.focus_space
+        Settings.PRINT_SEQUENCE_MARKER = not args.no_esq
+        Settings.PRINT_CONTROL_MARKER = not args.no_control
+        Settings.PRINT_WHITESPACE_MARKER = not args.no_space
+
+        Settings.LINE_NUMBERS = args.line_number
+        Settings.ESQ_INFO_LEVEL = args.info
+        Settings.DISABLE_SGR_PARAM_COLORS = args.no_color_marker
+        Settings.DISABLE_CONTEXT_COLORS = args.no_color_content
+        Settings.PIPE_INPUT_TO_STDERR = args.pipe_stderr
+
+        Settings.COLS_NUM = args.columns
+        Settings.OVERLAY_GRID = args.grid
+
+        if Colombo.BINARY_MODE:
+            Settings.ESQ_INFO_LEVEL = 2
+            Settings.DISABLE_SGR_PARAM_COLORS = True
+
+
 class Writer:
     def __init__(self):
         self._io_primary: IO = sys.stdout
@@ -46,6 +85,10 @@ class Marker(metaclass=abc.ABCMeta):
     def marker_char(self) -> str:
         return self._marker_char
 
+    @abc.abstractmethod
+    def get_fmt(self) -> Format:
+        pass
+
 
 class MarkerControlChar(Marker):
     def __init__(self, marker_char: str, opening_seq: SGRSequence):
@@ -55,9 +98,12 @@ class MarkerControlChar(Marker):
 
     def print(self, *tpl_args):
         marker = self.marker_char.format(*tpl_args)
+        return self.get_fmt()(marker)
+
+    def get_fmt(self) -> Format:
         if Settings.FOCUS_CONTROL:
-            return self._fmt_focused(marker)
-        return self._fmt(marker)
+            return self._fmt_focused
+        return self._fmt
 
 
 class MarkerWhitespace(Marker):
@@ -71,8 +117,12 @@ class MarkerWhitespace(Marker):
     def print(self):
         return self.get_fmt()(self.marker_char)
 
+    # нет времени объяснять, срочно костылим
+    def get_fmt(self) -> Format:
+        return self.sget_fmt()
+
     @staticmethod
-    def get_fmt() -> Format:
+    def sget_fmt() -> Format:
         if Settings.FOCUS_WHITESPACE:
             return MarkerWhitespace._fmt_focused
         return MarkerWhitespace._fmt
@@ -91,8 +141,12 @@ class MarkerEscapeSeq(Marker):
         self._fmt_focused = Format(opening_seq + INVERSED + BG_BLACK, reset=True)
 
     def print(self, additional_info: str = ''):
-        fmt = self._fmt_focused if Settings.FOCUS_SEQUENCE else self._fmt
-        return RESET.str + fmt(self._marker_char + additional_info)
+        return RESET.str + self.get_fmt()(self._marker_char + additional_info)
+
+    def get_fmt(self) -> Format:
+        if Settings.FOCUS_SEQUENCE:
+            return self._fmt_focused
+        return self._fmt
 
 
 class MarkerSGRReset(Marker):
@@ -102,38 +156,58 @@ class MarkerSGRReset(Marker):
         self._fmt_focused = Format(INVERSED + pytermor.build_text256_seq(231), reset=True)
 
     def print(self):
-        fmt = self._fmt_focused if Settings.FOCUS_SEQUENCE else self._fmt
-        return RESET.str + fmt(self._marker_char)
+        return RESET.str + self.get_fmt()(self._marker_char)
+
+    def get_fmt(self) -> Format:
+        if Settings.FOCUS_SEQUENCE:
+            return self._fmt_focused
+        return self._fmt
 
 
 class MarkerSGR(Marker):
+    # even though we allow to colorize content, we'll explicitly disable any inversion and overline
+    #  effect to guarantee that the only inversed and/or overlined things on the screen are our markers
+    # also disable blinking
+    PROHIBITED_CONTENT_SEQS: SGRSequence = INVERSED_OFF + OVERLINED_OFF + BLINK_OFF
+
     def __init__(self, marker_char: str):
         super().__init__(marker_char)
+        self._initialized: bool = False
+        self._marker_seq: SGRSequence
+        self._info_seq: SGRSequence
 
     def print(self, additional_info: str = '', seq: SGRSequence = None):
-        marker_seq = WHITE + BG_BLACK
-        if Settings.FOCUS_SEQUENCE:
-            info_seq = INVERSED
-            if not Settings.DISABLE_SGR_PARAM_COLORS:
-                info_seq += OVERLINED
-        else:
-            info_seq = OVERLINED
-        marker_seq += info_seq
+        self._init_seqs()
 
         result = RESET.str
         if Settings.DISABLE_SGR_PARAM_COLORS:
-            result += marker_seq.str + self._marker_char + additional_info + seq.str
+            result += self._marker_seq.str + self._marker_char + additional_info + seq.str
         else:
-            result += marker_seq.str + self._marker_char + seq.str + BLINK_OFF.str + info_seq.str + additional_info
+            result += self._marker_seq.str + self._marker_char + seq.str + BLINK_OFF.str + self._info_seq.str + additional_info
 
         if Settings.DISABLE_CONTEXT_COLORS:
             result += RESET.str  # ... content
         else:
-            # even though we allow to colorize content, we'll explicitly disable any inversion and overline
-            #  effect to guarantee that the only inversed and/or overlined things on the screen are our markers
-            # also disable blinking
-            result += INVERSED_OFF.str + OVERLINED_OFF.str + BLINK_OFF.str  # ... content
+            result += self.PROHIBITED_CONTENT_SEQS.str  # ... content
         return result
+
+    def get_fmt(self) -> Format:
+        self._init_seqs()
+        return Format(self._marker_seq, reset=True)
+
+    def _init_seqs(self):
+        if self._initialized:
+            return
+
+        self._marker_seq = WHITE + BG_BLACK
+        if Settings.FOCUS_SEQUENCE:
+            self._info_seq = INVERSED
+            if not Settings.DISABLE_SGR_PARAM_COLORS:
+                self._info_seq += OVERLINED
+        else:
+            self._info_seq = OVERLINED
+        self._marker_seq += self._info_seq
+        self._initialized = True
 
 
 class FormatRegistry:
@@ -215,50 +289,20 @@ class AbstractFormatter(metaclass=abc.ABCMeta):
         processed_input = self._process_input_whitespace(processed_input)
         return processed_input
 
+    @abc.abstractmethod
     def _process_input_whitespace(self, processed_input: str) -> str:
-        return processed_input
+        pass
 
+    def _filter_sgr_param(self, p):
+        return len(p) > 0 and p != '0'
+
+    @abc.abstractmethod
     def _format_csi_sequence(self, match: Match) -> AnyStr:
-        introducer = match.group(1)  # e.g. '['
-        params = match.group(2)  # e.g. '1;7'
-        terminator = match.group(3)  # e.g. 'm'
+        pass
 
-        params_splitted = re.split('[^0-9;:<=>?]+', params)
-        params_values = list(filter(lambda p: len(p) > 0 and p != '0', params_splitted))
-
-        if not Settings.PRINT_SEQUENCE_MARKER:
-            if terminator == SGRSequence.TERMINATOR and not Settings.DISABLE_CONTEXT_COLORS:
-                return SGRSequence(*params_values).str
-            return ''
-
-        info = ''
-        if Settings.ESQ_INFO_LEVEL >= 1:
-            info += SGRSequence.SEPARATOR.join(params_values)
-        if Settings.ESQ_INFO_LEVEL >= 2:
-            info = introducer + info + terminator
-
-        if terminator == SGRSequence.TERMINATOR:
-            if len(params_values) == 0 and not Colombo.BINARY_MODE:
-                return FormatRegistry.marker_sgr_reset.print()
-            return FormatRegistry.marker_sgr.print(info, SGRSequence(*params_values))
-        else:
-            return FormatRegistry.marker_esc_csi.print(info)
-
+    @abc.abstractmethod
     def _format_generic_escape_sequence(self, match: Match, marker: MarkerEscapeSeq) -> AnyStr:
-        if not Settings.PRINT_SEQUENCE_MARKER:
-            return ''
-
-        introducer = match.group(1)  # e.g. '('
-        additional = match.group(2)  # e.g. 'B'
-        if introducer == ' ':
-            introducer = FormatRegistry.marker_space.marker_char
-        info = ''
-        if Settings.ESQ_INFO_LEVEL >= 1:
-            info += introducer
-        if Settings.ESQ_INFO_LEVEL >= 2:
-            info += additional
-
-        return marker.print(info)
+        pass
 
 
 class TextFormatter(AbstractFormatter):
@@ -282,6 +326,16 @@ class TextFormatter(AbstractFormatter):
             0x7f: FormatRegistry.marker_delete.print(),
         }
 
+    def _process_input_whitespace(self, processed_input: str) -> str:
+        if Settings.PRINT_WHITESPACE_MARKER:
+            processed_input = re.sub(
+                '(\x20+)',
+                lambda m: MarkerWhitespace.sget_fmt()(m.group(1)),
+                processed_input
+            )
+            processed_input = re.sub('\x20', FormatRegistry.marker_space.marker_char, processed_input)
+        return processed_input
+
     def format(self, raw_input: Union[str, List[str]], offset: int):
         from pytermor.preset import fmt_green, fmt_cyan
         if type(raw_input) is str:
@@ -302,6 +356,55 @@ class TextFormatter(AbstractFormatter):
             self._writer.write_line(formatted_input, aligned_raw_input)
             offset += 1
 
+    def _format_csi_sequence(self, match: Match) -> AnyStr:
+        introducer = match.group(1)  # e.g. '['
+        params = match.group(2)  # e.g. '1;7'
+        terminator = match.group(3)  # e.g. 'm'
+
+        params_splitted = re.split('[^0-9]+', params)
+        params_values = list(filter(self._filter_sgr_param, params_splitted))
+
+        if not Settings.PRINT_SEQUENCE_MARKER:
+            if terminator == SGRSequence.TERMINATOR and not Settings.DISABLE_CONTEXT_COLORS:
+                return SGRSequence(*params_values).str
+            return ''
+
+        info = ''
+        if Settings.ESQ_INFO_LEVEL >= 1:
+            info += SGRSequence.SEPARATOR.join(params_values)
+        if Settings.ESQ_INFO_LEVEL >= 2:
+            info = introducer + info + terminator
+
+        if terminator == SGRSequence.TERMINATOR:
+            if len(params_values) == 0:
+                return FormatRegistry.marker_sgr_reset.print()
+            return FormatRegistry.marker_sgr.print(info, SGRSequence(*params_values))
+        else:
+            return FormatRegistry.marker_esc_csi.print(info)
+
+    def _format_generic_escape_sequence(self, match: Match, marker: MarkerEscapeSeq) -> AnyStr:
+        if not Settings.PRINT_SEQUENCE_MARKER:
+            return ''
+
+        introducer = match.group(1)  # e.g. '('
+        additional = match.group(2)  # e.g. 'B'
+        if introducer == ' ':
+            introducer = FormatRegistry.marker_space.marker_char
+        info = ''
+        if Settings.ESQ_INFO_LEVEL >= 1:
+            info += introducer
+        if Settings.ESQ_INFO_LEVEL >= 2:
+            info += additional
+
+        return marker.print(info)
+
+
+class MarkerMatch:
+    def __init__(self, match: Match, marker: Marker = None):
+        self.match = match
+        self.marker = marker
+        self.sgr_seq = None
+
 
 class BinaryFormatter(AbstractFormatter):
     def __init__(self, _writer: Writer):
@@ -315,6 +418,8 @@ class BinaryFormatter(AbstractFormatter):
 
         self._buffer_raw: bytes = bytes()
         self._buffer_processed: str = ''
+        self._process_matches: List[MarkerMatch] = []
+
         self._row_num = 0
 
         hexlist = ''
@@ -338,7 +443,9 @@ class BinaryFormatter(AbstractFormatter):
         marker_ascii_ctrl = FormatRegistry.tpl_marker_ascii_ctrl.marker_char.format('')
         if not Settings.PRINT_CONTROL_MARKER:
             marker_ascii_ctrl = self.PLACEHOLDER_CHAR
-        self._translation_map.update({b: marker_ascii_ctrl for b in (list(range(0x01, 0x07)) + list(range(0x0e, 0x20)))})
+        self._translation_map.update({b: marker_ascii_ctrl for b in (
+                                        list(range(0x01, 0x07)) + list(range(0x0e, 0x1b))) + list(range(0x1c, 0x20))
+                                      })
 
         if Settings.PRINT_WHITESPACE_MARKER:
             self._translation_map.update(self._get_whitespace_translation_map())
@@ -364,11 +471,8 @@ class BinaryFormatter(AbstractFormatter):
 
     def _process_input_whitespace(self, processed_input: str) -> str:
         if Settings.PRINT_WHITESPACE_MARKER:
-            processed_input = re.sub(
-                '(\x20+)',
-                lambda m: MarkerWhitespace.get_fmt()(m.group(1)),
-                processed_input
-            )
+            for match in re.finditer('(\x20+)', processed_input) or []:
+                self._process_matches.append(MarkerMatch(match, FormatRegistry.marker_space))
             processed_input = re.sub('\x20', FormatRegistry.marker_space.marker_char, processed_input)
         return processed_input
 
@@ -386,24 +490,36 @@ class BinaryFormatter(AbstractFormatter):
         if len(raw_input) == 0:  # reading finished, we must empty the buffer completely
             max_buffer_len = 0
 
-        buffer_processed = self._decode_and_process(raw_input, cols)
+        self._process_matches.clear()
+        buffer_processed = self._decode_and_process(self._buffer_raw, cols)
+
+        # iterate backwards, so updates to the processed_row doesn't mess up next offsets
+        # self._process_matches.reverse()
+        # seqs are parsed in special order, reverse itself doesn't save from collisions
+        self._process_matches.sort(key=lambda mm: mm.match.span(0)[1], reverse=True)
+
+        local_min_pos = 0
 
         while len(self._buffer_raw) > max_buffer_len:
             is_guide_row = (Settings.OVERLAY_GRID and (self._row_num % (2 * self.BYTE_CHUNK_LEN)) == 0)
             raw_row = self._buffer_raw[:cols]
-            processed_row = buffer_processed[:cols]
+            local_max_pos = local_min_pos + len(raw_row)
 
-            merged_row = '{}{}{}'.format(
-                self._print_offset(offset),
-                self._format_hex_row(raw_row, cols, is_guide_row),
-                processed_row
-            )
+            processed_row = self._apply_matches(buffer_processed[:cols], local_min_pos, local_max_pos) + RESET.str
+            hex_row = self._format_hex_row(raw_row, cols, is_guide_row)
+            hex_row = self._apply_matches(hex_row, local_min_pos, local_max_pos, True) + RESET.str
+
+            # @TODO: control char focus
+            # @TODO whitespace focus
+
+            merged_row = '{}{}{}'.format(self._print_offset(offset), hex_row, processed_row)
             if is_guide_row:
                 merged_row = FormatRegistry.fmt_nth_row_col(processed_row)
 
             self._writer.write_line(merged_row + '\n')
 
             offset += len(raw_row)
+            local_min_pos += len(raw_row)
             self._buffer_raw = self._buffer_raw[len(raw_row):]
             buffer_processed = buffer_processed[len(raw_row):]  # should be equal
             self._row_num += 1
@@ -439,8 +555,43 @@ class BinaryFormatter(AbstractFormatter):
             for i, chunk_x2 in enumerate(chunks_x2):
                 chunks_x2[i] = re.sub('^(..)', FormatRegistry.fmt_first_chunk_col('\\1'), chunk_x2)
 
-        result = self.PADDING_HEX_CHUNK.join(chunks_x2) + self.PADDING_SECTION
+        result = self.PADDING_HEX_CHUNK.join(chunks_x2) + RESET.str + self.PADDING_SECTION
         return result
+
+    def _format_csi_sequence(self, match: Match) -> AnyStr:
+        params_splitted = re.split('[^0-9]+', match.group(2))
+        params_values = list(filter(self._filter_sgr_param, params_splitted))
+
+        marker = None
+        mmatch = MarkerMatch(match)
+
+        if Settings.PRINT_SEQUENCE_MARKER:
+            if match.group(3) == SGRSequence.TERMINATOR:
+                if len(params_values) == 0:
+                    marker = FormatRegistry.marker_sgr_reset
+                else:
+                    marker = FormatRegistry.marker_sgr
+                mmatch.sgr_seq = SGRSequence(*params_values).str
+            else:
+                marker = FormatRegistry.marker_esc_csi
+
+        if marker:
+            marker_char = marker.marker_char
+            mmatch.marker = marker
+            self._process_matches.append(mmatch)
+        else:
+            marker_char = self.PLACEHOLDER_CHAR
+        return marker_char + match.group(1) + match.group(2) + match.group(3)
+
+    def _format_generic_escape_sequence(self, match: Match, marker: MarkerEscapeSeq) -> AnyStr:
+        marker_char = self.PLACEHOLDER_CHAR
+
+        if Settings.PRINT_SEQUENCE_MARKER:
+            marker = FormatRegistry.marker_escape
+            marker_char = FormatRegistry.marker_escape.marker_char
+            self._process_matches.append(MarkerMatch(match, marker))
+
+        return marker_char + match.group(1) + match.group(2)
 
     def _decode_and_process(self, raw_input: bytes, cols: int) -> AnyStr:
         decoded = raw_input.translate(self._byte_table).decode()
@@ -448,9 +599,55 @@ class BinaryFormatter(AbstractFormatter):
         #    formatted = re.sub('(.)(.{,7})', FormatRegistry.fmt_first_chunk_col('\\1') + '\\2', formatted)
         translated = decoded.translate(self._get_translation_map())
         processed = self._process_input(translated)
-        if len(sanitize(processed)) != len(decoded):
-            raise RuntimeError('Fatal: cannot proceed. Processing system failure: length mismatch. Dumps:', {'translated': raw_input})
+        sanitized = sanitize(processed)
+        if len(sanitized) != len(decoded):
+            raise RuntimeError('Fatal: length mismatch. Dumps:', {
+                'raw_input': raw_input,
+                'translated': translated,
+                'processed': processed,
+                'sanitized': sanitized,
+            })
         return processed + ' ' * (cols - len(processed))
+
+    def _apply_matches(self, row: str, local_min_pos: int, local_max_pos: int, is_hex_row: bool = False) -> str:
+        for mm in self._process_matches:
+            span_g0 = mm.match.span(0)
+            if local_min_pos <= span_g0[0] <= local_max_pos or local_min_pos <= span_g0[1] <= local_max_pos:
+
+                start_pos = max(0, span_g0[0] - local_min_pos)
+                end_pos = min(local_max_pos, span_g0[1]) - local_min_pos
+
+                if is_hex_row:
+                    start_pos = self._map_pos_to_hex_row(start_pos)
+                    end_pos = self._map_pos_to_hex_row(end_pos, end=True)
+
+                left_part = row[:start_pos]
+                mid_part = row[start_pos:end_pos]
+                right_part = row[end_pos:]
+
+                fmt = mm.marker.get_fmt()
+                if is_hex_row:
+                    mid_part = ' '.join([fmt(b) for b in mid_part.split(' ')])
+                else:
+                    mid_part = fmt(mid_part)
+
+                if mm.sgr_seq and not Settings.DISABLE_CONTEXT_COLORS:
+                    right_part = mm.sgr_seq + MarkerSGR.PROHIBITED_CONTENT_SEQS.str + right_part
+                else:
+                    right_part += RESET.str
+
+                row = left_part + RESET.str + mid_part + right_part
+
+        return row
+
+    def _map_pos_to_hex_row(self, pos: int, end: bool = False) -> int:
+        if end:
+            pos -= 1
+        chunk_num = floor(pos / self.BYTE_CHUNK_LEN)
+        mapped_pos = (3 * pos) + (chunk_num * (len(self.PADDING_HEX_CHUNK) - 1))
+        if end:
+            mapped_pos += 2
+        return mapped_pos
 
     def _get_terminal_width(self):
         try:
@@ -551,44 +748,6 @@ class BinaryReader(AbstractReader):
             self._offset += len(raw_input)
         self._formatter.format(bytes(), self._offset)
 
-
-class Settings:
-    FOCUS_SEQUENCE: bool
-    FOCUS_CONTROL: bool
-    FOCUS_WHITESPACE: bool
-    PRINT_SEQUENCE_MARKER: bool
-    PRINT_CONTROL_MARKER: bool
-    PRINT_WHITESPACE_MARKER: bool
-    LINE_NUMBERS: bool
-    ESQ_INFO_LEVEL: int
-    DISABLE_SGR_PARAM_COLORS: bool
-    DISABLE_CONTEXT_COLORS: bool
-    PIPE_INPUT_TO_STDERR: bool
-    COLS_NUM: bool
-    OVERLAY_GRID: bool
-
-    @staticmethod
-    def from_args(args: Namespace):
-        Settings.FOCUS_SEQUENCE = args.focus_esq
-        Settings.FOCUS_CONTROL = args.focus_control
-        Settings.FOCUS_WHITESPACE = args.focus_space
-        Settings.PRINT_SEQUENCE_MARKER = not args.no_esq
-        Settings.PRINT_CONTROL_MARKER = not args.no_control
-        Settings.PRINT_WHITESPACE_MARKER = not args.no_space
-
-        Settings.LINE_NUMBERS = args.line_number
-        Settings.ESQ_INFO_LEVEL = args.info
-        Settings.DISABLE_SGR_PARAM_COLORS = args.no_color_marker
-        Settings.DISABLE_CONTEXT_COLORS = args.no_color_content
-        Settings.PIPE_INPUT_TO_STDERR = args.pipe_stderr
-
-        Settings.COLS_NUM = args.columns
-        Settings.OVERLAY_GRID = args.grid
-
-        if Colombo.BINARY_MODE:
-            Settings.ESQ_INFO_LEVEL = 2
-            Settings.DISABLE_SGR_PARAM_COLORS = True
-            Settings.DISABLE_CONTEXT_COLORS = True
 
 class Colombo:
     BINARY_MODE: bool
