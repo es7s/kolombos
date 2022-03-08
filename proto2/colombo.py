@@ -215,17 +215,17 @@ class FormatRegistry:
     tpl_marker_ascii_ctrl = MarkerControlChar('Ɐ{}', RED)
     marker_ascii_ctrl = MarkerControlChar('Ɐ', RED)
     marker_null = MarkerControlChar('Ø', HI_RED)
-    marker_bell = MarkerControlChar('Ɐ7', HI_YELLOW)
-    marker_backspace = MarkerControlChar('←', HI_YELLOW)
-    marker_delete = MarkerControlChar('→', HI_YELLOW)
+    marker_bell = MarkerControlChar('Ɐ7', RED)
+    marker_backspace = MarkerControlChar('←', RED)
+    marker_delete = MarkerControlChar('→', RED)
     # 0x80-0x9f: UCC (binary mode only)
 
-    marker_tab = MarkerWhitespace('⇥\t')  # →
-    marker_space = MarkerWhitespace('␣', '·') #HI_BLUE + BG_BLACK)
+    marker_tab = MarkerWhitespace('⇥\t')
+    marker_space = MarkerWhitespace('␣', '·')
     marker_newline = MarkerWhitespace('↵')
-    marker_vert_tab = MarkerWhitespace('⤓')  # , MAGENTA)
-    marker_form_feed = MarkerWhitespace('↡')  #, MAGENTA)
-    marker_car_return = MarkerWhitespace('⇤')  #, MAGENTA)
+    marker_vert_tab = MarkerWhitespace('⤓')
+    marker_form_feed = MarkerWhitespace('↡')
+    marker_car_return = MarkerWhitespace('⇤')
 
     marker_sgr_reset = MarkerSGRReset('ϴ')
     marker_sgr = MarkerSGR('ǝ')
@@ -268,12 +268,11 @@ class AbstractFormatter(metaclass=abc.ABCMeta):
             lambda m: self._format_generic_escape_sequence(m, FormatRegistry.marker_esc_nf),
             processed_input,
         )
-        if not Colombo.BINARY_MODE:
-            processed_input = re.sub(  # other escape sequences
-                control_char + '(.)()',  # group 1 : 0x20-0x7E
-                lambda m: self._format_generic_escape_sequence(m, FormatRegistry.marker_escape),
-                processed_input
-            )
+        processed_input = re.sub(  # other escape sequences
+            control_char + '(.)()',  # group 1 : 0x20-0x7E
+            lambda m: self._format_generic_escape_sequence(m, FormatRegistry.marker_escape),
+            processed_input
+        )
         processed_input = self._postprocess_input_whitespace(processed_input)
         processed_input = self._postprocess_input_control_chars(processed_input)
         return processed_input
@@ -577,7 +576,7 @@ class BinaryFormatter(AbstractFormatter):
         marker = None
         mmatch = MarkerMatch(match)
 
-        if Settings.PRINT_SEQUENCE_MARKER:
+        if Settings.PRINT_SEQUENCE_MARKER and not hex_mode:
             if match.group(3) == SGRSequence.TERMINATOR:
                 if len(params_values) == 0:
                     marker = FormatRegistry.marker_sgr_reset
@@ -637,13 +636,10 @@ class BinaryFormatter(AbstractFormatter):
                 right_part = row[end_pos:]
 
                 fmt = mm.marker.get_fmt()
-                if is_hex_row:
-                    mid_part = ' '.join([fmt(b) for b in mid_part.split(' ')])
+                if mm.overwrite and not is_hex_row:
+                    mid_part = fmt(mm.marker.marker_char)
                 else:
-                    if mm.overwrite:
-                        mid_part = fmt(mm.marker.marker_char)
-                    else:
-                        mid_part = fmt(mid_part)
+                    mid_part = fmt(mid_part)
 
                 if mm.sgr_seq and not is_hex_row and not Settings.DISABLE_CONTEXT_COLORS:
                     right_part = mm.sgr_seq + MarkerSGR.PROHIBITED_CONTENT_SEQS.str + right_part

@@ -4,7 +4,6 @@
 [1;2;34m/ /___/ /_/ / [22m/ /_/ / / / / / / [94m/_/ / /_/ /[m
 [1;2;36m\____/\____/_/[22m\____/_/ /_/ /_/_.[96m___/\____/ [m
 
-
 [1mESCAPE SEQUENCES[m
 
   ϴ    [7;38;5;231mϴ[m     \e[m     SGR reset sequence [2m(focused mode)[22m
@@ -25,17 +24,18 @@
 
 [1mCONTROL CHARACTERS[m
 
-  ←    [93;7;40m←[m     \x08     backspace
-  →    [93;7;40m→[m     \x7f     delete
-  Ɐ    [31;7;40mⱯ1f[m   \x1f     other ASCII control chars (01-07, 0e-1f)
+  ←    [91;7;40m←[m     \x08     backspace
+  →    [91;7;40m→[m     \x7f     delete
+  Ɐ    [31;7;40mⱯb[m    \x1f     other ASCII control chars (01-07, 0e-1f)
   Ø    [91;7;40mØ[m     \0       null byte
 [2m[chr output  input    description][22m
 
-[1mBINARY MODE HEX COLORS[m
-                                 ## regular[m                    pro
-  [m21 31 7e[m
-  [2m20 0e 0a[m
-  [91m00 [31m01[m
-  [33m1b [93m08[m
-  [1m1b [1m08[m
-  [36m 80 90 ff[m
+[1mHEX OUTPUT FORMATS[m (binary only)
+
+  [31m01 08 1f[m            7-bit ASCII controls (01-08, 0e-1f)
+  [2m20 0a[m [1;30;46m09[m            7-bit ASCII whitespace (09-0d, 20) [2m(last one is focused)[22m
+  [m57 54 46[m            7-bit ASCII pritables (21-7e)
+  [94m 94 00[m " 8" "ae"
+  [7m1b [7m5b [7m34[27m[27m [7m6d[27m    SGR sequence
+  [35m80 90 a0 ff[m      utf-8 control chars (80-ff), raw
+  [33;53m[34me2 94 80[m      successfully decoded utf-8 character (len>1)
