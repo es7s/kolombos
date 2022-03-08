@@ -184,22 +184,13 @@ class AbstractFormatter(metaclass=abc.ABCMeta):
                     continue
                 self._translation_map[i] = FormatRegistry.tpl_marker_ascii_ctrl.print(re.sub('0x0?', '', hex(i)))
 
+    @abc.abstractmethod
     def _get_whitespace_translation_map(self) -> dict:
-        return {
-            0x09: FormatRegistry.marker_tab.print(),
-            0x0b: FormatRegistry.marker_vert_tab.print(),
-            0x0c: FormatRegistry.marker_form_feed.print(),
-            0x0d: FormatRegistry.marker_car_return.print(),
-            0x0a: FormatRegistry.marker_newline.print() + ('' if Colombo.BINARY_MODE else '\x0a'),  # actual newline
-        }
+        pass
 
+    @abc.abstractmethod
     def _get_control_translation_map(self) -> dict:
-        return {
-            0x00: FormatRegistry.marker_null.print(),
-            0x07: FormatRegistry.marker_bell.print(),
-            0x08: FormatRegistry.marker_backspace.print(),
-            0x7f: FormatRegistry.marker_delete.print(),
-        }
+        pass
 
     @abc.abstractmethod
     def format(self, raw_input: Union[AnyStr, List[AnyStr]], offset: int):
@@ -221,13 +212,10 @@ class AbstractFormatter(metaclass=abc.ABCMeta):
             lambda m: self._format_generic_escape_sequence(m, FormatRegistry.marker_escape),
             processed_input
         )
-        if Settings.PRINT_WHITESPACE_MARKER:
-            processed_input = re.sub(
-                '(\x20+)',
-                lambda m: MarkerWhitespace.get_fmt()(m.group(1)),
-                processed_input
-            )
-            processed_input = re.sub('\x20', FormatRegistry.marker_space.marker_char, processed_input)
+        processed_input = self._process_input_whitespace(processed_input)
+        return processed_input
+
+    def _process_input_whitespace(self, processed_input: str) -> str:
         return processed_input
 
     def _format_csi_sequence(self, match: Match) -> AnyStr:
@@ -277,6 +265,23 @@ class TextFormatter(AbstractFormatter):
     def __init__(self, _writer: Writer):
         super().__init__(_writer)
 
+    def _get_whitespace_translation_map(self) -> dict:
+        return {
+            0x09: FormatRegistry.marker_tab.print(),
+            0x0b: FormatRegistry.marker_vert_tab.print(),
+            0x0c: FormatRegistry.marker_form_feed.print(),
+            0x0d: FormatRegistry.marker_car_return.print(),
+            0x0a: FormatRegistry.marker_newline.print() + '\x0a',  # actual newline
+        }
+
+    def _get_control_translation_map(self) -> dict:
+        return {
+            0x00: FormatRegistry.marker_null.print(),
+            0x07: FormatRegistry.marker_bell.print(),
+            0x08: FormatRegistry.marker_backspace.print(),
+            0x7f: FormatRegistry.marker_delete.print(),
+        }
+
     def format(self, raw_input: Union[str, List[str]], offset: int):
         from pytermor.preset import fmt_green, fmt_cyan
         if type(raw_input) is str:
@@ -303,6 +308,7 @@ class BinaryFormatter(AbstractFormatter):
         super().__init__(_writer)
 
         self.BYTE_CHUNK_LEN = 4
+        self.PLACEHOLDER_CHAR = '.'
 
         self.PADDING_SECTION = 3*' '
         self.PADDING_HEX_CHUNK = 2 * ' '
@@ -320,15 +326,52 @@ class BinaryFormatter(AbstractFormatter):
         self._byte_table = bytes.fromhex(hexlist)
 
     def _build_translation_map(self):
-        super()._build_translation_map()
-        if not Settings.PRINT_WHITESPACE_MARKER:
-            self._translation_map.update({
-                0x09: '.',
-                0x0b: '.',
-                0x0c: '.',
-                0x0d: '.',
-                0x0a: '.',
-            })
+        self._translation_map = {
+            0x1b: '\0',
+        }
+
+        if Settings.PRINT_CONTROL_MARKER:
+            self._translation_map.update(self._get_control_translation_map())
+        else:
+            self._translation_map.update({b: self.PLACEHOLDER_CHAR for b in [0x00, 0x07, 0x08, 0x7f]})
+
+        marker_ascii_ctrl = FormatRegistry.tpl_marker_ascii_ctrl.marker_char.format('')
+        if not Settings.PRINT_CONTROL_MARKER:
+            marker_ascii_ctrl = self.PLACEHOLDER_CHAR
+        self._translation_map.update({b: marker_ascii_ctrl for b in (list(range(0x01, 0x07)) + list(range(0x0e, 0x20)))})
+
+        if Settings.PRINT_WHITESPACE_MARKER:
+            self._translation_map.update(self._get_whitespace_translation_map())
+        else:
+            self._translation_map.update({b: self.PLACEHOLDER_CHAR for b in list(range(0x09, 0x0e))})
+
+    def _get_whitespace_translation_map(self) -> dict:
+        return {
+            0x09: FormatRegistry.marker_tab.marker_char[0],
+            0x0b: FormatRegistry.marker_vert_tab.marker_char,
+            0x0c: FormatRegistry.marker_form_feed.marker_char,
+            0x0d: FormatRegistry.marker_car_return.marker_char,
+            0x0a: FormatRegistry.marker_newline.marker_char,
+        }
+
+    def _get_control_translation_map(self) -> dict:
+        return {
+            0x00: FormatRegistry.marker_null.marker_char,
+            0x07: FormatRegistry.marker_bell.marker_char[0],
+            0x08: FormatRegistry.marker_backspace.marker_char,
+            0x7f: FormatRegistry.marker_delete.marker_char,
+        }
+
+    def _process_input_whitespace(self, processed_input: str) -> str:
+        if Settings.PRINT_WHITESPACE_MARKER:
+            processed_input = re.sub(
+                '(\x20+)',
+                lambda m: MarkerWhitespace.get_fmt()(m.group(1)),
+                processed_input
+            )
+            processed_input = re.sub('\x20', FormatRegistry.marker_space.marker_char, processed_input)
+        return processed_input
+
 
     def format(self, raw_input: bytes, offset: int):
         offset -= len(self._buffer_raw)
@@ -401,18 +444,13 @@ class BinaryFormatter(AbstractFormatter):
 
     def _decode_and_process(self, raw_input: bytes, cols: int) -> AnyStr:
         decoded = raw_input.translate(self._byte_table).decode()
-        formatted = decoded + ' ' * (cols - len(decoded))
         #if Settings.OVERLAY_GRID and not is_guide_row:
         #    formatted = re.sub('(.)(.{,7})', FormatRegistry.fmt_first_chunk_col('\\1') + '\\2', formatted)
-
-        translated = formatted.translate(self._get_translation_map())
-        return translated
+        translated = decoded.translate(self._get_translation_map())
         processed = self._process_input(translated)
-        if len(processed) != len(decoded):
-            raise RuntimeError('Fatal: cannot proceed. Processing system failure: length mismatch. Dumps:', {
-                bytes(decoded.encode()).hex(), bytes(processed.encode()).hex()
-            })
-        return processed
+        if len(sanitize(processed)) != len(decoded):
+            raise RuntimeError('Fatal: cannot proceed. Processing system failure: length mismatch. Dumps:', {'translated': raw_input})
+        return processed + ' ' * (cols - len(processed))
 
     def _get_terminal_width(self):
         try:
