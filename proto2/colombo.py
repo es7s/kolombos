@@ -229,8 +229,8 @@ class FormatRegistry:
 
     marker_sgr_reset = MarkerSGRReset('ϴ')
     marker_sgr = MarkerSGR('ǝ')
-    marker_esc_csi = MarkerEscapeSeq('Ͻ', HI_BLUE)
-    marker_esc_nf = MarkerEscapeSeq('ꟻ', HI_GREEN)
+    marker_esc_csi = MarkerEscapeSeq('Ͻ', MAGENTA)
+    marker_esc_nf = MarkerEscapeSeq('ꟻ', HI_MAGENTA)
     marker_escape = MarkerEscapeSeq('Ǝ', YELLOW)
 
     fmt_first_chunk_col = Format(build_text256_seq(231) + build_background256_seq(238), COLOR_OFF + BG_COLOR_OFF)
@@ -448,14 +448,12 @@ class BinaryFormatter(AbstractFormatter):
         }
 
     def _build_translation_map(self):
-        self._translation_map = {
-            0x1b: '\0',
-        }
+        self._translation_map = {}
 
         if not Settings.PRINT_CONTROL_MARKER:
             self._translation_map.update({
                 b: self.PLACEHOLDER_CHAR for b in (
-                    list(range(0x00, 0x08)) +
+                    list(range(0x00, 0x09)) +
                     list(range(0x0e, 0x1b)) +
                     list(range(0x1c, 0x20)) +
                     [0x7f]
@@ -463,6 +461,8 @@ class BinaryFormatter(AbstractFormatter):
 
         if not Settings.PRINT_WHITESPACE_MARKER:
             self._translation_map.update({b: self.PLACEHOLDER_CHAR for b in list(range(0x09, 0x0e)) + [0x20]})
+        if not Settings.PRINT_SEQUENCE_MARKER:
+            self._translation_map.update({b: self.PLACEHOLDER_CHAR for b in [0x1b]})
 
     def _postprocess_input_whitespace(self, processed_input: str) -> str:
         if not Settings.PRINT_WHITESPACE_MARKER:
