@@ -3,20 +3,17 @@
 from __future__ import annotations
 
 import abc
-import argparse
 import os.path
 import re
 import sys
 import traceback
-from argparse import Namespace, SUPPRESS
+from argparse import Namespace, SUPPRESS, Action, ArgumentParser, HelpFormatter
 from math import floor
-from re import MULTILINE
-from typing import IO, AnyStr, Optional, List, Union, Match, Dict
+from typing import IO, AnyStr, Optional, List, Union, Match, Dict, Iterable
 
 import pytermor
 from pytermor import sanitize, build_background256_seq, build_text256_seq
 from pytermor.preset import *
-
 
 
 class Settings:
@@ -39,9 +36,9 @@ class Settings:
         Settings.FOCUS_SEQUENCE = args.focus_esq
         Settings.FOCUS_CONTROL = args.focus_control
         Settings.FOCUS_WHITESPACE = args.focus_space
-        Settings.PRINT_SEQUENCE_MARKER = not args.no_esq
-        Settings.PRINT_CONTROL_MARKER = not args.no_control
-        Settings.PRINT_WHITESPACE_MARKER = not args.no_space
+        Settings.PRINT_SEQUENCE_MARKER = not args.ignore_esq
+        Settings.PRINT_CONTROL_MARKER = not args.ignore_control
+        Settings.PRINT_WHITESPACE_MARKER = not args.ignore_space
 
         Settings.LINE_NUMBERS = args.line_number
         Settings.ESQ_INFO_LEVEL = args.info
@@ -410,11 +407,12 @@ class MarkerMatch:
 
 
 class BinaryFormatter(AbstractFormatter):
+    PLACEHOLDER_CHAR = '.'
+
     def __init__(self, _writer: Writer):
         super().__init__(_writer)
 
         self.BYTE_CHUNK_LEN = 4
-        self.PLACEHOLDER_CHAR = '.'
 
         self.PADDING_SECTION = 3*' '
         self.PADDING_HEX_CHUNK = 2 * ' '
@@ -576,7 +574,7 @@ class BinaryFormatter(AbstractFormatter):
         marker = None
         mmatch = MarkerMatch(match)
 
-        if Settings.PRINT_SEQUENCE_MARKER and not hex_mode:
+        if Settings.PRINT_SEQUENCE_MARKER:
             if match.group(3) == SGRSequence.TERMINATOR:
                 if len(params_values) == 0:
                     marker = FormatRegistry.marker_sgr_reset
@@ -632,19 +630,19 @@ class BinaryFormatter(AbstractFormatter):
                     end_pos = self._map_pos_to_hex_row(end_pos, end=True)
 
                 left_part = row[:start_pos]
-                mid_part = row[start_pos:end_pos]
+                source_text = row[start_pos:end_pos]
                 right_part = row[end_pos:]
 
                 fmt = mm.marker.get_fmt()
                 if mm.overwrite and not is_hex_row:
-                    mid_part = fmt(mm.marker.marker_char)
+                    target_text = fmt(mm.marker.marker_char)
                 else:
-                    mid_part = fmt(mid_part)
+                    target_text = fmt(source_text)
 
                 if mm.sgr_seq and not is_hex_row and not Settings.DISABLE_CONTEXT_COLORS:
                     right_part = mm.sgr_seq + MarkerSGR.PROHIBITED_CONTENT_SEQS.str + right_part
 
-                row = left_part + RESET.str + mid_part + right_part
+                row = left_part + RESET.str + target_text + right_part
 
         return row
 
@@ -655,6 +653,7 @@ class BinaryFormatter(AbstractFormatter):
         mapped_pos = (3 * pos) + (chunk_num * (len(self.PADDING_HEX_CHUNK) - 1))
         if end:
             mapped_pos += 2
+        print('{} -> {}'. format(pos, mapped_pos))
         return mapped_pos
 
     def _get_terminal_width(self):
@@ -757,6 +756,55 @@ class BinaryReader(AbstractReader):
         self._formatter.format(bytes(), self._offset)
 
 
+class CustomHelpFormatter(HelpFormatter):
+    INDENT_INCREMENT = 2
+    INDENT = ' ' * INDENT_INCREMENT
+
+    @staticmethod
+    def format_header(title: str) -> str:
+        return fmt_bold(title.upper())
+
+    def __init__(self, prog):
+        super().__init__(prog, max_help_position=30, indent_increment=self.INDENT_INCREMENT)
+
+    def start_section(self, heading: Optional[str]) -> None:
+        super().start_section(self.format_header(heading))
+
+    def add_usage(self, usage: Optional[str], actions: Iterable[Action], groups: Iterable, prefix: Optional[str] = ...) -> None:
+        super().add_text(self.format_header('usage: '))
+        super().add_usage(usage, actions, groups, prefix=self.INDENT)
+
+    def add_examples(self, examples: List[str]):
+        self.start_section('example{}'.format('s' if len(examples) > 1 else ''))
+        self._add_item(self._format_text, ['\n'.join(examples)])
+        self.end_section()
+
+    def _format_text(self, text: str) -> str:
+        return super()._format_text(text).rstrip('\n') + '\n'
+
+    def _fill_text(self, text, width, indent):
+        return ''.join(indent + line for line in text.splitlines(keepends=True))
+
+
+class CustomArgumentParser(ArgumentParser):
+    def __init__(self, examples: List[str] = None, **kwargs):
+        self.examples = examples
+        super(CustomArgumentParser, self).__init__(**kwargs)
+
+    def format_help(self) -> str:
+        formatter = self._get_formatter()
+        if self.epilog:
+            formatter.add_text(' ')
+            formatter.add_text(self.epilog)
+        if self.examples and isinstance(formatter, CustomHelpFormatter):
+            formatter.add_examples(self.examples)
+
+        ending_formatted = formatter.format_help()
+        self.epilog = None
+
+        return super().format_help() + ending_formatted
+
+
 class Colombo:
     BINARY_MODE: bool
 
@@ -769,39 +817,7 @@ class Colombo:
         print()
 
     def _invoke(self):
-        parser = argparse.ArgumentParser(
-            description='escape sequences and control characters visualiser',
-            epilog='example: colombo -e -i 2 --no-space file.txt',
-            add_help=False,
-            formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=30)
-        )
-        modes_group = parser.add_argument_group('mode selection')
-        modes_group.add_argument('-t', '--text', action='store_true', default=True, help='open file in text mode (this is the default)')
-        modes_group.add_argument('-b', '--binary', action='store_true', default=False, help='open file in binary mode')
-        modes_group.add_argument('-l', '--legend', action='store_true', help='show annotation symbol list and exit')
-        modes_group.add_argument('-h', '--help', action='help', default=SUPPRESS, help='show this help message and exit')
-
-        generic_group = parser.add_argument_group('generic options')
-        generic_group.add_argument('filename', metavar='<file>', nargs='?', help='file to read from; if empty or "-", read stdin instead')
-        generic_group.add_argument('-e', '--focus-esq', action='store_true', default=False, help='highlight escape sequences markers')
-        generic_group.add_argument('-s', '--focus-space', action='store_true', default=False, help='highlight whitespace markers')
-        generic_group.add_argument('-c', '--focus-control', action='store_true', default=False, help='highlight control char markers')
-        generic_group.add_argument('-E', '--no-esq', action='store_true', default=False, help='do not print escape sequence markers')
-        generic_group.add_argument('-S', '--no-space', action='store_true', default=False, help='do not print whitespace markers')
-        generic_group.add_argument('-C', '--no-control', action='store_true', default=False, help='do not print control char markers')
-
-        text_mode_group = parser.add_argument_group('text mode only')
-        text_mode_group.add_argument('-i', '--info', metavar='<level>', action='store', type=int, default=1, help='escape sequence marker verbosity (0-2, default 1)')
-        text_mode_group.add_argument('-L', '--line-number', action='store_true', default=False, help='print line numbers')
-        text_mode_group.add_argument('--no-color-marker', action='store_true', default=False, help='disable applying file content formatting to SGR markers')
-        text_mode_group.add_argument('--no-color-content', action='store_true', default=False, help='disable applying file content formatting to the output')
-        text_mode_group.add_argument('--pipe-stderr', action='store_true', default=False, help='send raw input lines to stderr along with default output')
-
-        bin_mode_group = parser.add_argument_group('binary mode only')
-        bin_mode_group.add_argument('-n', '--columns', metavar='<num>', action='store', type=int, default=0, help='output <num> bytes per line (default is 0 = auto)')
-        bin_mode_group.add_argument('-g', '--grid', action='store_true', default=False, help='display on the table 8x8 overlay grid')
-        args = parser.parse_args()
-
+        args = self._init_argparse()
         if args.legend:
             with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'colombo-legend.ansi'), 'rt') as f:
                 print(f.read())
@@ -824,6 +840,51 @@ class Colombo:
                 print('Use -b option to run in binary mode')
             else:
                 raise
+
+    def _init_argparse(self):
+        parser = CustomArgumentParser(
+            description='Escape sequences and control characters visualiser',
+            epilog='Ignore option is interpreted as: hide correspondning character class from output in text mode, print placeholders instead in binary mode ("{}")'.format(BinaryFormatter.PLACEHOLDER_CHAR),
+            examples=[
+                '%(prog)s -i 2 -e --ignore-space file.txt',
+                '%(prog)s -b -n 16 file.bin',
+            ],
+            add_help=False,
+            formatter_class=lambda prog: CustomHelpFormatter(prog)
+        )
+        parser.add_argument('filename', metavar='<file>', nargs='?', help='file to read from; if empty or "-", read stdin instead')
+
+        modes_group = parser.add_argument_group('mode selection')
+        modes_group_nested = modes_group.add_mutually_exclusive_group()
+        modes_group_nested.add_argument('-t', '--text', action='store_true', default=True, help='open file in text mode (this is the default)')
+        modes_group_nested.add_argument('-b', '--binary', action='store_true', default=False, help='open file in binary mode')
+        modes_group_nested.add_argument('-l', '--legend', action='store_true', help='show annotation symbol list and exit')
+        modes_group_nested.add_argument('-h', '--help', action='help', default=SUPPRESS, help='show this help message and exit')
+
+        generic_group = parser.add_argument_group('generic options')
+        generic_group.add_argument('--limit', metavar='<num>', action='store', type=int, default=0, help='read only first <num> lines or bytes (in binary mode)')
+        esq_output_group = generic_group.add_mutually_exclusive_group()
+        space_output_group = generic_group.add_mutually_exclusive_group()
+        control_output_group = generic_group.add_mutually_exclusive_group()
+        esq_output_group.add_argument('-e', '--focus-esq', action='store_true', default=False, help='highlight escape sequences markers')
+        esq_output_group.add_argument('-E', '--ignore-esq', action='store_true', default=False, help='ignore escape sequences')
+        space_output_group.add_argument('-s', '--focus-space', action='store_true', default=False, help='highlight whitespace markers')
+        space_output_group.add_argument('-S', '--ignore-space', action='store_true', default=False, help='ignore whitespaces')
+        control_output_group.add_argument('-c', '--focus-control', action='store_true', default=False, help='highlight control char markers')
+        control_output_group.add_argument('-C', '--ignore-control', action='store_true', default=False, help='ignore control chars')
+
+        text_mode_group = parser.add_argument_group('text mode only')
+        text_mode_group.add_argument('-i', '--info', metavar='<level>', action='store', type=int, default=1, help='escape sequence marker verbosity (0-2, default %(default)s)')
+        text_mode_group.add_argument('-L', '--line-number', action='store_true', default=False, help='print line numbers')
+        text_mode_group.add_argument('--no-color-marker', action='store_true', default=False, help='disable applying file content formatting to SGR markers')
+        text_mode_group.add_argument('--no-color-content', action='store_true', default=False, help='disable applying file content formatting to the output')
+        text_mode_group.add_argument('--pipe-stderr', action='store_true', default=False, help='send raw input lines to stderr along with default output')
+
+        bin_mode_group = parser.add_argument_group('binary mode only')
+        bin_mode_group.add_argument('-n', '--columns', metavar='<num>', action='store', type=int, default=0, help='output <num> bytes per line (default %(default)s = auto)')
+        bin_mode_group.add_argument('-g', '--grid', action='store_true', default=False, help='display on the table 8x8 overlay grid')
+
+        return parser.parse_args()
 
 
 class ExceptionHandler:
