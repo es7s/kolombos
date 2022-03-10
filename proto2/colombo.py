@@ -193,7 +193,7 @@ class MarkerSGR(Marker):
         self._init_seqs()
         result = RESET.str + self._marker_seq.str + self._marker_char
 
-        if Settings.no_color_marker:
+        if Settings.no_color_markers:
             result += additional_info + seq.str
         else:
             result += seq.str + self.PROHIBITED_CONTENT_SEQS.str + self._info_seq.str + additional_info
@@ -215,7 +215,7 @@ class MarkerSGR(Marker):
         self._marker_seq = WHITE + BG_BLACK
         if Settings.focus_esc:
             self._info_seq = INVERSED
-            if not Settings.no_color_marker:
+            if not Settings.no_color_markers:
                 self._info_seq += OVERLINED
         else:
             self._info_seq = OVERLINED
@@ -260,8 +260,6 @@ class FormatRegistry:
     marker_sgr_reset = MarkerSGRReset('ϴ')
     marker_sgr = MarkerSGR('ǝ')
     marker_esc_csi = MarkerEscapeSeq('Ͻ', GREEN)
-    #marker_esc_nf =
-    #marker_escape =
 
     fmt_first_chunk_col = Format(build_text256_seq(231) + build_background256_seq(238), COLOR_OFF + BG_COLOR_OFF)
     fmt_nth_row_col = Format(build_text256_seq(231) + build_background256_seq(238) + OVERLINED,
@@ -324,6 +322,9 @@ class AbstractFormatter(metaclass=abc.ABCMeta):
     def format(self, raw_input: Union[AnyStr, List[AnyStr]], offset: int):
         pass
 
+    def _add_marker_match(self, mm: MarkerMatch):
+        return
+
     def _process_input(self, decoded_input: str) -> str:
         return apply_filters(decoded_input, *self._filters_fixed)
 
@@ -358,7 +359,7 @@ class AbstractFormatter(metaclass=abc.ABCMeta):
             return self.get_fallback_char()
         charcode = ord(match.group(0))
         marker = self._control_char_map.require_or_die(charcode)
-        self._process_matches.append(MarkerMatch(match, marker))
+        self._add_marker_match(MarkerMatch(match, marker))
         return marker.print()
 
 
@@ -574,6 +575,9 @@ class BinaryFormatter(AbstractFormatter):
         return re.sub(r'^(0+)(\S+)(\s)', fmt(DIM.str + r'\1' + DIM_BOLD_OFF.str + r'\2') + fmt_cyan('│'),
                       self._format_offset(offset))
 
+    def _add_marker_match(self, fsegment: MarkerMatch): # @todo formatted segment
+        self._process_matches.append(fsegment)
+
     def _decode_and_process(self, raw_input: bytes, cols: int) -> AnyStr:
         decoded = raw_input.decode(errors='replace').replace('\ufffd', self.FALLBACK_CHAR)
         # if Settings.OVERLAY_GRID and not is_guide_row:
@@ -625,7 +629,7 @@ class BinaryFormatter(AbstractFormatter):
             marker = FormatRegistry.marker_esc_csi
 
         mmatch.marker = marker
-        self._process_matches.append(mmatch)
+        self._add_marker_match(mmatch)
         return marker.marker_char + match.group(0)
 
     def _postprocess(self, processed_input: str) -> str:
@@ -638,12 +642,12 @@ class BinaryFormatter(AbstractFormatter):
             return processed_input
 
             #     for match in re.finditer(r'(\x20+)', processed_input) or []:
-            #         self._process_matches.append(MarkerMatch(match, FormatRegistry.marker_space))
+            #         self._add_marker_match(MarkerMatch(match, FormatRegistry.marker_space))
             #     processed_input = re.sub(r'\x20', FormatRegistry.marker_space.marker_char, processed_input)
             #
             #        for match in re.finditer(r'([\t\n\v\f\r])', processed_input) or []:
             #            marker = self._whitespace_map.get(match.group(1), None)
-            #            self._process_matches.append(MarkerMatch(match, marker, overwrite=True))
+            #            self._add_marker_match(MarkerMatch(match, marker, overwrite=True))
         return processed_input
 
     def _postprocess_input_control_chars(self, processed_input: str) -> str:
@@ -652,10 +656,10 @@ class BinaryFormatter(AbstractFormatter):
         return processed_input
 
     #   for match in re.finditer('r\x1b', processed_input) or []:
-    #       self._process_matches.append(MarkerMatch(match, FormatRegistry.marker_escape_single, overwrite=True))
+    #       self._add_marker_match(MarkerMatch(match, FormatRegistry.marker_escape_single, overwrite=True))
     #   for match in re.finditer(r'[\x00-\x08\x0e-\x1a\x1c-\x20\x7f]', processed_input) or []:
     #       marker = self._control_map.get(match.group(0), FormatRegistry.marker_ascii_ctrl)
-    #       self._process_matches.append(MarkerMatch(match, marker, overwrite=True))
+    #       self._add_marker_match(MarkerMatch(match, marker, overwrite=True))
     #   return processed_input
 
     def _apply_matches(self, processed_row: AnyStr, hex_row: AnyStr, local_min_pos: int, local_max_pos: int) -> Tuple[
