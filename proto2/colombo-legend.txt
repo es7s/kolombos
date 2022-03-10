@@ -1,33 +1,39 @@
-   ______      __                __
-  / ____/___  / /___  ____ ___  / /_  ____
- / /   / __ \/ / __ \/ __ '__ \/ __ \/ __ \
-/ /___/ /_/ / / /_/ / / / / / / /_/ / /_/ /
-\____/\____/_/\____/_/ /_/ /_/_.___/\____/
+%(fmt_logo1)   ______      __                        __%(fmt_reset)
+%(fmt_logo2)  / ____/___  / /___  ____ ___  / /_  ____ %(fmt_reset)
+%(fmt_logo3) / /   / __ \/ / __ \/ __ '__ \/ __ \/ __ \%(fmt_reset)
+%(fmt_logo4)/ /___/ /_/ / / /_/ / / / / / / /_/ / /_/ /%(fmt_reset)
+%(fmt_logo5)\____/\____/_/\____/_/ /_/ /_/_.___/\____/ %(fmt_reset)
 
+%(fmt_header)ESCAPE SEQUENCES%(fmt_reset)
+%(ex_esq_sgr_reset)SGR reset sequence
+%(ex_esq_sgr)SGR sequence, subclass of CSI
+%(ex_esq_csi)CSI escape sequence (excluding SGR)
+%(ex_esq_nf)nF escape sequence (introducer char can be space)
+%(ex_esq)other escape sequences (Fe, Fs, Fp)
 
-ESCAPE SEQUENCES
+%(fmt_header)WHITESPACE CHARS%(fmt_reset)
+%(ex_space)space
+%(exf_space)space %(fmt_comment)(focused)%(fmt_reset)
+%(ex_lf)line feed
+%(ex_cr)carriage return
+%(ex_htab)horizontal tab
+%(ex_vtab)vertical tab
+%(ex_ff)form feed
 
-  ϴ    ϴ     \e[m     SGR reset sequence
-  ǝ    ǝ34   \e[34m   SGR sequence, subclass of CSI
-  Ͻ    Ͻ?1   \e[?1h   CSI escape sequence (excluding SGR)
-  ꟻ    ꟻ␣1   \e 1     nF escape sequence (introducer char can be space)
-  Ǝ    Ǝ~    \e~      other escape sequences (Fe, Fs, Fp)
+%(fmt_header)CONTROL CHARACTERS%(fmt_reset)
+%(ex_backspace)backspace
+%(ex_delete)delete
+%(ex_ascii_control)other ASCII control chars (01-07, 0e-1f)
+%(ex_null)null byte
 
-WHITESPACE CHARS
+%(fmt_footer)[chr output  input    description]%(fmt_reset)
 
-  ␣    ␣     \x20     space
-  ·    ·     \x20     space (focused)
-  ↵    ↵     \n       line feed
-  ⇤    ⇤     \r       carriage return
-  ⇥    ⇥     \t       horizontal tab
-  ⤓    ⤓     \v       vertical tab
-  ↡    ↡     \f       form feed
-
-CONTROL CHARACTERS
-
-  ←    ←     \x08     backspace
-  →    →     \x7f     delete
-  Ɐ    Ɐ1f   \x1f     other ASCII control chars (01-07, 0e-1f)
-  Ø    Ø     \0       null byte
-
-[chr output  input    description]
+%(fmt_header)HEX OUTPUT FORMATS%(fmt_reset) (binary mode):
+%(ex_bin_ascii_control)01 08 1f            ASCII controls (01-08, 0e-1f)
+%(ex_bin_ascii_space)20 0a 09            ASCII whitespaces (09-0d, 20) (last one is focused)
+%(ex_bin_ascii_print)57 54 46            ASCII pritables (21-7e)
+%(ex_bin_utf8_control)80 90 a0 ff         UTF-8 controls (80-ff), raw
+%(ex_bin_utf8_print)e2 94 80            valid UTF-8 character sequence (bytes>1)
+%(ex_bin_esq_sgr)1b 5b 34 6d         SGR sequence
+%(ex_bin_esq_csi)xx xx xx xx         CSI sequence
+%(ex_bin_esq_csi)xx xx xx xx         CSI sequence
