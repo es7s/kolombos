@@ -1,0 +1,47 @@
+%(fmt_logo11)        %(fmt_logo12) __               %(fmt_logo13) __          ______%(fmt_rst)
+%(fmt_logo21)   ___  %(fmt_logo22)/ /___  ____ ___  %(fmt_logo23)/ /_  ____  / ____/%(fmt_rst)
+%(fmt_logo31) / __ \/%(fmt_logo32) / __ \/ __ '__ \/%(fmt_logo33) __ \/ __ \/ /     %(fmt_rst)
+%(fmt_logo41)/ /_/ / %(fmt_logo42)/ /_/ / / / / / / %(fmt_logo43)/_/ / /_/ / /___   %(fmt_rst)
+%(fmt_logo51)\____/_/%(fmt_logo52)\____/_/ /_/ /_/\.%(fmt_logo53)___/\____/\____/   %(fmt_rst)
+
+
+%(fmt_logo11)         __      %(fmt_logo12)          __%(fmt_rst)
+%(fmt_logo21)  ____  / /___  %(fmt_logo22)____ ___  / /_  ____  %(fmt_logo23)     %(fmt_rst)
+%(fmt_logo31) / __ \/ / __ \%(fmt_logo32)/ __ '__ \/ __ \/ __ \%(fmt_logo33)//%(fmt_logo34)///%(fmt_logo35)/%(fmt_rst)
+%(fmt_logo41)/ /_/ / / /_/ %(fmt_logo42)/ / / / / / /_/ / /_/ /%(fmt_logo43)//%(fmt_logo44)  %(fmt_rst)
+%(fmt_logo51)\____/_/\____%(fmt_logo52)/_/ /_/ /_/\.___/\____/%(fmt_logo54////%(fmt_logo54)/%(fmt_rst)
+                                                                                                    
+
+%(fmt_header)ESCAPE SEQUENCES%(fmt_rst)
+%(ex_esq_sgr_reset)SGR reset sequence
+%(ex_esq_sgr)SGR sequence, subclass of CSI
+%(ex_esq_csi)CSI escape sequence (excluding SGR)
+%(ex_esq_nf)nF escape sequence (introducer char can be space)
+%(ex_esq)other escape sequences (Fe, Fs, Fp)
+
+%(fmt_header)WHITESPACE CHARS%(fmt_rst)
+%(ex_space)space
+%(exf_space)space %(fmt_comment)(focused)%(fmt_rst)
+%(ex_lf)line feed
+%(ex_cr)carriage return
+%(ex_htab)horizontal tab
+%(ex_vtab)vertical tab
+%(ex_ff)form feed
+
+%(fmt_header)CONTROL CHARACTERS%(fmt_rst)
+%(ex_backspace)backspace
+%(ex_delete)delete
+%(ex_ascii_control)other ASCII control chars (01-07, 0e-1f)
+%(ex_null)null byte
+
+%(fmt_footer)[chr output  input    description]%(fmt_rst)
+
+%(fmt_header)HEX OUTPUT FORMATS%(fmt_rst) (binary mode):
+%(ex_bin_ascii_control)01 08 1f            ASCII controls (01-08, 0e-1f)
+%(ex_bin_ascii_space)20 0a 09            ASCII whitespaces (09-0d, 20) (last one is focused)
+%(ex_bin_ascii_print)57 54 46            ASCII printables (21-7e)
+%(ex_bin_utf8_control)80 90 a0 ff         UTF-8 controls (80-ff), raw
+%(ex_bin_utf8_print)e2 94 80            valid UTF-8 character sequence (bytes>1)
+%(ex_bin_esq_sgr)1b 5b 34 6d         SGR sequence
+%(ex_bin_esq_csi)xx xx xx xx         CSI sequence
+%(ex_bin_esq_csi)xx xx xx xx         CSI sequence

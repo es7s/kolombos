@@ -1,0 +1,38 @@
+[1;34m         __      [1;34m          __[m
+[1;94m  ____  / /___  [1;94m____ ___  / /_  ____  [4;5;33m     [m
+[1;96m / __ \/ / __ \[1;95m/ __ '__ \/ __ \/ __ \[5;93m//[4m///[24m/[m
+[1;36m/ /_/ / / /_/ [1;35m/ / / / / / /_/ / /_/ /[5;93m//[4;5;33m  [m
+[1;34m\____/_/\____[1;34m/_/ /_/ /_/\.___/\____/[22;4;5;93m////[24m/[m
+
+
+[1mESCAPE SEQUENCES[m:
+ ϴ   [38;5;231mϴ[m[m     [38;5;231m1b[m [38;5;231m5b[m [38;5;231m6d[m         SGR reset sequence
+ ǝ   [37;40;53mǝ[34;25m[34m[m   [37;40;53m1b[m [37;40;53m5b[m [37;40;53m33[m [37;40;53m34[m [37;40;53m6d[m   SGR sequence [2m(params' color is same as content color)[22m
+ Ͻ   [32;53mϽ?1[m   [32;53m1b[m [32;53m5b[m [32;53m3f[m [32;53m31[m [32;53m68[m   CSI escape sequence (excluding SGR)
+ ꟻ   [7;32;53mꟻ␣1[m   [7;32;53m1b[m [7;32;53m5b[m [7;32;53m20[m [7;32;53m31[m      nF escape sequence (introducer char can be space) [2m(focused mode)[22m
+ Ǝ   [33;53mƎ~[m    [33;53m1b[m [33;53m5b[m [33;53m7e[m         other escape sequences (Fe, Fs, Fp)
+
+[1mWHITESPACE CHARACTERS[m:
+ ␣   [2m␣[m     [2m20[m   space
+ ␣   [1;46;30m·[m   [1;46;30m20[m   space [2m(focused)[22m
+ ↵   [1;46;30m↵[m   [1;46;30m0a[m   line feed (\n) [2m(focused)[22m
+ ⇤   [2m⇤[m   [2m0d[m   carriage return (\r)
+ ⇥   [2m⇥[m   [2m09[m   horizontal tab (\t)
+ ⤓   [2m⤓[m   [2m0b[m   vertical tab (\v)
+ ↡   [2m↡[m   [2m0c[m   form feed (\f)
+
+[1mCONTROL CHARACTERS[m:
+  ←    [91m←[m     \x08     backspace
+  →    [91;7;40m→[m     \x7f     delete [2m(focused; this and subsequent)[22m
+  Ɐ    [31;7;40mⱯb[m    \x1f     other ASCII control chars (01-07, 0e-1f)
+  Ø    [91;7;40mØ[m     \0       null byte
+[2m[chr output  input    description][22m
+
+[1mHEX OUTPUT FORMATS[m (binary mode):
+  [31m01 08 1f[m            ASCII controls (01-08, 0e-1f)
+  [2m20 0a[m [1;30;46m09[m            ASCII whitespaces (09-0d, 20) [2m(last one is focused)[22m
+  [m57 54 46[m            ASCII pritables (21-7e)
+  [35m80 90 a0 ff[m         UTF-8 controls (80-ff), raw
+  [34me2 94 80[m            valid UTF-8 character sequence (bytes>1)
+  [37;40;53m1b[m [37;40;53m5b[m [37;40;53m34[m [37;40;53m6d[m         SGR sequence
+           CSI sequence
