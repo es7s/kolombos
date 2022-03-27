@@ -44,4 +44,3 @@
 %(ex_bin_utf8_print)e2 94 80            valid UTF-8 character sequence (bytes>1)
 %(ex_bin_esq_sgr)1b 5b 34 6d         SGR sequence
 %(ex_bin_esq_csi)xx xx xx xx         CSI sequence
-%(ex_bin_esq_csi)xx xx xx xx         CSI sequence
