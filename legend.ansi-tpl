@@ -1,16 +1,8 @@
-%(fmt_logo11)        %(fmt_logo12) __               %(fmt_logo13) __          ______%(fmt_rst)
-%(fmt_logo21)   ___  %(fmt_logo22)/ /___  ____ ___  %(fmt_logo23)/ /_  ____  / ____/%(fmt_rst)
-%(fmt_logo31) / __ \/%(fmt_logo32) / __ \/ __ '__ \/%(fmt_logo33) __ \/ __ \/ /     %(fmt_rst)
-%(fmt_logo41)/ /_/ / %(fmt_logo42)/ /_/ / / / / / / %(fmt_logo43)/_/ / /_/ / /___   %(fmt_rst)
-%(fmt_logo51)\____/_/%(fmt_logo52)\____/_/ /_/ /_/\.%(fmt_logo53)___/\____/\____/   %(fmt_rst)
-
-
-%(fmt_logo11)         __      %(fmt_logo12)          __%(fmt_rst)
-%(fmt_logo21)  ____  / /___  %(fmt_logo22)____ ___  / /_  ____  %(fmt_logo23)     %(fmt_rst)
-%(fmt_logo31) / __ \/ / __ \%(fmt_logo32)/ __ '__ \/ __ \/ __ \%(fmt_logo33)//%(fmt_logo34)///%(fmt_logo35)/%(fmt_rst)
-%(fmt_logo41)/ /_/ / / /_/ %(fmt_logo42)/ / / / / / /_/ / /_/ /%(fmt_logo43)//%(fmt_logo44)  %(fmt_rst)
-%(fmt_logo51)\____/_/\____%(fmt_logo52)/_/ /_/ /_/\.___/\____/%(fmt_logo54////%(fmt_logo54)/%(fmt_rst)
-                                                                                                    
+%(fmt_logo11)    __         %(fmt_logo12)%(fmt_logo13)__                __%(fmt_rst)
+%(fmt_logo21)   / /%(fmt_logo22)__%(fmt_logo23)____  / /___  ____ ___  / /_  ____%(fmt_rst)
+%(fmt_logo31)  / //_/%(fmt_logo32) __ \/ / __ \%(fmt_logo33)/ __ '__ \/ __ \/ __ \%(fmt_rst)
+%(fmt_logo41) / ,< %(fmt_logo42)/ /_/ / / /_/ %(fmt_logo43)/ / / / / / /_/ / /_/ /%(fmt_rst)
+%(fmt_logo51)/_/|_|%(fmt_logo52)\____/_/\____%(fmt_logo53)/_/ /_/ /_/\.___/\____/%(fmt_rst)
 
 %(fmt_header)ESCAPE SEQUENCES%(fmt_rst)
 %(ex_esq_sgr_reset)SGR reset sequence
