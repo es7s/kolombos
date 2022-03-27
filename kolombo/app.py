@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 from __future__ import annotations
 
 import os.path
@@ -9,9 +7,15 @@ import traceback
 from argparse import SUPPRESS, Action, ArgumentParser, HelpFormatter
 from typing import Optional, List, Iterable
 
-from pytermor.preset import *
+from pytermor import Format
+from pytermor.preset import fmt_bold, fmt_red
 
-from kolombo import Settings
+from .formatter.binary import BinaryFormatter
+from .formatter.text import TextFormatter
+from .reader.binary import BinaryReader
+from .reader.text import TextReader
+from .settings import Settings
+from .writer import Writer
 
 
 class CustomHelpFormatter(HelpFormatter):
@@ -92,8 +96,6 @@ class CustomArgumentParser(ArgumentParser):
 class App:
     BINARY_MODE: bool
 
-    settings: Settings
-
     def run(self):
         _hanlder = ExceptionHandler()
         try:
@@ -103,22 +105,18 @@ class App:
         print()
 
     def _invoke(self):
-        App.settings = self._parse_args()
-        if App.settings.legend:
-            with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', '..', 'legend.ansi'), 'rt') as f:
+        self._parse_args()
+        if Settings.legend:
+            with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'legend.ansi'), 'rt') as f:
                 print(f.read())
                 exit(0)
-        App.BINARY_MODE = App.settings.binary
+        App.BINARY_MODE = Settings.binary
 
-        from kolombo.io import AbstractReader, BinaryReader, TextReader, Writer
-        from kolombo.formatter import BinaryFormatter, TextFormatter
-
-        reader: AbstractReader
         writer = Writer()
         if self.BINARY_MODE:
-            reader = BinaryReader(App.settings.filename, BinaryFormatter(writer))
+            reader = BinaryReader(Settings.filename, BinaryFormatter(writer))
         else:
-            reader = TextReader(App.settings.filename, TextFormatter(writer))
+            reader = TextReader(Settings.filename, TextFormatter(writer))
 
         try:
             reader.read()
@@ -226,7 +224,3 @@ class ExceptionHandler:
                     for line
                     in traceback.format_exception(e.__class__, e, ex_traceback)]
         self._write("\n".join(tb_lines))
-
-
-if __name__ == '__main__':
-    App().run()
