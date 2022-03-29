@@ -10,7 +10,7 @@ class Marker(metaclass=abc.ABCMeta):
 
     @staticmethod
     def make(marker_char: str, opening_seq: Optional[SGRSequence] = None) -> str:
-        return f'{RESET.str}{opening_seq.str if opening_seq else ""}{marker_char}{RESET.str}'
+        return f'{RESET}{opening_seq if opening_seq else ""}{marker_char}{RESET}'
 
     @property
     def marker_char(self) -> str:

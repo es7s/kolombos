@@ -52,7 +52,7 @@ class TextFormatter(AbstractFormatter):
                 prefix = fmt_green(f'{offset + 1:2d}') + fmt_cyan('│')
 
             formatted_input = prefix + processed_input
-            aligned_raw_input = (pytermor.apply_filters(prefix, ReplaceSGRSequences(''))) + raw_input_line
+            aligned_raw_input = ReplaceSGRSequences('')(prefix) + raw_input_line
 
             self._writer.write_line(formatted_input, aligned_raw_input)
             offset += 1
@@ -67,7 +67,7 @@ class TextFormatter(AbstractFormatter):
 
         if Settings.ignore_esc:
             if terminator == SGRSequence.TERMINATOR and not Settings.no_color_content:
-                return SGRSequence(*params_values).str
+                return str(SGRSequence(*params_values))
             return ''
 
         info = ''

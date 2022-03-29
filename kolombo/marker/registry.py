@@ -46,6 +46,7 @@ class MarkerRegistry:
     marker_sgr = MarkerSGR('ǝ')
     marker_esc_csi = MarkerEscapeSeq('Ͻ', GREEN)
 
-    fmt_first_chunk_col = Format(build_text256_seq(231) + build_background256_seq(238), COLOR_OFF + BG_COLOR_OFF)
+    fmt_first_chunk_col = Format(build_text256_seq(231) + build_background256_seq(238),
+                                 COLOR_OFF + BG_COLOR_OFF)
     fmt_nth_row_col = Format(build_text256_seq(231) + build_background256_seq(238) + OVERLINED,
                              COLOR_OFF + BG_COLOR_OFF + OVERLINED_OFF)

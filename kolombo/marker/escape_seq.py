@@ -12,7 +12,7 @@ class MarkerEscapeSeq(Marker):
         self._fmt_focused = Format(opening_seq + INVERSED + BG_BLACK, reset=True)
 
     def print(self, additional_info: str = ''):
-        return RESET.str + self.get_fmt()(self._marker_char + additional_info)
+        return str(RESET) + self.get_fmt()(self._marker_char + additional_info)
 
     def get_fmt(self) -> Format:
         if Settings.focus_esc:

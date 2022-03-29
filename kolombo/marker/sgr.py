@@ -19,17 +19,18 @@ class MarkerSGR(Marker):
 
     def print(self, additional_info: str = '', seq: SGRSequence = None):
         self._init_seqs()
-        result = RESET.str + self._marker_seq.str + self._marker_char
+        result = f'{RESET}{self._marker_seq}{self._marker_char}'
 
         if Settings.no_color_markers:
-            result += additional_info + seq.str
+            result += f'{additional_info}{seq}'
         else:
-            result += seq.str + self.PROHIBITED_CONTENT_SEQS.str + self._info_seq.str + additional_info
+            result += f'{seq}{self.PROHIBITED_CONTENT_SEQS}' \
+                      f'{self._info_seq}{additional_info}'
 
         if Settings.no_color_content:
-            result += RESET.str  # ... content
+            result += str(RESET)  # ... content
         else:
-            result += self.PROHIBITED_CONTENT_SEQS.str  # ... content
+            result += str(self.PROHIBITED_CONTENT_SEQS)  # ... content
         return result
 
     def get_fmt(self) -> Format:

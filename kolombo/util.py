@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypeVar, Dict, Match
+from typing import TypeVar, Dict, Match, AnyStr
 
 from .marker import Marker
 from .marker.sgr import MarkerSGR
@@ -32,7 +32,7 @@ class MarkerMatch:
             self.set_marker(marker)
 
         self.overwrite = overwrite
-        self.sgr_seq = None
+        self.sgr_seq: AnyStr|None = None
         self.applied: bool = False
 
     def set_marker(self, marker: Marker):
@@ -54,6 +54,6 @@ class MarkerMatch:
             target_text = self._format(source_text)
 
         if self.sgr_seq and not Settings.no_color_content:
-            target_text += self.sgr_seq + MarkerSGR.PROHIBITED_CONTENT_SEQS.str
+            target_text += self.sgr_seq + str(MarkerSGR.PROHIBITED_CONTENT_SEQS)
 
         return target_text

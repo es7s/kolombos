@@ -2,8 +2,7 @@ import re
 from math import floor
 from typing import List, AnyStr, Union, Match, Tuple, Callable
 
-import pytermor
-from pytermor import RESET, Format, SGRSequence
+from pytermor import RESET, Format, SGRSequence, apply_filters
 from pytermor.preset import fmt_green, HI_BLUE, DIM, DIM_BOLD_OFF, fmt_cyan
 from pytermor.string_filter import ReplaceSGRSequences, ReplaceNonAsciiCharacters
 
@@ -92,8 +91,8 @@ class BinaryFormatter(AbstractFormatter):
             #  postprocess() doesn't care
             postprocessed_row = self._postprocess_input(processed_row)
             merged_row = f'{self._print_offset(offset)}' \
-                         f'{hex_row}{RESET.str}{self.PADDING_SECTION}' \
-                         f'{postprocessed_row}{RESET.str}'
+                         f'{hex_row}{RESET}{self.PADDING_SECTION}' \
+                         f'{postprocessed_row}{RESET}'
             if is_guide_row:
                 merged_row = MarkerRegistry.fmt_nth_row_col(merged_row)
 
@@ -115,7 +114,8 @@ class BinaryFormatter(AbstractFormatter):
         fmt = fmt_green
         if is_total:
             fmt = Format(HI_BLUE)
-        return re.sub(r'^(0+)(\S+)(\s)', fmt(DIM.str + r'\1' + DIM_BOLD_OFF.str + r'\2') + fmt_cyan('│'),
+        return re.sub(r'^(0+)(\S+)(\s)',
+                      fmt(str(DIM) + r'\1' + str(DIM_BOLD_OFF) + r'\2') + fmt_cyan('│'),
                       self._format_offset(offset))
 
     def _add_marker_match(self, fsegment: MarkerMatch):  # @todo formatted segment
@@ -126,7 +126,7 @@ class BinaryFormatter(AbstractFormatter):
         # if Settings.OVERLAY_GRID and not is_guide_row:
         #    formatted = re.sub('(.)(.{,7})', FormatRegistry.fmt_first_chunk_col('\\1') + '\\2', formatted)
         processed = self._process_input(decoded)
-        sanitized = pytermor.apply_filters(processed,
+        sanitized = apply_filters(processed,
                                   ReplaceSGRSequences(''),
                                   ReplaceNonAsciiCharacters(self.get_fallback_char()))
         #   assert len(sanitized) == len(decoded)
@@ -167,7 +167,7 @@ class BinaryFormatter(AbstractFormatter):
                 marker = MarkerRegistry.marker_sgr_reset
             else:
                 marker = MarkerRegistry.marker_sgr
-            mmatch.sgr_seq = SGRSequence(*params_values).str
+            mmatch.sgr_seq = str(SGRSequence(*params_values))
         else:
             marker = MarkerRegistry.marker_esc_csi
 
@@ -225,7 +225,7 @@ class BinaryFormatter(AbstractFormatter):
         left_part = row[:start_pos]
         source_text = row[start_pos:end_pos]
         right_part = row[end_pos:]
-        return left_part + RESET.str + target_text(source_text) + right_part
+        return f'{left_part}{RESET}{target_text(source_text)}{right_part}'
 
     def _map_pos_to_hex(self, start_pos: int, end_pos: int) -> Tuple[int, int]:
         def _map(pos: int, shift: int = 0) -> int:

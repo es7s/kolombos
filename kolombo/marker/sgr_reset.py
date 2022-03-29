@@ -12,7 +12,7 @@ class MarkerSGRReset(Marker):
         self._fmt_focused = Format(INVERSED + build_text256_seq(231), reset=True)
 
     def print(self):
-        return RESET.str + self.get_fmt()(self._marker_char)
+        return str(RESET) + self.get_fmt()(self._marker_char)
 
     def get_fmt(self) -> Format:
         if Settings.focus_esc:
