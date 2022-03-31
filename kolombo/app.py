@@ -7,7 +7,7 @@ import traceback
 from argparse import SUPPRESS, Action, ArgumentParser, HelpFormatter
 from typing import Optional, List, Iterable
 
-from pytermor import Format
+from pytermor.format import Format
 from pytermor.preset import fmt_bold, fmt_red
 
 from .formatter.binary import BinaryFormatter

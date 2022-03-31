@@ -1,1 +1,1 @@
-pytermor~=0.9.1
+pytermor~=1.0

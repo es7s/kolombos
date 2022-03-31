@@ -1,14 +1,14 @@
 from typing import Optional
 
 from pytermor import Format
-from pytermor.preset import DIM, DIM_BOLD_OFF, BOLD, BG_CYAN, BLACK
+from pytermor.preset import DIM, BOLD_DIM_OFF, BOLD, BG_CYAN, BLACK
 
 from . import Marker
 from ..settings import Settings
 
 
 class MarkerWhitespace(Marker):
-    _fmt = Format(DIM, DIM_BOLD_OFF)
+    _fmt = Format(DIM, BOLD_DIM_OFF)
     _fmt_focused = Format(BOLD + BG_CYAN + BLACK, reset=True)
 
     def __init__(self, marker_char: str, marker_char_focused_override: Optional[str] = None):

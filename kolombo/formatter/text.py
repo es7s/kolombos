@@ -2,9 +2,9 @@ import re
 from typing import AnyStr, Union, List, Match
 
 import pytermor
-from pytermor import SGRSequence
+from pytermor import SequenceSGR
 from pytermor.preset import fmt_green, fmt_cyan
-from pytermor.string_filter import ReplaceSGRSequences
+from pytermor.string_filter import ReplaceSequenceSGRs
 
 from ..formatter import AbstractFormatter
 from ..marker.registry import MarkerRegistry
@@ -52,7 +52,7 @@ class TextFormatter(AbstractFormatter):
                 prefix = fmt_green(f'{offset + 1:2d}') + fmt_cyan('│')
 
             formatted_input = prefix + processed_input
-            aligned_raw_input = ReplaceSGRSequences('')(prefix) + raw_input_line
+            aligned_raw_input = ReplaceSequenceSGRs('')(prefix) + raw_input_line
 
             self._writer.write_line(formatted_input, aligned_raw_input)
             offset += 1
@@ -66,19 +66,19 @@ class TextFormatter(AbstractFormatter):
         params_values = list(filter(self._filter_sgr_param, params_splitted))
 
         if Settings.ignore_esc:
-            if terminator == SGRSequence.TERMINATOR and not Settings.no_color_content:
-                return str(SGRSequence(*params_values))
+            if terminator == SequenceSGR.TERMINATOR and not Settings.no_color_content:
+                return str(SequenceSGR(*params_values))
             return ''
 
         info = ''
         if Settings.effective_info_level() >= 1:
-            info += SGRSequence.SEPARATOR.join(params_values)
+            info += SequenceSGR.SEPARATOR.join(params_values)
         if Settings.effective_info_level() >= 2:
             info = introducer + info + terminator
 
-        if terminator == SGRSequence.TERMINATOR:
+        if terminator == SequenceSGR.TERMINATOR:
             if len(params_values) == 0:
                 return MarkerRegistry.marker_sgr_reset.print()
-            return MarkerRegistry.marker_sgr.print(info, SGRSequence(*params_values))
+            return MarkerRegistry.marker_sgr.print(info, SequenceSGR(*params_values))
         else:
             return MarkerRegistry.marker_esc_csi.print(info)

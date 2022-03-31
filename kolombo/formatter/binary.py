@@ -2,9 +2,9 @@ import re
 from math import floor
 from typing import List, AnyStr, Union, Match, Tuple, Callable
 
-from pytermor import RESET, Format, SGRSequence, apply_filters
-from pytermor.preset import fmt_green, HI_BLUE, DIM, DIM_BOLD_OFF, fmt_cyan
-from pytermor.string_filter import ReplaceSGRSequences, ReplaceNonAsciiCharacters
+from pytermor import Format, SequenceSGR, apply_filters
+from pytermor.preset import fmt_green, HI_BLUE, DIM, BOLD_DIM_OFF, fmt_cyan
+from pytermor.string_filter import ReplaceSequenceSGRs, ReplaceNonAsciiCharacters
 
 from ..formatter import AbstractFormatter
 from ..marker.registry import MarkerRegistry
@@ -115,7 +115,7 @@ class BinaryFormatter(AbstractFormatter):
         if is_total:
             fmt = Format(HI_BLUE)
         return re.sub(r'^(0+)(\S+)(\s)',
-                      fmt(str(DIM) + r'\1' + str(DIM_BOLD_OFF) + r'\2') + fmt_cyan('│'),
+                      fmt(str(DIM) + r'\1' + str(BOLD_DIM_OFF) + r'\2') + fmt_cyan('│'),
                       self._format_offset(offset))
 
     def _add_marker_match(self, fsegment: MarkerMatch):  # @todo formatted segment
@@ -127,7 +127,7 @@ class BinaryFormatter(AbstractFormatter):
         #    formatted = re.sub('(.)(.{,7})', FormatRegistry.fmt_first_chunk_col('\\1') + '\\2', formatted)
         processed = self._process_input(decoded)
         sanitized = apply_filters(processed,
-                                  ReplaceSGRSequences(''),
+                                  ReplaceSequenceSGRs(''),
                                   ReplaceNonAsciiCharacters(self.get_fallback_char()))
         #   assert len(sanitized) == len(decoded)
         return processed + ' ' * (cols - len(processed))
@@ -162,12 +162,12 @@ class BinaryFormatter(AbstractFormatter):
         params_values = list(filter(self._filter_sgr_param, params_splitted))
 
         mmatch = MarkerMatch(match)
-        if match.group(3) == SGRSequence.TERMINATOR:
+        if match.group(3) == SequenceSGR.TERMINATOR:
             if len(params_values) == 0:
                 marker = MarkerRegistry.marker_sgr_reset
             else:
                 marker = MarkerRegistry.marker_sgr
-            mmatch.sgr_seq = str(SGRSequence(*params_values))
+            mmatch.sgr_seq = str(SequenceSGR(*params_values))
         else:
             marker = MarkerRegistry.marker_esc_csi
 

@@ -1,4 +1,4 @@
-from pytermor import build_text256_seq, build_background256_seq
+from pytermor import build, build_c256
 from pytermor.preset import *
 
 from .control_char import MarkerControlChar
@@ -46,7 +46,7 @@ class MarkerRegistry:
     marker_sgr = MarkerSGR('ǝ')
     marker_esc_csi = MarkerEscapeSeq('Ͻ', GREEN)
 
-    fmt_first_chunk_col = Format(build_text256_seq(231) + build_background256_seq(238),
+    fmt_first_chunk_col = Format(build(231) + build_c256(238),
                                  COLOR_OFF + BG_COLOR_OFF)
-    fmt_nth_row_col = Format(build_text256_seq(231) + build_background256_seq(238) + OVERLINED,
+    fmt_nth_row_col = Format(build(231) + build_c256(238) + OVERLINED,
                              COLOR_OFF + BG_COLOR_OFF + OVERLINED_OFF)

@@ -1,4 +1,4 @@
-from pytermor import SGRSequence, RESET, Format
+from pytermor import SequenceSGR, RESET, Format
 from pytermor.preset import INVERSED_OFF, OVERLINED_OFF, BLINK_OFF, WHITE, BG_BLACK, INVERSED, OVERLINED
 
 from . import Marker
@@ -9,15 +9,15 @@ class MarkerSGR(Marker):
     # even though we allow to colorize content, we'll explicitly disable any inversion and overline
     #  effect to guarantee that the only inversed and/or overlined things on the screen are our markers
     # also disable blinking
-    PROHIBITED_CONTENT_SEQS: SGRSequence = INVERSED_OFF + OVERLINED_OFF + BLINK_OFF
+    PROHIBITED_CONTENT_SEQS: SequenceSGR = INVERSED_OFF + OVERLINED_OFF + BLINK_OFF
 
     def __init__(self, marker_char: str):
         super().__init__(marker_char)
         self._initialized: bool = False
-        self._marker_seq: SGRSequence
-        self._info_seq: SGRSequence
+        self._marker_seq: SequenceSGR
+        self._info_seq: SequenceSGR
 
-    def print(self, additional_info: str = '', seq: SGRSequence = None):
+    def print(self, additional_info: str = '', seq: SequenceSGR = None):
         self._init_seqs()
         result = f'{RESET}{self._marker_seq}{self._marker_char}'
 
