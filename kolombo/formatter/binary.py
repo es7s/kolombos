@@ -1,10 +1,11 @@
 import re
 from math import floor
-from typing import List, AnyStr, Union, Match, Tuple, Callable
+from typing import List, AnyStr, Union, Match, Tuple, Callable, Pattern
 
-from pytermor import Format, SequenceSGR, apply_filters
-from pytermor.preset import fmt_green, HI_BLUE, DIM, BOLD_DIM_OFF, fmt_cyan
-from pytermor.string_filter import ReplaceSequenceSGRs, ReplaceNonAsciiCharacters
+from pytermor import fmt, seq
+from pytermor.fmt import Format
+from pytermor.seq import SequenceSGR
+from pytermor.util import apply_filters, ReplaceSGR, StringFilter
 
 from ..formatter import AbstractFormatter
 from ..marker.registry import MarkerRegistry
@@ -37,20 +38,26 @@ class BinaryFormatter(AbstractFormatter):
             else:
                 self._byte_table += chr(i).encode()
 
-        self._control_char_map = ConfidentDict({
-            k: MarkerRegistry.get_control_marker(k, 1) for k in self.CONTROL_CHARCODES
-        })
+        self._filter_unicode_control = StringFilter[bytes](
+            lambda s: re.sub(b'([\x80-\xff])', self._format_unicode_control_char, s)
+        )
 
+        self._control_char_map = ConfidentDict({
+            k: MarkerRegistry.get_control_marker(k) for k in self.CONTROL_CHARCODES
+        })
         self._whitespace_map = {
             '\t': MarkerWhitespace(MarkerRegistry.marker_tab.marker_char[0]),
             '\v': MarkerRegistry.marker_vert_tab,
             '\f': MarkerRegistry.marker_form_feed,
             '\r': MarkerRegistry.marker_car_return,
-            '\n': MarkerRegistry.marker_newline,
+            '\n': MarkerWhitespace(MarkerRegistry.marker_newline.marker_char[0]),  # костыли костылики
         }
 
     def get_fallback_char(self) -> AnyStr:
         return self.FALLBACK_CHAR
+
+    def _get_filter_control(self) -> Pattern:
+        return re.compile(r'([\x00-\x08\x0e-\x1f\x7f])')
 
     def format(self, raw_input: Union[AnyStr], offset: int):
         offset -= len(self._buffer_raw)
@@ -62,14 +69,14 @@ class BinaryFormatter(AbstractFormatter):
             cols = self._compute_cols_num(len(self._format_offset(offset)))
 
         max_buffer_len = cols
-        if len(raw_input) == 0:  # reading finished, we must empty the buffer completely
+        if len(raw_input) == 0:  # reading finished, we have to empty the buffer completely
             max_buffer_len = 0
 
         self._process_matches.clear()
         buffer_processed = self._decode_and_process(self._buffer_raw, cols)
 
-        # iterate backwards, so updates to the processed_row doesn't mess up next offsets
-        # self._process_matches.reverse()
+        # iterate backwards, so updates to the processed_row doesn't mess up next offsets:
+        # EX self._process_matches.reverse()
         # seqs are parsed in special order, reverse itself doesn't save from collisions
         self._process_matches.sort(key=lambda mm: mm.match.span(0)[1], reverse=True)
 
@@ -91,8 +98,8 @@ class BinaryFormatter(AbstractFormatter):
             #  postprocess() doesn't care
             postprocessed_row = self._postprocess_input(processed_row)
             merged_row = f'{self._print_offset(offset)}' \
-                         f'{hex_row}{RESET}{self.PADDING_SECTION}' \
-                         f'{postprocessed_row}{RESET}'
+                         f'{hex_row}{seq.RESET}{self.PADDING_SECTION}' \
+                         f'{postprocessed_row}{seq.RESET}'
             if is_guide_row:
                 merged_row = MarkerRegistry.fmt_nth_row_col(merged_row)
 
@@ -111,28 +118,27 @@ class BinaryFormatter(AbstractFormatter):
         return f'{offset:08x}{self.PADDING_SECTION}'
 
     def _print_offset(self, offset: int, is_total: bool = False):
-        fmt = fmt_green
+        f = fmt.green
         if is_total:
-            fmt = Format(HI_BLUE)
+            f = Format(seq.HI_BLUE)
         return re.sub(r'^(0+)(\S+)(\s)',
-                      fmt(str(DIM) + r'\1' + str(BOLD_DIM_OFF) + r'\2') + fmt_cyan('│'),
+                      f(fmt.dim(r'\1') + r'\2') + fmt.cyan('│'),
                       self._format_offset(offset))
 
     def _add_marker_match(self, fsegment: MarkerMatch):  # @todo formatted segment
         self._process_matches.append(fsegment)
 
     def _decode_and_process(self, raw_input: bytes, cols: int) -> AnyStr:
-        decoded = raw_input.decode(errors='replace').replace('\ufffd', self.FALLBACK_CHAR)
+        decoded = raw_input.decode('ascii', errors='replace').replace('\ufffd', self.FALLBACK_CHAR)
         # if Settings.OVERLAY_GRID and not is_guide_row:
         #    formatted = re.sub('(.)(.{,7})', FormatRegistry.fmt_first_chunk_col('\\1') + '\\2', formatted)
+        apply_filters(raw_input, self._filter_unicode_control)
         processed = self._process_input(decoded)
-        sanitized = apply_filters(processed,
-                                  ReplaceSequenceSGRs(''),
-                                  ReplaceNonAsciiCharacters(self.get_fallback_char()))
+        sanitized = apply_filters(processed, ReplaceSGR(''))
         #   assert len(sanitized) == len(decoded)
         return processed + ' ' * (cols - len(processed))
 
-    def _format_hex_row(self, row: bytes, cols: int, is_guide_row: bool = False) -> AnyStr:
+    def _format_hex_row(self, row: bytes, cols: int, is_guide_row: bool = False) -> str:
         chunks = []
         for i in range(0, cols, self.BYTE_CHUNK_LEN):
             row_part = row[i:i + self.BYTE_CHUNK_LEN]
@@ -154,9 +160,10 @@ class BinaryFormatter(AbstractFormatter):
         result = self.PADDING_HEX_CHUNK.join(chunks_x2)
         return result
 
-    def _format_csi_sequence(self, match: Match) -> AnyStr:
+    def _format_csi_sequence(self, match: Match) -> str:
         if Settings.ignore_esc:
-            return self.FALLBACK_CHAR + match.group(0)
+            self._add_marker_match(MarkerMatch(match, MarkerRegistry.marker_ignored))
+            return MarkerRegistry.marker_ignored.marker_char * len(match.group(0))
 
         params_splitted = re.split(r'[^0-9]+', match.group(2))
         params_values = list(filter(self._filter_sgr_param, params_splitted))
@@ -169,47 +176,59 @@ class BinaryFormatter(AbstractFormatter):
                 marker = MarkerRegistry.marker_sgr
             mmatch.sgr_seq = str(SequenceSGR(*params_values))
         else:
-            marker = MarkerRegistry.marker_esc_csi
+            marker = MarkerRegistry.marker_esq_csi
 
-        mmatch.marker = marker
+        mmatch.set_marker(marker)
         self._add_marker_match(mmatch)
-        return marker.marker_char + match.group(0)
+        return marker.marker_char + match.group(1) + match.group(2) + match.group(3)
 
-    def _postprocess(self, processed_input: str) -> str:
-        #    processed_input = self._postprocess_input_whitespace(processed_input)
-        #    processed_input = self._postprocess_input_control_chars(processed_input)
-        return processed_input
+    def _format_generic_escape_sequence(self, match: Match) -> str:
+        if Settings.ignore_esc:
+            self._add_marker_match(MarkerMatch(match, MarkerRegistry.marker_ignored))
+            return MarkerRegistry.marker_ignored.marker_char * len(match.group(0))
 
-    def _postprocess_input_whitespace(self, processed_input: str) -> str:
-        if Settings.ignore_space:
-            return processed_input
+        introducer = match.group(1)
+        if introducer == ' ':
+            introducer = MarkerRegistry.marker_space.marker_char
+        charcode = ord(introducer)
+        marker = MarkerRegistry.get_esq_marker(charcode)
+        self._add_marker_match(MarkerMatch(match, marker))
+        return marker.marker_char + match.group(1)
 
-            #     for match in re.finditer(r'(\x20+)', processed_input) or []:
-            #         self._add_marker_match(MarkerMatch(match, FormatRegistry.marker_space))
-            #     processed_input = re.sub(r'\x20', FormatRegistry.marker_space.marker_char, processed_input)
-            #
-            #        for match in re.finditer(r'([\t\n\v\f\r])', processed_input) or []:
-            #            marker = self._whitespace_map.get(match.group(1), None)
-            #            self._add_marker_match(MarkerMatch(match, marker, overwrite=True))
-        return processed_input
-
-    def _postprocess_input_control_chars(self, processed_input: str) -> str:
+    def _format_control_char(self, match: Match) -> str:
         if Settings.ignore_control:
-            return processed_input
-        return processed_input
+            self._add_marker_match(MarkerMatch(match, MarkerRegistry.marker_ignored, overwrite=True))
+            return MarkerRegistry.marker_ignored.marker_char
 
-    #   for match in re.finditer('r\x1b', processed_input) or []:
-    #       self._add_marker_match(MarkerMatch(match, FormatRegistry.marker_escape_single, overwrite=True))
-    #   for match in re.finditer(r'[\x00-\x08\x0e-\x1a\x1c-\x20\x7f]', processed_input) or []:
-    #       marker = self._control_map.get(match.group(0), FormatRegistry.marker_ascii_ctrl)
-    #       self._add_marker_match(MarkerMatch(match, marker, overwrite=True))
-    #   return processed_input
+        charcode = ord(match.group(1))
+        marker = self._control_char_map.require_or_die(charcode)
+        self._add_marker_match(MarkerMatch(match, marker, overwrite=True))
+        return marker.marker_char
+
+    def _format_unicode_control_char(self, match: Match) -> bytes:
+        return self._format_control_char(match).encode()
+
+    def _format_space(self, match: Match) -> str:
+        if Settings.ignore_space:
+            self._add_marker_match(MarkerMatch(match, MarkerRegistry.marker_ignored))
+            return MarkerRegistry.marker_ignored.marker_char * len(match.group(0))
+
+        self._add_marker_match(MarkerMatch(match, MarkerRegistry.marker_space))
+        return MarkerRegistry.marker_space.marker_char * len(match.group(0))
+
+    def _format_whitespace(self, match: Match) -> str:
+        if Settings.ignore_space:
+            return self.get_fallback_char()
+
+        marker = self._whitespace_map.get(match.group(1), None)
+        self._add_marker_match(MarkerMatch(match, marker, overwrite=True))
+        return marker.marker_char
 
     def _apply_matches(self, processed_row: AnyStr, hex_row: AnyStr, local_min_pos: int, local_max_pos: int) -> Tuple[
         AnyStr, AnyStr]:
         for match_marker in self._process_matches:
             span_g0 = match_marker.match.span(0)
-            if local_min_pos <= span_g0[0] <= local_max_pos or local_min_pos <= span_g0[1] <= local_max_pos:
+            if local_min_pos <= span_g0[0] < local_max_pos or local_min_pos < span_g0[1] < local_max_pos:
                 start_pos = max(0, span_g0[0] - local_min_pos)
                 end_pos = min(local_max_pos, span_g0[1]) - local_min_pos
 
@@ -225,7 +244,7 @@ class BinaryFormatter(AbstractFormatter):
         left_part = row[:start_pos]
         source_text = row[start_pos:end_pos]
         right_part = row[end_pos:]
-        return f'{left_part}{RESET}{target_text(source_text)}{right_part}'
+        return f'{left_part}{seq.RESET}{target_text(source_text)}{right_part}'
 
     def _map_pos_to_hex(self, start_pos: int, end_pos: int) -> Tuple[int, int]:
         def _map(pos: int, shift: int = 0) -> int:

@@ -1,5 +1,6 @@
-from pytermor import SequenceSGR, Format
-from pytermor.preset import OVERLINED, INVERSED, BG_BLACK, RESET
+from pytermor import seq
+from pytermor.fmt import Format
+from pytermor.seq import SequenceSGR
 
 from . import Marker
 from ..settings import Settings
@@ -8,11 +9,11 @@ from ..settings import Settings
 class MarkerEscapeSeq(Marker):
     def __init__(self, marker_char: str, opening_seq: SequenceSGR):
         super().__init__(marker_char)
-        self._fmt = Format(opening_seq + OVERLINED, reset=True)
-        self._fmt_focused = Format(opening_seq + INVERSED + BG_BLACK, reset=True)
+        self._fmt = Format(opening_seq + seq.OVERLINED, hard_reset_after=True)
+        self._fmt_focused = Format(opening_seq + seq.INVERSED + seq.BG_BLACK, hard_reset_after=True)
 
     def print(self, additional_info: str = ''):
-        return str(RESET) + self.get_fmt()(self._marker_char + additional_info)
+        return str(seq.RESET) + self.get_fmt()(self._marker_char + additional_info)
 
     def get_fmt(self) -> Format:
         if Settings.focus_esc:

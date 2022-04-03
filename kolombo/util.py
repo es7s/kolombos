@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import TypeVar, Dict, Match, AnyStr
 
+from pytermor.util import StringFilter
+
 from .marker import Marker
 from .marker.sgr import MarkerSGR
 from .settings import Settings
@@ -23,6 +25,11 @@ class ConfidentDict(Dict[KT, VT]):
         return val
 
 
+class ReplaceUnicode(StringFilter[str]):
+    def __init__(self, repl: str = ''):
+        super().__init__(lambda s: s.encode().decode('ascii', errors='replace').replace('�', repl))
+
+
 class MarkerMatch:
     def __init__(self, match: Match, marker: Marker = None, overwrite: bool = False):
         self.match = match
@@ -34,6 +41,9 @@ class MarkerMatch:
         self.overwrite = overwrite
         self.sgr_seq: AnyStr|None = None
         self.applied: bool = False
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}[{self.match!r}]'
 
     def set_marker(self, marker: Marker):
         self.fmt = marker.get_fmt()
@@ -54,6 +64,6 @@ class MarkerMatch:
             target_text = self._format(source_text)
 
         if self.sgr_seq and not Settings.no_color_content:
-            target_text += self.sgr_seq + str(MarkerSGR.PROHIBITED_CONTENT_SEQS)
+            target_text += self.sgr_seq + str(MarkerSGR.PROHIBITED_CONTENT_BREAKER)
 
         return target_text

@@ -1,52 +1,64 @@
-from pytermor import build, build_c256
-from pytermor.preset import *
+from pytermor import build_c256, seq, autof
 
 from .control_char import MarkerControlChar
 from .escape_seq import MarkerEscapeSeq
+from .ignored import MarkerIgnored
 from .sgr import MarkerSGR
 from .sgr_reset import MarkerSGRReset
 from .whitespace import MarkerWhitespace
+from ..settings import Settings
 
 
 class MarkerRegistry:
-    _tpl_marker_ascii_ctrl = MarkerControlChar('Ɐ{}', RED)
+    _unicode_control_marker_chars = ['ù', 'ú', 'û', 'ü', 'ũ', 'ŭ', 'ů', 'ű', 'ū']
 
     @staticmethod
-    def get_control_marker(charcode: int, text_max_len: int = 0):
+    def get_control_marker(charcode: int):
+        text_max_len = Settings.control_marker_max_len()
         if charcode == 0x00:
-            return MarkerControlChar('Ø', HI_RED)
+            return MarkerControlChar('Ø', seq.HI_RED)
         elif charcode == 0x1b:  # standalone escape
-            return MarkerControlChar('Ǝ', HI_YELLOW)
+            return MarkerControlChar('Ǝ', seq.HI_YELLOW)
         elif charcode == 0x08:
-            return MarkerControlChar('←', RED)
+            return MarkerControlChar('←', seq.RED)
         elif charcode == 0x7f:
-            return MarkerControlChar('→', RED)
+            return MarkerControlChar('→', seq.RED)
         elif 0x00 <= charcode < 0x20:
-            return MarkerControlChar(f'Ɐ{charcode:x}'[:text_max_len], RED)
-        elif 0x80 <= charcode <= 0xff:
-            return MarkerControlChar(f'U{charcode:x}'[:text_max_len], MAGENTA)
+            marker_char = 'Ɐ'
+            if text_max_len == 1:
+                return MarkerControlChar(marker_char, seq.RED)
+            return MarkerControlChar(marker_char + f'{charcode:x}'[-(text_max_len-1):], seq.RED)
+        elif 0x80 <= charcode <= 0xfe:
+            marker_char = MarkerRegistry._unicode_control_marker_chars[
+                charcode % len(MarkerRegistry._unicode_control_marker_chars)
+            ]
+            return MarkerControlChar(f'{marker_char}{charcode:x}'[:text_max_len], seq.MAGENTA, no_focus=True)
+        elif charcode == 0xff:
+            return MarkerControlChar('ǚ', seq.HI_MAGENTA, no_focus=True)
         raise ValueError(f'Unknown control character code: "{charcode}"')
 
     @staticmethod
     def get_esq_marker(introducer_charcode: int):
         if 0x20 <= introducer_charcode < 0x30:
-            return MarkerEscapeSeq('ꟻ', GREEN)
+            return MarkerEscapeSeq('ꟻ', seq.GREEN)
         elif 0x30 <= introducer_charcode:
-            return MarkerEscapeSeq('Ǝ', YELLOW)
+            return MarkerEscapeSeq('Ǝ', seq.YELLOW)
         raise ValueError(f'Unknown escape sequence introducer code: "{introducer_charcode}"')
 
-    marker_tab = MarkerWhitespace('⇥\t')
+    marker_ignored = MarkerIgnored('×', seq.GRAY)
+
+    marker_tab = MarkerWhitespace('⇥')
+    marker_tab_keep_orig = MarkerWhitespace('⇥\t')
     marker_space = MarkerWhitespace('␣', '·')
     marker_newline = MarkerWhitespace('↵')
+    marker_newline_keep_orig = MarkerWhitespace('↵\n')
     marker_vert_tab = MarkerWhitespace('⤓')
     marker_form_feed = MarkerWhitespace('↡')
     marker_car_return = MarkerWhitespace('⇤')
 
     marker_sgr_reset = MarkerSGRReset('ϴ')
     marker_sgr = MarkerSGR('ǝ')
-    marker_esc_csi = MarkerEscapeSeq('Ͻ', GREEN)
+    marker_esq_csi = MarkerEscapeSeq('Ͻ', seq.GREEN)
 
-    fmt_first_chunk_col = Format(build(231) + build_c256(238),
-                                 COLOR_OFF + BG_COLOR_OFF)
-    fmt_nth_row_col = Format(build(231) + build_c256(238) + OVERLINED,
-                             COLOR_OFF + BG_COLOR_OFF + OVERLINED_OFF)
+    fmt_first_chunk_col = autof(build_c256(231) + build_c256(238, bg=True))
+    fmt_nth_row_col = autof(build_c256(231) + build_c256(238, bg=True) + seq.OVERLINED)

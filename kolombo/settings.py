@@ -28,3 +28,9 @@ class Settings(Namespace):
         if Settings.binary:
             return 2
         return Settings.info
+
+    @staticmethod
+    def control_marker_max_len() -> int:
+        if Settings.binary:
+            return 1
+        return Settings.info + 1

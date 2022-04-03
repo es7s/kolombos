@@ -1,5 +1,5 @@
-from pytermor import Format, build_text256_seq, RESET
-from pytermor.preset import OVERLINED, INVERSED
+from pytermor import build_c256, seq, autof
+from pytermor.fmt import Format
 
 from . import Marker
 from ..settings import Settings
@@ -8,11 +8,11 @@ from ..settings import Settings
 class MarkerSGRReset(Marker):
     def __init__(self, marker_char: str):
         super().__init__(marker_char)
-        self._fmt = Format(OVERLINED + build_text256_seq(231), reset=True)
-        self._fmt_focused = Format(INVERSED + build_text256_seq(231), reset=True)
+        self._fmt = autof(build_c256(231) + seq.OVERLINED)
+        self._fmt_focused = autof(build_c256(231) + seq.INVERSED)
 
     def print(self):
-        return str(RESET) + self.get_fmt()(self._marker_char)
+        return str(seq.RESET) + self.get_fmt()(self._marker_char)
 
     def get_fmt(self) -> Format:
         if Settings.focus_esc:

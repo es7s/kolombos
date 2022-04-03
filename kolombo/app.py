@@ -7,8 +7,8 @@ import traceback
 from argparse import SUPPRESS, Action, ArgumentParser, HelpFormatter
 from typing import Optional, List, Iterable
 
-from pytermor.format import Format
-from pytermor.preset import fmt_bold, fmt_red
+from pytermor import fmt
+from pytermor.fmt import Format
 
 from .formatter.binary import BinaryFormatter
 from .formatter.text import TextFormatter
@@ -24,7 +24,7 @@ class CustomHelpFormatter(HelpFormatter):
 
     @staticmethod
     def format_header(title: str) -> str:
-        return fmt_bold(title.upper())
+        return fmt.bold(title.upper())
 
     def __init__(self, prog):
         super().__init__(prog, max_help_position=30, indent_increment=self.INDENT_INCREMENT)
@@ -135,11 +135,11 @@ class App:
                 'Mandatory or optional arguments to long options are also mandatory or optional for any'
                 ' corresponding short options.',
                 '',
-                'Ignore-<class> options are interpreted as follows:',
-                f'{CustomHelpFormatter.INDENT}* In text mode: hide correspondning character class from output'
-                f' completely;',
-                f'{CustomHelpFormatter.INDENT}* In binary mode: print "." instead of'
-                f' selected chars and print their hex codes dimmed.',
+                'Ignore-<class> options are interpreted as follows::',
+                f'{CustomHelpFormatter.INDENT}* In text mode: print "×" instead of whitespaces, hide control characters'
+                f' and escape sequences;',
+                f'{CustomHelpFormatter.INDENT}* In binary mode: print "×" instead of'
+                f' ignored chars and color their hex codes dark gray.',
                 '',
                 '(c) 2022 A. Shavykin <0.delameter@gmail.com>',
             ],
@@ -161,8 +161,8 @@ class App:
                                         help='open file in binary mode')
         modes_group_nested.add_argument('-l', '--legend', action='store_true', default=False,
                                         help='show annotation symbol list and exit')
-        modes_group_nested.add_argument('-h', '--help', action='help', default=SUPPRESS,
-                                        help='show this help message and exit')
+        modes_group.add_argument('-h', '--help', action='help', default=SUPPRESS,
+                                 help='show this help message and exit')
 
         generic_group = parser.add_argument_group('generic options')
         esc_output_group = generic_group.add_mutually_exclusive_group()
@@ -185,7 +185,7 @@ class App:
 
         text_mode_group = parser.add_argument_group('text mode only')
         text_mode_group.add_argument('-i', '--info', metavar='<level>', action='store', type=int, default=1,
-                                     help='escape sequence marker verbosity (0-2, default %(default)s)')
+                                     help='control and escape marker details (0-2, default %(default)s)')
         text_mode_group.add_argument('-L', '--max-lines', metavar='<num>', action='store', type=int, default=0,
                                      help='stop after reading <num> lines')
         text_mode_group.add_argument('--no-line-numbers', action='store_true', default=False,
@@ -208,7 +208,7 @@ class App:
 
 class ExceptionHandler:
     def __init__(self):
-        self.format: Format = fmt_red
+        self.format: Format = fmt.red
 
     def handle(self, e: Exception):
         self._log_traceback(e)

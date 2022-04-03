@@ -1,10 +1,9 @@
 import re
-from typing import AnyStr, Union, List, Match
+from typing import Union, List, Match, Pattern
 
-import pytermor
-from pytermor import SequenceSGR
-from pytermor.preset import fmt_green, fmt_cyan
-from pytermor.string_filter import ReplaceSequenceSGRs
+from pytermor import fmt
+from pytermor.seq import SequenceSGR
+from pytermor.util import ReplaceSGR, StringFilter
 
 from ..formatter import AbstractFormatter
 from ..marker.registry import MarkerRegistry
@@ -16,16 +15,21 @@ class TextFormatter(AbstractFormatter):
     def __init__(self, _writer: Writer):
         super().__init__(_writer)
         self._whitespace_map = {
-            0x09: MarkerRegistry.marker_tab.print(),
-            0x0b: MarkerRegistry.marker_vert_tab.print(),
-            0x0c: MarkerRegistry.marker_form_feed.print(),
-            0x0d: MarkerRegistry.marker_car_return.print(),
-            0x0a: MarkerRegistry.marker_newline.print() + '\x0a',  # actual newline
-            0x20: MarkerRegistry.marker_space.print(),
+            '\t':   MarkerRegistry.marker_tab_keep_orig,
+            '\v':   MarkerRegistry.marker_vert_tab,
+            '\f':   MarkerRegistry.marker_form_feed,
+            '\r':   MarkerRegistry.marker_car_return,
+            '\n':   MarkerRegistry.marker_newline_keep_orig,
+            '\x20': MarkerRegistry.marker_space,
         }
 
-    def get_fallback_char(self) -> AnyStr:
+
+
+    def get_fallback_char(self) -> str:
         return ''
+
+    def _get_filter_control(self) -> Pattern:
+        return re.compile(r'([\x00-\x08\x0e-\x1f\x7f])[^\xff]')
 
     #  def _postprocess(self, processed_input: str) -> str:
     # if Settings.include_space:
@@ -49,15 +53,21 @@ class TextFormatter(AbstractFormatter):
             if Settings.no_line_numbers:
                 prefix = ''
             else:
-                prefix = fmt_green(f'{offset + 1:2d}') + fmt_cyan('│')
+                prefix = fmt.green(f'{offset + 1:2d}') + fmt.cyan('│')
 
             formatted_input = prefix + processed_input
-            aligned_raw_input = ReplaceSequenceSGRs('')(prefix) + raw_input_line
+            aligned_raw_input = ReplaceSGR('')(prefix) + raw_input_line
 
             self._writer.write_line(formatted_input, aligned_raw_input)
             offset += 1
 
-    def _format_csi_sequence(self, match: Match) -> AnyStr:
+    def _escape_escape_character(self, s: str) -> str:
+        return s.replace('\x1b', '\x1b\xff')
+
+    def _format_csi_sequence(self, match: Match) -> str:
+        #if Settings.ignore_esc:
+        #    return self.get_fallback_char()
+
         introducer = match.group(1)  # e.g. '['
         params = match.group(2)  # e.g. '1;7'
         terminator = match.group(3)  # e.g. 'm'
@@ -67,7 +77,7 @@ class TextFormatter(AbstractFormatter):
 
         if Settings.ignore_esc:
             if terminator == SequenceSGR.TERMINATOR and not Settings.no_color_content:
-                return str(SequenceSGR(*params_values))
+                return self._escape_escape_character(str(SequenceSGR(*params_values)))
             return ''
 
         info = ''
@@ -78,7 +88,50 @@ class TextFormatter(AbstractFormatter):
 
         if terminator == SequenceSGR.TERMINATOR:
             if len(params_values) == 0:
-                return MarkerRegistry.marker_sgr_reset.print()
-            return MarkerRegistry.marker_sgr.print(info, SequenceSGR(*params_values))
+                result = MarkerRegistry.marker_sgr_reset.print()
+            else:
+                result = MarkerRegistry.marker_sgr.print(info, SequenceSGR(*params_values))
         else:
-            return MarkerRegistry.marker_esc_csi.print(info)
+            result = MarkerRegistry.marker_esq_csi.print(info)
+        return self._escape_escape_character(result)
+
+    def _format_generic_escape_sequence(self, match: Match) -> str:
+        if Settings.ignore_esc:
+            return self.get_fallback_char()
+
+        introducer = match.group(1)
+        info = ''
+        if Settings.effective_info_level() >= 1:
+            info = introducer
+        if Settings.effective_info_level() >= 2:
+            info = match.group(0)
+        if introducer == ' ':
+            introducer = MarkerRegistry.marker_space.marker_char
+        charcode = ord(introducer)
+        marker = MarkerRegistry.get_esq_marker(charcode)
+        return self._escape_escape_character(marker.print() + info)
+
+    def _format_control_char(self, match: Match) -> str:
+        if Settings.ignore_control:
+            return self.get_fallback_char()
+
+        charcode = ord(match.group(1))
+        marker = self._control_char_map.require_or_die(charcode)
+        return marker.print()
+
+    def _format_space(self, match: Match) -> str:
+        if Settings.ignore_space:
+            return MarkerRegistry.marker_ignored.print() * len(match.group(0))
+
+        return MarkerRegistry.marker_space.get_fmt()(
+            MarkerRegistry.marker_space.marker_char * len(match.group(0))
+        )
+
+    def _format_whitespace(self, match: Match) -> str:
+        if Settings.ignore_space:
+            if match.group(1) == '\n':
+                return '\n'
+            return MarkerRegistry.marker_ignored.print()
+
+        marker = self._whitespace_map.get(match.group(1), None)
+        return marker.print()
