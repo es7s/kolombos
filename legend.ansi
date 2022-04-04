@@ -32,7 +32,7 @@
  [31;40m01[m [31;40m08[m [31;7;40m1f[m      ASCII controls (01-08, 0e-1f) [2m(last one is focused)[22m
  [2m20 0a[m [1;30;46m09[m      ASCII whitespaces (09-0d, 20) [2m(last one is focused)[22m
  [m57 54 46[m      ASCII pritables (21-7e)
- [35m80 90 a0 ff[m   UTF-8 controls (80-ff), raw
+ [35m80 90 a0 ff[m   binary data / Unicode control chars (80-ff)
  [34me2 94 80[m      valid UTF-8 character sequence (bytes>1)
  [37;40;53m1b[m [37;40;53m5b[m [37;40;53m34[m [37;40;53m6d[m   SGR sequence
            CSI sequence

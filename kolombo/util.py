@@ -31,7 +31,8 @@ class ReplaceUnicode(StringFilter[str]):
 
 
 class MarkerMatch:
-    def __init__(self, match: Match, marker: Marker = None, overwrite: bool = False):
+    def __init__(self, match: Match, marker: Marker = None, overwrite: bool = False, autosize: bool = False,
+                 no_format_processed: bool = False):
         self.match = match
         self.fmt = None
         self.marker_char = None
@@ -39,6 +40,8 @@ class MarkerMatch:
             self.set_marker(marker)
 
         self.overwrite = overwrite
+        self.autosize = autosize
+        self.no_format_processed = no_format_processed
         self.sgr_seq: AnyStr|None = None
         self.applied: bool = False
 
@@ -59,11 +62,17 @@ class MarkerMatch:
 
     def target_text_processed(self, source_text: str) -> str:
         if self.overwrite:
-            target_text = self._format(self.marker_char if self.marker_char else '?')
+            target_text_len = (len(source_text) if self.autosize else 1)
+            target_text = (self.marker_char if self.marker_char else '?')*target_text_len
         else:
-            target_text = self._format(source_text)
+            target_text = source_text
 
-        if self.sgr_seq and not Settings.no_color_content:
+        if self.no_format_processed:
+            pass
+        else:
+            target_text = self._format(target_text)
+
+        if self.sgr_seq and Settings.effective_color_content():
             target_text += self.sgr_seq + str(MarkerSGR.PROHIBITED_CONTENT_BREAKER)
 
         return target_text

@@ -20,6 +20,17 @@ class AbstractFormatter(metaclass=abc.ABCMeta):
     def __init__(self, _writer: Writer):
         self._writer = _writer
 
+        # @TODO refactoring
+        # - попробовать составить ояебу-регулярку, которая разобьет входную строку на
+        #   токены за _один_ проход. это избавит от грузовика костылей. так как работаем с utf-8,
+        #   регулярка будет оперировать байтами. группы регулярки определяют, какой обработчик будет
+        #   применен к конкретной последовательности.
+        # - если не получится за один проход - разбить входную строку на _секции_ по типам (управляющие символы,
+        #   escape последовательности, utf-8, бинарные данные) и уже внутри каждой секции более детально обрабатывать;
+        #   так, по крайней мере, не будет дебильных перенахлёстов, когда символ utf-8 декодируется и становится частью
+        #   рядом стоящей управляющей последовательности - вместе с уже примененным форматированием, которое ломается
+        #   и ломает вместе с собой вообще всё.
+
         self._filter_sgr = StringFilter[str](  # CSI (incl. SGR) sequences
             lambda s: re.sub(r'\x1b(\[)([0-9;:<=>?]*)([@A-Za-z\[])', self._format_csi_sequence, s)
         )  # @TODO group 3  ^^^^^^^^^^^^^^^^^^  : 0x40–0x7E ASCII      @A–Z[\]^_`a–z{|}~
@@ -27,7 +38,7 @@ class AbstractFormatter(metaclass=abc.ABCMeta):
             lambda s: re.sub(r'\x1b([\x20-\x2f])([\x20-\x2f]*)([\x30-\x7e])', self._format_generic_escape_sequence, s)
         )
         self._filter_esq = StringFilter[str](  # other escape sequences
-            lambda s: re.sub(r'\x1b([\x20-\x7f])()()', self._format_generic_escape_sequence, s)
+            lambda s: re.sub(r'\x1b([\x20-\x7f])', self._format_generic_escape_sequence, s)
         )
         self._filter_control = StringFilter[str](  # control chars incl. standalone escapes
             lambda s: re.sub(self._get_filter_control(), self._format_control_char, s)
@@ -42,12 +53,13 @@ class AbstractFormatter(metaclass=abc.ABCMeta):
             lambda s: re.sub(r'([\t\n\v\f\r])', self._format_whitespace, s)
         )
 
+        self._filters_pre = []
         self._filters_fixed = [
             self._filter_sgr, self._filter_nf, self._filter_esq,
             self._filter_control, self._filter_restore_sgrs,
             self._filter_space, self._filter_whitespace,
         ]
-        self._filters_post = []
+        self._filters_post = []  # @TODO whitespace fmt optimisation/squashing in binary mode
 
         self._control_char_map = ConfidentDict({
             k: MarkerRegistry.get_control_marker(k) for k in self.CONTROL_CHARCODES
@@ -65,6 +77,9 @@ class AbstractFormatter(metaclass=abc.ABCMeta):
 
     def _add_marker_match(self, mm: MarkerMatch):
         return
+
+    def _preprocess_input(self, raw_input: bytes) -> bytes:
+        return apply_filters(raw_input, *self._filters_pre)
 
     def _process_input(self, decoded_input: str) -> str:
         return apply_filters(decoded_input, *self._filters_fixed)

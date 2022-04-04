@@ -5,6 +5,7 @@ from .escape_seq import MarkerEscapeSeq
 from .ignored import MarkerIgnored
 from .sgr import MarkerSGR
 from .sgr_reset import MarkerSGRReset
+from .utf8 import MarkerUTF8
 from .whitespace import MarkerWhitespace
 from ..settings import Settings
 
@@ -32,9 +33,9 @@ class MarkerRegistry:
             marker_char = MarkerRegistry._unicode_control_marker_chars[
                 charcode % len(MarkerRegistry._unicode_control_marker_chars)
             ]
-            return MarkerControlChar(f'{marker_char}{charcode:x}'[:text_max_len], seq.MAGENTA, no_focus=True)
+            return MarkerControlChar(f'ﾪ{charcode:x}'[:text_max_len], seq.MAGENTA, no_focus=True)
         elif charcode == 0xff:
-            return MarkerControlChar('ǚ', seq.HI_MAGENTA, no_focus=True)
+            return MarkerControlChar('ﾪ', seq.HI_MAGENTA, no_focus=True)
         raise ValueError(f'Unknown control character code: "{charcode}"')
 
     @staticmethod
@@ -45,7 +46,8 @@ class MarkerRegistry:
             return MarkerEscapeSeq('Ǝ', seq.YELLOW)
         raise ValueError(f'Unknown escape sequence introducer code: "{introducer_charcode}"')
 
-    marker_ignored = MarkerIgnored('×', seq.GRAY)
+    marker_ignored = MarkerIgnored('×', seq.BG_BLACK + seq.GRAY)
+    marker_utf8 = MarkerUTF8('ṳ')  # ǚ
 
     marker_tab = MarkerWhitespace('⇥')
     marker_tab_keep_orig = MarkerWhitespace('⇥\t')

@@ -1,6 +1,6 @@
 from typing import Optional
 
-from pytermor import fmt, seq
+from pytermor import fmt, seq, autof
 from pytermor.fmt import Format
 
 from . import Marker
@@ -9,14 +9,14 @@ from ..settings import Settings
 
 class MarkerWhitespace(Marker):
     _fmt = fmt.dim
-    _fmt_focused = Format(seq.BG_CYAN + seq.BLACK, hard_reset_after=True)
+    _fmt_focused = autof(seq.BG_CYAN + seq.BLACK)
 
     def __init__(self, marker_char: str, marker_char_focused_override: Optional[str] = None):
         super().__init__(marker_char)
         self._marker_char_focused = (marker_char_focused_override if marker_char_focused_override else marker_char)
 
     def print(self):
-        return self.get_fmt()(self.marker_char)
+        return self.get_fmt()(self.marker_char[0]) + self.marker_char[1:]
 
     # нет времени объяснять, срочно костылим
     def get_fmt(self) -> Format:

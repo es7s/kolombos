@@ -136,10 +136,9 @@ class App:
                 ' corresponding short options.',
                 '',
                 'Ignore-<class> options are interpreted as follows::',
-                f'{CustomHelpFormatter.INDENT}* In text mode: print "×" instead of whitespaces, hide control characters'
-                f' and escape sequences;',
-                f'{CustomHelpFormatter.INDENT}* In binary mode: print "×" instead of'
-                f' ignored chars and color their hex codes dark gray.',
+                f'{CustomHelpFormatter.INDENT}* In text mode: replace printable characters to "×", hide markers'
+                f' of non-printable characters;',
+                f'{CustomHelpFormatter.INDENT}* In binary mode: replace ignored chars to "×" and color their hex codes dark gray.',
                 '',
                 '(c) 2022 A. Shavykin <0.delameter@gmail.com>',
             ],
@@ -196,6 +195,13 @@ class App:
                                      help='send raw input lines to stderr along with default output')
 
         bin_mode_group = parser.add_argument_group('binary mode only')
+        utf8_output_group = bin_mode_group.add_mutually_exclusive_group()
+        utf8_output_group.add_argument('-u', '--focus-utf8', action='store_true', default=False,
+                                       help='highlight utf-8 sequences')
+        utf8_output_group.add_argument('-U', '--ignore-utf8', action='store_true', default=False,
+                                       help='ignore utf-8 sequences')
+        bin_mode_group.add_argument('-d', '--decode', action='store_true', default=False,
+                                    help='decode valid utf-8 sequences, print as unicode chars (in right panel)')
         bin_mode_group.add_argument('-B', '--max-bytes', metavar='<num>', action='store', type=int, default=0,
                                     help='stop after reading <num> bytes')
         bin_mode_group.add_argument('-w', '--columns', metavar='<num>', action='store', type=int, default=0,

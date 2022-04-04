@@ -1,1 +1,2 @@
 pytermor~=1.1.0
+unicodedata2

@@ -1,4 +1,4 @@
-from pytermor import seq
+from pytermor import seq, autof
 from pytermor.fmt import Format
 from pytermor.seq import SequenceSGR
 
@@ -25,18 +25,17 @@ class MarkerSGR(Marker):
         if Settings.no_color_markers:
             result += f'{additional_info}{sgr}'
         else:
-            result += f'{sgr}{self.PROHIBITED_CONTENT_BREAKER}' \
-                      f'{self._info_seq}{additional_info}'
+            result += f'{sgr}{self._info_seq}{additional_info}'
 
-        if Settings.no_color_content:
-            result += str(seq.RESET)  # ... content
-        else:
+        if Settings.effective_color_content():
             result += str(self.PROHIBITED_CONTENT_BREAKER)  # ... content
+        else:
+            result += str(seq.RESET)  # ... content
         return result
 
     def get_fmt(self) -> Format:
         self._init_seqs()
-        return Format(self._marker_seq, hard_reset_after=True)
+        return autof(self._marker_seq)
 
     def _init_seqs(self):
         if self._initialized:
