@@ -31,9 +31,36 @@ class AbstractFormatter(metaclass=abc.ABCMeta):
         #   рядом стоящей управляющей последовательности - вместе с уже примененным форматированием, которое ломается
         #   и ломает вместе с собой вообще всё.
 
+        # @TODO group 3   0x40–0x7E ASCII      @A–Z[\]^_`a–z{|}~
+
+        self._entry_filter = StringFilter[bytes](
+            lambda s: re.sub(b'('  # utf-8
+                             b'[\xc2-\xdf][\x80-\xbf]|'
+                             b'\xe0[\xa0-\xbf][\x80-\xbf]|'
+                             b'[\xe1-\xec\xee\xef][\x80-\xbf]{2}|'
+                             b'\xed[\x80-\x9f][\x80-\xbf]|'
+                             b'\xf0[\x90-\xbf][\x80-\xbf]{2}|'
+                             b'[\xf1-\xf3][\x80-\xbf]{3}|'
+                             b'\xf4[\x80-\x8f][\x80-\xbf]{2}'
+                             b')|'
+                             b'([\x80-\xff]+)|'  # binary data / unicode control chars
+                             b'(\x1b(\x5b)([0-9;:<=>?]*)([@A-Za-z\x5b]))|'       # CSI (incl. SGR) sequences
+                             b'(\x1b([\x20-\x2f])([\x20-\x2f]*)([\x30-\x7e]))|'  # nF Escape sequences
+                             b'(\x1b([\x20-\x7f]))|'                             # other escape sequences
+                             b'([\x00-\x08\x0e-\x1f\x7f]+)|'  # ASCII control chars incl. standalone escapes
+                             b'(\x20+)|'  # space
+                             b'([\t\n\v\f\r]+)',  # whitespaces excl. space
+                             _filter, s)
+        )
+
+        def _filter(m: Match) -> bytes:
+            print(m)
+            qq = 3
+            return b''
+
         self._filter_sgr = StringFilter[str](  # CSI (incl. SGR) sequences
             lambda s: re.sub(r'\x1b(\[)([0-9;:<=>?]*)([@A-Za-z\[])', self._format_csi_sequence, s)
-        )  # @TODO group 3  ^^^^^^^^^^^^^^^^^^  : 0x40–0x7E ASCII      @A–Z[\]^_`a–z{|}~
+        )
         self._filter_nf = StringFilter[str](  # nF Escape sequences
             lambda s: re.sub(r'\x1b([\x20-\x2f])([\x20-\x2f]*)([\x30-\x7e])', self._format_generic_escape_sequence, s)
         )
@@ -79,10 +106,10 @@ class AbstractFormatter(metaclass=abc.ABCMeta):
         return
 
     def _preprocess_input(self, raw_input: bytes) -> bytes:
-        return apply_filters(raw_input, *self._filters_pre)
+        return apply_filters(raw_input, self._entry_filter)
 
     def _process_input(self, decoded_input: str) -> str:
-        return apply_filters(decoded_input, *self._filters_fixed)
+        return decoded_input
 
     def _postprocess_input(self, decoded_input: str) -> str:
         return apply_filters(decoded_input, *self._filters_post)
