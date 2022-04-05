@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import TypeVar, Dict, Match, AnyStr
 
 from pytermor.util import StringFilter
@@ -25,7 +26,10 @@ class ConfidentDict(Dict[KT, VT]):
         return val
 
 
-
+class ReplaceNonAscii(StringFilter[str]):
+    """Keep [0x00 - 0x7f], replace if greater than 0x7f."""
+    def __init__(self, repl: bytes = ''):
+        super().__init__(lambda s: re.sub(r'[\x80-\xff]', repl, s))
 
 
 class MarkerMatch:

@@ -6,7 +6,7 @@ from typing import Callable, List, cast
 
 from pytermor.util import StringFilter, apply_filters
 
-from . import print_offset_debug, ReadMode, align_offset
+from . import ReadMode, align_offset
 from .segment import template
 from .segment.segment import Segment
 from ..settings import Settings
@@ -60,8 +60,7 @@ class Parser:
         primary_mgroup = min(mgroups.keys())
         span = cast(bytes, m.group(primary_mgroup+1))
 
-        seg = self._handle(primary_mgroup, span)
-        print(print_offset_debug(seg.type_label, self._offset + m.start(primary_mgroup + 1), span.hex(" ")), end='')
+        self._handle(primary_mgroup, span)
         return b''
 
     def _handle(self, mgroup: int, span: bytes):
@@ -94,13 +93,13 @@ class Parser:
 
     def _handle_utf8_char_bytes(self, span: bytes) -> Segment:
         if Settings.ignore_utf8:
-            return template.T_IGNORED(span, type_label=template.T_UTF8.type_label.lower())
+            return template.T_UTF8.ignore(span)
         if not Settings.decode:
-            return template.T_UTF8(span)
-        return template.T_UTF8(span, span.decode(errors='replace'))
+            return template.T_UTF8.default(span)
+        return template.T_UTF8.default(span, span.decode('utf8', errors='replace'))
 
     def _handle_binary_data_bytes(self, span: bytes) -> Segment:
-        raise NotImplementedError
+        raise NotImplementedError(f'{span!r}')
 
     def _handle_csi_esq_bytes(self, span: bytes) -> Segment:
         raise NotImplementedError
@@ -118,25 +117,31 @@ class Parser:
         raise NotImplementedError
 
     def _handle_ascii_control_chars(self, span: bytes) -> Segment:
-        return template.T_CONTROL(span)
+        if Settings.ignore_control:
+            return template.T_CONTROL.ignore(span)
+        return template.T_CONTROL.default(span)
 
     def _handle_ascii_whitespace_chars(self, span: bytes) -> Segment:
         if Settings.ignore_space:
-            return template.T_IGNORED(span, type_label=template.T_WHITESPACE.type_label.lower())
-        return template.T_WHITESPACE(span, focused=Settings.focus_space)
+            return template.T_WHITESPACE.ignore(span)
+        return template.T_WHITESPACE.default(span)
 
     def _handle_ascii_newline_chars(self, span: bytes) -> Segment:
+        tpl = template.T_NEWLINE
         if self._mode == ReadMode.TEXT:
-            return template.T_NEWLINE(span, '\n' * len(span), focused=Settings.focus_space)
+            tpl = template.T_NEWLINE_TEXT
+
         if Settings.ignore_space:
-            return template.T_IGNORED(span, type_label=template.T_NEWLINE.type_label.lower())
-        return template.T_NEWLINE(span, focused=Settings.focus_space)
+            if self._mode == ReadMode.TEXT:
+                return tpl.default(span, '\n'*len(span))
+            return tpl.ignore(span)
+        return tpl.default(span)
 
     def _handle_ascii_space_chars(self, span: bytes) -> Segment:
         return self._handle_ascii_whitespace_chars(span)
 
     def _handle_ascii_printable_chars(self, span: bytes) -> Segment:
-        return template.T_DEFAULT(span, span.decode(errors='replace'))
+        return template.T_DEFAULT.default(span, span.decode('utf8', errors='replace'))
 
     def _verify(self, unmatched: bytes, raw_input: int):
         matched_raw = 0

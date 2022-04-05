@@ -84,7 +84,7 @@ class AppArgumentParser(CustomArgumentParser):
     def __init__(self):
         super().__init__(
             description='Escape sequences and control characters visualiser',
-            usage='%(prog)s [-t | -b | -l | -h] [<options>] [<file>]',
+            usage='%(prog)s [[-a] | -t | -b | -l | -h] [<options>] [<file>]',
             epilog=[
                 'Mandatory or optional arguments to long options are also mandatory or optional for any'
                 ' corresponding short options.',
@@ -109,37 +109,39 @@ class AppArgumentParser(CustomArgumentParser):
 
         modes_group = self.add_argument_group('mode selection')
         modes_group_nested = modes_group.add_mutually_exclusive_group()
+        modes_group_nested.add_argument('-a', '--auto', action='store_true', default=False, help='open file in text mode, fallback to binary on failure (default)')
         modes_group_nested.add_argument('-t', '--text', action='store_true', default=False, help='open file in text mode')
         modes_group_nested.add_argument('-b', '--binary', action='store_true', default=False, help='open file in binary mode')
         modes_group_nested.add_argument('-l', '--legend', action='store_true', default=False, help='show annotation symbol list and exit')
-        modes_group_nested.add_argument('--auto', action='store_true', default=False, help='open file in text mode, fallback to binary on failure (this is the default)')
         modes_group.add_argument('-h', '--help', action='help', default=SUPPRESS, help='show this help message and exit')
 
-        generic_group = self.add_argument_group('generic options')
-        esc_output_group = generic_group.add_mutually_exclusive_group()
-        space_output_group = generic_group.add_mutually_exclusive_group()
-        control_output_group = generic_group.add_mutually_exclusive_group()
+        char_class_group = self.add_argument_group('character classes')
+        esc_output_group = char_class_group.add_mutually_exclusive_group()
+        space_output_group = char_class_group.add_mutually_exclusive_group()
+        control_output_group = char_class_group.add_mutually_exclusive_group()
+        utf8_output_group = char_class_group.add_mutually_exclusive_group()
         esc_output_group.add_argument('-e', '--focus-esc', action='store_true', default=False, help='highlight escape sequences markers')
         space_output_group.add_argument('-s', '--focus-space', action='store_true', default=False, help='highlight whitespace markers')
         control_output_group.add_argument('-c', '--focus-control', action='store_true', default=False, help='highlight control char markers')
+        utf8_output_group.add_argument('-u', '--focus-utf8', action='store_true', default=False, help='highlight utf-8 sequences')
         esc_output_group.add_argument('-E', '--ignore-esc', action='store_true', default=False, help='ignore escape sequences')
         space_output_group.add_argument('-S', '--ignore-space', action='store_true', default=False, help='ignore whitespaces')
         control_output_group.add_argument('-C', '--ignore-control', action='store_true', default=False, help='ignore control chars')
-        generic_group.add_argument('-f', '--buffer', metavar='<size>', default=False, help='read buffer size, in bytes (binary mode) or in lines (text mode)')
-        generic_group.add_argument('-D', '--debug', action='count', default=0, help='more details on processing and errors (can be used once or twice)')
+        utf8_output_group.add_argument('-U', '--ignore-utf8', action='store_true', default=False, help='ignore utf-8 sequences')
+
+        generic_group = self.add_argument_group('generic options')
+        generic_group.add_argument('-L', '--max-lines', metavar='<num>', action='store', type=int, default=0, help='stop after reading <num> lines')
+        generic_group.add_argument('-B', '--max-bytes', metavar='<num>', action='store', type=int, default=0, help='stop after reading <num> bytes')
+        generic_group.add_argument('-F', '--buffer', metavar='<size>', default=False, help='read buffer size in bytes; default 1024 (32 in debug mode)')
+        generic_group.add_argument('-D', '--debug', action='count', default=0, help='more details (can be used once or twice); implies -b')
         generic_group.add_argument('--no-color-content', action='store_true', default=False, help='disable applying input file formatting to the output')
 
         text_mode_group = self.add_argument_group('text mode only')
         text_mode_group.add_argument('-i', '--info', metavar='<level>', action='store', type=int, default=1, help='control and escape marker details (0-2, default %(default)s)')
-        text_mode_group.add_argument('-L', '--max-lines', metavar='<num>', action='store', type=int, default=0, help='stop after reading <num> lines')
         text_mode_group.add_argument('--no-line-numbers', action='store_true', default=False, help='do not print line numbers')
         text_mode_group.add_argument('--no-color-markers', action='store_true', default=False, help='disable applying input file formatting to SGR markers')
         text_mode_group.add_argument('--pipe-stderr', action='store_true', default=False, help='send raw input lines to stderr along with default output')
 
         bin_mode_group = self.add_argument_group('binary mode only')
-        utf8_output_group = bin_mode_group.add_mutually_exclusive_group()
-        utf8_output_group.add_argument('-u', '--focus-utf8', action='store_true', default=False, help='highlight utf-8 sequences')
-        utf8_output_group.add_argument('-U', '--ignore-utf8', action='store_true', default=False, help='ignore utf-8 sequences')
         bin_mode_group.add_argument('-d', '--decode', action='store_true', default=False, help='decode valid utf-8 sequences, print as unicode chars')
-        bin_mode_group.add_argument('-B', '--max-bytes', metavar='<num>', action='store', type=int, default=0, help='stop after reading <num> bytes')
         bin_mode_group.add_argument('-w', '--columns', metavar='<num>', action='store', type=int, default=0, help='format output as <num>-columns wide table (default %(default)s = auto)')

@@ -9,7 +9,7 @@ class Segment:
     def __init__(self, raw: bytes, processed: str, opening: SequenceSGR = None, type_label: str = None):
         self._raw = raw
         self._processed = processed
-        self._open_sgr = _opt_arg(opening)
+        self._opening = _opt_arg(opening)
         self._type_label = type_label
 
     @property
@@ -17,6 +17,6 @@ class Segment:
     @property
     def processed(self) -> str: return self._processed
     @property
-    def open_sgr(self) -> SequenceSGR: return self._open_sgr
+    def opening(self) -> SequenceSGR: return self._opening
     @property
     def type_label(self) -> str: return self._type_label

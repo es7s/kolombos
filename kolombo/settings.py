@@ -5,8 +5,9 @@ from typing import Optional
 class Settings(Namespace):
     auto: bool
     binary: bool
+    buffer: int
     columns: int
-    debug_level: int
+    debug: int
     decode: bool
     filename: Optional[str]
     focus_control: bool
@@ -26,6 +27,16 @@ class Settings(Namespace):
     no_line_numbers: bool
     pipe_stderr: bool
     text: bool
+
+    @staticmethod
+    def set_defaults():
+        if not any([Settings.text, Settings.binary]):
+            Settings.auto = True
+
+        if Settings.debug > 0 and (Settings.auto or Settings.text):
+            Settings.auto = False
+            Settings.binary = True
+            Settings.text = False
 
     @staticmethod
     def effective_color_content() -> bool:

@@ -10,13 +10,15 @@ from pytermor.fmt import Format
 from pytermor.seq import SequenceSGR
 from pytermor.util import ReplaceSGR
 
-from .. import print_offset, align_offset, print_offset_debug
+from .. import print_offset, align_offset
 from ..formatter import AbstractFormatter
 from ..segment.segment import Segment
 from ...settings import Settings
 
 
 # noinspection PyMethodMayBeStatic
+
+
 class BinaryFormatter(AbstractFormatter):
     FALLBACK_CHAR = '.'
 
@@ -43,18 +45,31 @@ class BinaryFormatter(AbstractFormatter):
     def format(self, segs: List[Segment], offset: int) -> Tuple[str, str|None]:
         offset -= len(self._buffer_raw)
         self._buffer_raw += b''.join([s._raw for s in segs])
-        self._buffer_processed += ''.join([autof(s.open_sgr)(s.processed) for s in segs])
-        output = ''
-        output_debug = ''
+        self._buffer_processed += ''.join([autof(s.opening)(s.processed) for s in segs])
 
         if Settings.columns > 0:
             cols = Settings.columns
         else:
             cols = self._compute_cols_num(len(align_offset(offset)))
+        output = ''
+        output_debug = self._print_debug_separator(cols)
 
-        max_buffer_len = cols
-        if len(segs) == 0:  # reading finished, we have to empty the buffer completely
-            max_buffer_len = 0
+        if Settings.debug >= 2:
+            seg_offset = offset
+            for seg in segs:
+                seg_row = seg.raw[:cols]
+                output_debug += (self._wrap_bg(self._print_offset_custom(
+                    '', seg_offset, autof(seq.CYAN), suffix=fmt.cyan('│')+autof(seq.CYAN+seq.INVERSED)(f'{seg.type_label}')+' '
+                ) +
+                                                     (self._format_hex_row(seg_row, cols)) +
+                                                     autof(seq.GRAY)('  │' )+
+                                                     (self._translate_ascii_only(seg_row.decode())), seq.BG_BLACK)) + '\n'
+                seg_offset += len(seg.raw)
+            output_debug += self._print_debug_separator(cols)
+
+                #max_buffer_len = cols
+        #if len(segs) == 0:  # reading finished, we have to empty the buffer completely
+        max_buffer_len = 0
 
         # last chunk is processed twice, but that's intended; we process
         # input in pieces by <CHUNK_SIZE> bytes, not by <COLUMNS> bytes -
@@ -68,15 +83,16 @@ class BinaryFormatter(AbstractFormatter):
             processed_row = self._buffer_processed[:cols]
 
             merged_row = f'{print_offset(offset, fmt.green)}' \
-                         f'{raw_hex_row}{seq.RESET}{self.PADDING_SECTION}' \
-                         f'{processed_row}{seq.RESET}'
+                         f'{raw_hex_row}  ' + autof(seq.GRAY)(f'│') + \
+                         f'{processed_row}'
 
             output += (merged_row + '\n')
+
             if Settings.debug >= 1:
-                processed_hex_row = self._format_hex_row(processed_row.encode(), cols)
-                print(f'{print_offset_debug("", offset, fmt.cyan)}' \
-                      f'{processed_hex_row}{seq.RESET}{self.PADDING_SECTION}' \
-                      f'{processed_row}{seq.RESET}')
+                processed_hex_row = self._format_hex_row(self._sanitize(processed_row), cols)
+                output_debug += self._wrap_bg(f'{self._print_offset_custom("", offset, autof(seq.GRAY))}{(processed_hex_row)}'
+                                                     +autof(seq.GRAY)('  │' ) +
+                                                     f'{(self._translate_ascii_only(processed_row))}', seq.BG_BLACK ) + '\n'
 
             offset += len(raw_row)
             local_min_pos += len(raw_row)
@@ -86,7 +102,36 @@ class BinaryFormatter(AbstractFormatter):
         if len(segs) == 0:
             output += (print_offset(offset, autof(seq.HI_CYAN)) + '\n')
 
-        return output, None
+        if Settings.debug > 0:
+            output_debug += self._print_debug_separator(cols)
+
+        return output_debug + output, None
+
+    def _sanitize(self, s: str) -> bytes:
+        return s.encode('ascii', errors='replace')
+
+    def _translate_ascii_only(self, s: str) -> str:
+        return "".join([
+            chr(b) if b in AbstractFormatter.PRINTABLE_CHARCODES else "." for b in self._sanitize(s)
+        ])
+
+    def _print_debug_separator(self, cols: int) -> str:
+        if Settings.debug == 0:
+            return ''
+        s = f'{seq.RESET}{seq.GRAY+seq.BG_BLACK}' + '─'*10 + f'┼' + '─'*(len(self._format_hex_row(b'', cols)) + 4) + f'┼'
+        l = len(ReplaceSGR()(s))
+        return s + '─'*(max(0, self._get_terminal_width() - l)) + f'{seq.RESET}\n'
+
+    def _wrap_bg(self, s: str, sgr: SequenceSGR) -> str:
+        l = len(ReplaceSGR()(s))
+        return autof(sgr)(s + ' '*(max(0, self._get_terminal_width() - l)))
+
+    def _print_offset_custom(self, prefix: str, offset: int, f: Format, suffix: str = ''):
+        return prefix + \
+               f(
+                   f'{offset:d}'.rjust(10 - len(ReplaceSGR().invoke(prefix))) +
+                   (f'│' if not suffix else '')
+               ) + suffix + ''.rjust(2 - len(ReplaceSGR().invoke(suffix))) + ('' if not suffix else '')
 
     def _format_hex_row(self, row: bytes, cols: int) -> str:
         chunks = []

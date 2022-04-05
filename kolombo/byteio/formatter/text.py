@@ -5,6 +5,7 @@ from pytermor import fmt, seq, autof
 from pytermor.seq import SequenceSGR, EmptySequenceSGR
 from pytermor.util import ReplaceSGR
 
+from .. import print_offset
 from ..formatter import AbstractFormatter
 from ..segment.segment import Segment
 from ...settings import Settings
@@ -12,7 +13,7 @@ from ...settings import Settings
 
 class TextFormatter(AbstractFormatter):
     def __init__(self):
-        self._line_num = 1
+        self._line_num = 0
         # self._whitespace_map = {
         #     '\t':   MarkerRegistry.marker_tab_keep_orig,
         #     '\v':   MarkerRegistry.marker_vert_tab,
@@ -26,7 +27,7 @@ class TextFormatter(AbstractFormatter):
         e = EmptySequenceSGR()
         assert isinstance(e, EmptySequenceSGR)
 
-        processed_lines = ''.join([autof(s.open_sgr)(s.processed) for s in segs])
+        processed_lines = ''.join([autof(s.opening)(s.processed) for s in segs])
         output = []
         output_pipe = []
 
@@ -34,7 +35,7 @@ class TextFormatter(AbstractFormatter):
             if Settings.no_line_numbers:
                 prefix = ''
             else:
-                prefix = fmt.green(f'{self._line_num + 1:2d}') + fmt.cyan('│')
+                prefix = print_offset(self._line_num, fmt.green)
 
             formatted_line = prefix + processed_line + str(seq.RESET)
             output.append(formatted_line)

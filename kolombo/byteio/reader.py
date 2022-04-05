@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+import re
 import sys
 from typing import AnyStr, Callable
 
@@ -23,16 +24,31 @@ class Reader(metaclass=abc.ABCMeta):
 
     def read(self):
         self._open()
+        chunk_size = self._get_chunk_size()
+        if Settings.debug > 0:
+            print(f'Read buffer size set to {chunk_size:d} bytes')
+
+        max_bytes = Settings.max_bytes
+        max_lines = Settings.max_lines
+        lines = 0
         try:
-            read_limit = self._get_read_limit()
-            while raw_input := self._read_chunk():
-                if read_limit and self._offset + len(raw_input) > read_limit:
-                    raw_input = raw_input[:read_limit - (self._offset + len(raw_input))]
+            while raw_input := self._io.read(chunk_size):
+                if max_lines:
+                    for line_break in re.finditer(b'\x0a', raw_input):
+                        lines += 1
+                        if lines >= Settings.max_lines:
+                            raw_input = raw_input[:line_break.end()-1]
+
+                if max_bytes and self._offset + len(raw_input) > max_bytes:
+                    raw_input = raw_input[:max_bytes - (self._offset + len(raw_input))]
 
                 self.read_callback(raw_input, self._offset)
                 self._offset += len(raw_input)
-                if read_limit and self._offset >= read_limit:
+
+                if (max_bytes and self._offset >= max_bytes) or \
+                    (max_lines and lines >= max_lines):
                     break
+
             self.read_callback(b'', self._offset)
 
         except KeyboardInterrupt:
@@ -46,14 +62,12 @@ class Reader(metaclass=abc.ABCMeta):
         else:
             self._io = open(self._filename, 'rb')
 
-    def _read_chunk(self) -> AnyStr:
-        chunk_size = self._READ_CHUNK_SIZE
+    def _get_chunk_size(self) -> int:
+        if Settings.buffer:
+            return int(Settings.buffer)
         if Settings.debug > 0:
-            chunk_size = self._READ_CHUNK_SIZE_DEBUG
-        return self._io.read(chunk_size)
-
-    def _get_read_limit(self) -> int|None:
-        return Settings.max_bytes
+            return self._READ_CHUNK_SIZE_DEBUG
+        return self._READ_CHUNK_SIZE
 
     def close(self):
         if self._io and not self._io.closed:

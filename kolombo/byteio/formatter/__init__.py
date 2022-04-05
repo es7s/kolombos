@@ -24,6 +24,7 @@ class FormatterFactory:
 class AbstractFormatter(metaclass=abc.ABCMeta):
     CONTROL_CHARCODES = list(range(0x00, 0x09)) + list(range(0x0e, 0x20)) + list(range(0x7f, 0x100))
     WHITESPACE_CHARCODES = list(range(0x09, 0x0e)) + [0x20]
+    PRINTABLE_CHARCODES = list(range(0x21, 0x7f))
 
     @abc.abstractmethod
     def format(self, segs: List[Segment], offset: int) -> Tuple[str, str|None]: raise NotImplementedError
