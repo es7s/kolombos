@@ -6,7 +6,7 @@ from math import floor
 from typing import AnyStr, Match, Tuple, List
 
 from pytermor import fmt, seq, autof
-from pytermor.fmt import Format
+from pytermor.fmt import Format, EmptyFormat
 from pytermor.seq import SequenceSGR
 from pytermor.util import ReplaceSGR
 
@@ -52,14 +52,14 @@ class BinaryFormatter(AbstractFormatter):
         else:
             cols = self._compute_cols_num(len(align_offset(offset)))
         output = ''
-        output_debug = self._print_debug_separator(cols)
+        output_debug = self._print_debug_separator(cols, sgr=seq.CYAN)
 
         if Settings.debug >= 2:
             seg_offset = offset
             for seg in segs:
                 seg_row = seg.raw[:cols]
                 output_debug += (self._wrap_bg(self._print_offset_custom(
-                    '', seg_offset, autof(seq.CYAN), suffix=fmt.cyan('│')+autof(seq.CYAN+seq.INVERSED)(f'{seg.type_label}')+' '
+                    '', seg_offset, EmptyFormat(), suffix=('│')+autof(seq.INVERSED)(f'{seg.type_label}')+' '
                 ) +
                                                      (self._format_hex_row(seg_row, cols)) +
                                                      autof(seq.GRAY)('  │' )+
@@ -90,7 +90,7 @@ class BinaryFormatter(AbstractFormatter):
 
             if Settings.debug >= 1:
                 processed_hex_row = self._format_hex_row(self._sanitize(processed_row), cols)
-                output_debug += self._wrap_bg(f'{self._print_offset_custom("", offset, autof(seq.GRAY))}{(processed_hex_row)}'
+                output_debug += self._wrap_bg(f'{self._print_offset_custom("", offset, EmptyFormat(), suffix=autof(seq.GRAY)("│  "))}{(processed_hex_row)}'
                                                      +autof(seq.GRAY)('  │' ) +
                                                      f'{(self._translate_ascii_only(processed_row))}', seq.BG_BLACK ) + '\n'
 
@@ -103,7 +103,7 @@ class BinaryFormatter(AbstractFormatter):
             output += (print_offset(offset, autof(seq.HI_CYAN)) + '\n')
 
         if Settings.debug > 0:
-            output_debug += self._print_debug_separator(cols)
+            output_debug += (self._print_debug_separator(cols, sgr=seq.CYAN ))
 
         return output_debug + output, None
 
@@ -115,10 +115,10 @@ class BinaryFormatter(AbstractFormatter):
             chr(b) if b in AbstractFormatter.PRINTABLE_CHARCODES else "." for b in self._sanitize(s)
         ])
 
-    def _print_debug_separator(self, cols: int) -> str:
+    def _print_debug_separator(self, cols: int, sgr: SequenceSGR = seq.GRAY + seq.BG_BLACK) -> str:
         if Settings.debug == 0:
             return ''
-        s = f'{seq.RESET}{seq.GRAY+seq.BG_BLACK}' + '─'*10 + f'┼' + '─'*(len(self._format_hex_row(b'', cols)) + 4) + f'┼'
+        s = f'{seq.RESET}{sgr}' + '─'*10 + f'┼' + '─'*(len(self._format_hex_row(b'', cols)) + 4) + f'┼'
         l = len(ReplaceSGR()(s))
         return s + '─'*(max(0, self._get_terminal_width() - l)) + f'{seq.RESET}\n'
 
