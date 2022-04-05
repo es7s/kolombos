@@ -25,9 +25,7 @@ class ConfidentDict(Dict[KT, VT]):
         return val
 
 
-class ReplaceUnicode(StringFilter[str]):
-    def __init__(self, repl: str = ''):
-        super().__init__(lambda s: s.encode().decode('ascii', errors='replace').replace('�', repl))
+
 
 
 class MarkerMatch:

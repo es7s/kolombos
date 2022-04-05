@@ -33,9 +33,9 @@ class MarkerRegistry:
             marker_char = MarkerRegistry._unicode_control_marker_chars[
                 charcode % len(MarkerRegistry._unicode_control_marker_chars)
             ]
-            return MarkerControlChar(f'ﾪ{charcode:x}'[:text_max_len], seq.MAGENTA, no_focus=True)
+            return MarkerControlChar(f'◻{charcode:x}'[:text_max_len], seq.MAGENTA, no_focus=True)
         elif charcode == 0xff:
-            return MarkerControlChar('ﾪ', seq.HI_MAGENTA, no_focus=True)
+            return MarkerControlChar('◻', seq.HI_MAGENTA, no_focus=True)
         raise ValueError(f'Unknown control character code: "{charcode}"')
 
     @staticmethod

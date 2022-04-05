@@ -1,58 +1,50 @@
 import re
-from typing import Union, List, Match, Pattern
+from typing import List, Match
 
-from pytermor import fmt, seq
-from pytermor.seq import SequenceSGR
-from pytermor.util import ReplaceSGR, StringFilter
+from pytermor import fmt, seq, autof
+from pytermor.seq import SequenceSGR, EmptySequenceSGR
+from pytermor.util import ReplaceSGR
 
 from ..formatter import AbstractFormatter
-from ..marker.registry import MarkerRegistry
-from ..settings import Settings
-from ..writer import Writer
+from ..segment.segment import Segment
+from ...settings import Settings
 
 
 class TextFormatter(AbstractFormatter):
-    def __init__(self, _writer: Writer):
-        super().__init__(_writer)
-        self._whitespace_map = {
-            '\t':   MarkerRegistry.marker_tab_keep_orig,
-            '\v':   MarkerRegistry.marker_vert_tab,
-            '\f':   MarkerRegistry.marker_form_feed,
-            '\r':   MarkerRegistry.marker_car_return,
-            '\n':   MarkerRegistry.marker_newline_keep_orig,
-            '\x20': MarkerRegistry.marker_space,
-        }
+    def __init__(self):
+        self._line_num = 1
+        # self._whitespace_map = {
+        #     '\t':   MarkerRegistry.marker_tab_keep_orig,
+        #     '\v':   MarkerRegistry.marker_vert_tab,
+        #     '\f':   MarkerRegistry.marker_form_feed,
+        #     '\r':   MarkerRegistry.marker_car_return,
+        #     '\n':   MarkerRegistry.marker_newline_keep_orig,
+        #     '\x20': MarkerRegistry.marker_space,
+        # }
 
+    def format(self, segs: List[Segment], offset: int):
+        e = EmptySequenceSGR()
+        assert isinstance(e, EmptySequenceSGR)
 
+        processed_lines = ''.join([autof(s.open_sgr)(s.processed) for s in segs])
+        output = []
+        output_pipe = []
 
-    def get_fallback_char(self) -> str:
-        return ''
-
-    def _get_filter_control(self) -> Pattern:
-        return re.compile(r'([\x00-\x08\x0e-\x1f\x7f])[^\xff]')
-
-    def format(self, raw_input: Union[str, List[str]], offset: int):
-        if type(raw_input) is str:
-            raw_input = [raw_input]
-
-        for raw_input_line in raw_input:
-            processed_input = self._postprocess_input(
-                self._process_input(raw_input_line)
-            )
-
+        for processed_line in processed_lines.splitlines(keepends=True):
             if Settings.no_line_numbers:
                 prefix = ''
             else:
-                prefix = fmt.green(f'{offset + 1:2d}') + fmt.cyan('│')
+                prefix = fmt.green(f'{self._line_num + 1:2d}') + fmt.cyan('│')
 
-            formatted_input = prefix + processed_input + str(seq.RESET)
-            aligned_raw_input = ReplaceSGR('')(prefix) + raw_input_line
+            formatted_line = prefix + processed_line + str(seq.RESET)
+            output.append(formatted_line)
+            if Settings.pipe_stderr:
+                aligned_raw_line = ReplaceSGR('')(prefix) + processed_line
+                output_pipe.append(aligned_raw_line)
 
-            self._writer.write_line(formatted_input, aligned_raw_input)
-            offset += 1
+            self._line_num += 1
 
-    def _escape_escape_character(self, s: str) -> str:  # to prevent cascade sequence processing
-        return s.replace('\x1b', '\x1b\xff')
+        return ''.join(output), ''.join(output_pipe)
 
     def _format_csi_sequence(self, match: Match) -> str:
         if Settings.ignore_esc:
