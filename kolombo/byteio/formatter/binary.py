@@ -13,17 +13,16 @@ from pytermor.util import ReplaceSGR
 from .. import print_offset, align_offset
 from ..formatter import AbstractFormatter
 from ..segment.segment import Segment
+from kolombo.byteio.sequencer import Sequencer
+from ...console import Console
 from ...settings import Settings
 
 
 # noinspection PyMethodMayBeStatic
-
-
 class BinaryFormatter(AbstractFormatter):
-    FALLBACK_CHAR = '.'
+    def __init__(self, sequencer: Sequencer):
+        super().__init__(sequencer)
 
-    def __init__(self):
-        super().__init__()
         self.BYTE_CHUNK_LEN = 4
         self.PADDING_SECTION = 3 * ' '
         self.PADDING_HEX_CHUNK = 2 * ' '
@@ -40,72 +39,79 @@ class BinaryFormatter(AbstractFormatter):
         #     '\f': MarkerRegistry.marker_form_feed,
         #     '\r': MarkerRegistry.marker_car_return,
         #     '\n': MarkerRegistry.marker_newline,
-        # }
+        # }'
 
-    def format(self, segs: List[Segment], offset: int) -> Tuple[str, str|None]:
-        offset -= len(self._buffer_raw)
-        self._buffer_raw += b''.join([s._raw for s in segs])
-        self._buffer_processed += ''.join([autof(s.opening)(s.processed) for s in segs])
+    def format(self):
+        offset = self._sequencer.offset_raw
 
-        if Settings.columns > 0:
-            cols = Settings.columns
-        else:
+        cols = Settings.columns
+        if cols == 0:
             cols = self._compute_cols_num(len(align_offset(offset)))
-        output = ''
-        output_debug = self._print_debug_separator(cols, sgr=seq.CYAN)
 
-        if Settings.debug >= 2:
-            seg_offset = offset
-            for seg in segs:
-                seg_row = seg.raw[:cols]
-                output_debug += (self._wrap_bg(self._print_offset_custom(
-                    '', seg_offset, EmptyFormat(), suffix=('│')+autof(seq.INVERSED)(f'{seg.type_label}')+' '
-                ) +
-                                                     (self._format_hex_row(seg_row, cols)) +
-                                                     autof(seq.GRAY)('  │' )+
-                                                     (self._translate_ascii_only(seg_row.decode())), seq.BG_BLACK)) + '\n'
-                seg_offset += len(seg.raw)
-            output_debug += self._print_debug_separator(cols)
+        final = ''
+        final_debug = ''
+        while seg := self._sequencer.pop_segment():
+            if final_debug:
+                final_debug += Console.debug_on(self._print_debug_separator(cols, sgr=seq.GRAY), 3, ret=True)
+            final_debug += Console.debug_on(self._wrap_bg(
+                f'POP {id(seg):x} {seg!r}',
+                seq.BG_BLACK) + '\n', 3, ret=True)
+            if not seg:
+                continue
+            seg_offset = self._sequencer.offset_raw
+            self._buffer_raw += seg.raw
+            self._buffer_processed += f'{self._sequencer.close_segment()(seg.processed)}'
 
-                #max_buffer_len = cols
-        #if len(segs) == 0:  # reading finished, we have to empty the buffer completely
-        max_buffer_len = 0
+            seg_row = seg.raw[:cols]
+            final_debug += Console.debug_on(
+                self._wrap_bg('{}{}{}{}'.format(
+                    self._print_offset_custom('', seg_offset, autof(seq.HI_MAGENTA),
+                                              suffix=autof(seq.GRAY)('│')+autof(seq.INVERSED if seg.type_label.isupper() else seq.DIM
+                                                                                     )(f'{seg.type_label}')+' '),
+                    self._format_hex_row(seg_row, cols),
+                    autof(seq.GRAY)('  │'),
+                    self._translate_ascii_only(seg_row.decode())
+                ), seq.BG_BLACK) + '\n', 2, ret=True
+            )
+            seg_offset += len(seg.raw)
 
-        # last chunk is processed twice, but that's intended; we process
-        # input in pieces by <CHUNK_SIZE> bytes, not by <COLUMNS> bytes -
-        # and less probably will break up some sequence
-        #buffer_processed = self._process(self._buffer_raw, cols)
+            max_buffer_len = cols
+            if self._sequencer.read_finished:  # reading finished, we have to empty the buffer completely
+                max_buffer_len = 0
 
-        local_min_pos = 0
-        while len(self._buffer_raw) > max_buffer_len:
-            raw_row = self._buffer_raw[:cols]
-            raw_hex_row = self._format_hex_row(raw_row, cols)
-            processed_row = self._buffer_processed[:cols]
+            while len(self._buffer_raw) > max_buffer_len:
+                raw_row = self._buffer_raw[:cols]
+                raw_hex_row = self._format_hex_row(raw_row, cols)
+                processed_row = self._buffer_processed[:cols]
 
-            merged_row = f'{print_offset(offset, fmt.green)}' \
-                         f'{raw_hex_row}  ' + autof(seq.GRAY)(f'│') + \
-                         f'{processed_row}'
+                final += f'{print_offset(offset, fmt.green)}' \
+                         f'{raw_hex_row}  ' + \
+                         autof(seq.CYAN)(f'│') + \
+                         f'{processed_row}' + \
+                         f'\n'
 
-            output += (merged_row + '\n')
+                final_debug += Console.debug(
+                    self._wrap_bg('{}{}{}{}'.format(
+                        self._print_offset_custom("", offset, autof(seq.HI_BLUE), suffix=autof(seq.GRAY)("│  ")),
+                        self._format_hex_row(self._sanitize(processed_row), cols),
+                        autof(seq.GRAY)('  │'),
+                        self._translate_ascii_only(processed_row)),
+                        seq.BG_BLACK) + '\n',
+                    ret=True)
 
-            if Settings.debug >= 1:
-                processed_hex_row = self._format_hex_row(self._sanitize(processed_row), cols)
-                output_debug += self._wrap_bg(f'{self._print_offset_custom("", offset, EmptyFormat(), suffix=autof(seq.GRAY)("│  "))}{(processed_hex_row)}'
-                                                     +autof(seq.GRAY)('  │' ) +
-                                                     f'{(self._translate_ascii_only(processed_row))}', seq.BG_BLACK ) + '\n'
+                offset += len(raw_row)
+                self._buffer_raw = self._buffer_raw[len(raw_row):]
+                self._buffer_processed = self._buffer_processed[len(raw_row):]
 
-            offset += len(raw_row)
-            local_min_pos += len(raw_row)
-            self._buffer_raw = self._buffer_raw[len(raw_row):]
-            self._buffer_processed = self._buffer_processed[len(raw_row):]
+        if self._sequencer.read_finished:
+            final += (print_offset(offset, autof(seq.HI_CYAN)) + '\n')
 
-        if len(segs) == 0:
-            output += (print_offset(offset, autof(seq.HI_CYAN)) + '\n')
-
-        if Settings.debug > 0:
-            output_debug += (self._print_debug_separator(cols, sgr=seq.CYAN ))
-
-        return output_debug + output, None
+        if final_debug:
+            self._sequencer.append_final(Console.debug(self._print_debug_separator(cols, sgr=seq.CYAN), ret=True))
+        self._sequencer.append_final(final_debug)
+        if final:
+            self._sequencer.append_final(Console.debug(self._print_debug_separator(cols, sgr=seq.CYAN), ret=True))
+        self._sequencer.append_final(final)
 
     def _sanitize(self, s: str) -> bytes:
         return s.encode('ascii', errors='replace')
@@ -118,7 +124,7 @@ class BinaryFormatter(AbstractFormatter):
     def _print_debug_separator(self, cols: int, sgr: SequenceSGR = seq.GRAY + seq.BG_BLACK) -> str:
         if Settings.debug == 0:
             return ''
-        s = f'{seq.RESET}{sgr}' + '─'*10 + f'┼' + '─'*(len(self._format_hex_row(b'', cols)) + 4) + f'┼'
+        s = f'{seq.RESET}{sgr}' + '─'*6 + f'┼' + '─'*(len(self._format_hex_row(b'', cols)) + 4) + f'┼'
         l = len(ReplaceSGR()(s))
         return s + '─'*(max(0, self._get_terminal_width() - l)) + f'{seq.RESET}\n'
 
@@ -129,7 +135,7 @@ class BinaryFormatter(AbstractFormatter):
     def _print_offset_custom(self, prefix: str, offset: int, f: Format, suffix: str = ''):
         return prefix + \
                f(
-                   f'{offset:d}'.rjust(10 - len(ReplaceSGR().invoke(prefix))) +
+                   f'{offset:d}'.rjust(6 - len(ReplaceSGR().invoke(prefix))) +
                    (f'│' if not suffix else '')
                ) + suffix + ''.rjust(2 - len(ReplaceSGR().invoke(suffix))) + ('' if not suffix else '')
 

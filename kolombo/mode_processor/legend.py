@@ -1,6 +1,7 @@
 from os.path import join, dirname, realpath
 
 from . import AbstractModeProcessor
+from ..console import Console
 
 
 class LegendModeProcessor(AbstractModeProcessor):
@@ -8,4 +9,4 @@ class LegendModeProcessor(AbstractModeProcessor):
 
     def invoke(self):
         with open(join(dirname(realpath(__file__)), '..', '..', 'legend.ansi'), 'rt') as f:
-            print(f.read())
+            Console.info(f.read())

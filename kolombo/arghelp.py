@@ -133,7 +133,7 @@ class AppArgumentParser(CustomArgumentParser):
         generic_group.add_argument('-L', '--max-lines', metavar='<num>', action='store', type=int, default=0, help='stop after reading <num> lines')
         generic_group.add_argument('-B', '--max-bytes', metavar='<num>', action='store', type=int, default=0, help='stop after reading <num> bytes')
         generic_group.add_argument('-F', '--buffer', metavar='<size>', default=False, help='read buffer size in bytes; default 1024 (32 in debug mode)')
-        generic_group.add_argument('-D', '--debug', action='count', default=0, help='more details (can be used once or twice); implies -b')
+        generic_group.add_argument('-D', '--debug', action='count', default=0, help='more details (can be used multiple times); implies -b')
         generic_group.add_argument('--no-color-content', action='store_true', default=False, help='disable applying input file formatting to the output')
 
         text_mode_group = self.add_argument_group('text mode only')

@@ -2,18 +2,19 @@ from __future__ import annotations
 
 import re
 from re import Match
-from typing import Callable, List, cast
+from typing import Callable, cast
 
 from pytermor.util import StringFilter, apply_filters
 
-from . import ReadMode, align_offset
+from . import ReadMode
 from .segment import template
 from .segment.segment import Segment
+from kolombo.byteio.sequencer import Sequencer
 from ..settings import Settings
 
 
 class Parser:
-    def __init__(self, mode: ReadMode):
+    def __init__(self, mode: ReadMode, sequencer: Sequencer):
         self.F_SEPARATOR = StringFilter[bytes](
             lambda b: re.sub(
                 b'('                                   # UTF-8
@@ -37,25 +38,22 @@ class Parser:
                 b'([\x00-\x08\x0e-\x1f\x7f]+)|'         # - control chars (incl. standalone escapes \x1b)
                 b'([\x09\x0b-\x0d]+)|(\x0a+)|(\x20+)|'  # - whitespaces (\t,\v,\f,\r) | newlines | spaces
                 b'([\x21-\x7e]+)',                      # - printable chars (letters, digits, punctuation)
-                self._create_segment, b
+                self._substitute, b
             ))
 
         self._mode = mode
-        self._offset: int = 0
-        self._segments: List[Segment] = list()
+        self._sequencer: Sequencer = sequencer
 
-    def parse(self, raw_input: bytes, offset: int) -> List[Segment]:
-        self._offset = offset
-        self._segments.clear()
-
-        unmatched = apply_filters(raw_input, self.F_SEPARATOR)
+    def parse(self):
+        self._sequencer.reset_match_counters()
+        unmatched = apply_filters(self._sequencer.get_raw(), self.F_SEPARATOR)
         try:
-            self._verify(unmatched, len(raw_input))
+            self._verify(unmatched)
         except AssertionError as e:
-            raise RuntimeError(f'Parsing inconsistency at {align_offset(offset)}') from e
-        return self._segments
+            raise RuntimeError(f'Parsing inconsistency at 0x{self._sequencer.offset_raw:x}') from e
+        self._sequencer.crop_raw(unmatched)
 
-    def _create_segment(self, m: Match) -> bytes:
+    def _substitute(self, m: Match) -> bytes:
         mgroups = {idx: grp for idx, grp in enumerate(m.groups()) if grp}
         primary_mgroup = min(mgroups.keys())
         span = cast(bytes, m.group(primary_mgroup+1))
@@ -69,8 +67,7 @@ class Parser:
             raise RuntimeError(f'No handler defined for mgroup {mgroup}: {span.hex(" ")}')
 
         seg = _handler_fn(span)
-        self._segments.append(seg)
-        return seg
+        self._sequencer.append_segment(seg)
 
     def _find_handler(self, mgroup: int) -> Callable[[bytes], Segment]|None:
         if mgroup == 0:
@@ -143,14 +140,17 @@ class Parser:
     def _handle_ascii_printable_chars(self, span: bytes) -> Segment:
         return template.T_DEFAULT.default(span, span.decode('utf8', errors='replace'))
 
-    def _verify(self, unmatched: bytes, raw_input: int):
-        matched_raw = 0
-        matched_processed = 0
-        for seg in self._segments:
-            matched_raw += len(seg.raw)
-            matched_processed += len(seg.processed)
+    def _verify(self, unmatched: bytes):
+        raw_input = self._sequencer.get_raw()
+        if not raw_input.endswith(unmatched):
+            assert len(unmatched) == 0, \
+                f'Some bytes unprocessed ({len(unmatched)}: {unmatched.hex(" ")!s:.32s})'
 
-        assert len(unmatched) == 0, \
-            f'Some bytes unprocessed ({len(unmatched)}: {unmatched!s:.32s})'
-        assert raw_input == matched_raw, \
-            f'Total length of segment\'s raw chunks {matched_raw} is not equal to raw input length {raw_input}'
+        matched_raw = self._sequencer.match_counter_raw
+        assert len(raw_input) == self._sequencer.match_counter_raw, \
+            f'Total length of segment\'s raw chunks {matched_raw} is not equal to raw input length {len(raw_input)}'
+
+        if self._mode == ReadMode.BINARY:
+            matched_processed = self._sequencer.match_counter_processed
+            assert len(raw_input) == matched_processed, \
+                f'Total length of segment\'s processed chunks {matched_processed} is not equal to raw input length {len(raw_input)}'

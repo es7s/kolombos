@@ -13,12 +13,10 @@ class ReadMode(Enum):
 
 
 def align_offset(offset: int) -> str:
-    return f'0x{offset:08}{"":3s}'
+    return f'{offset:6}'
 
 
 def print_offset(offset: int, addr_fmt: Format):
     aligned = align_offset(offset)
-    return re.sub(r'(0x0*)(\S+)(\s)',
-                  addr_fmt(fmt.dim(r'\1') + r'\2') + fmt.cyan('│'),
-                  aligned)
+    return addr_fmt(aligned) + fmt.cyan('│  ')
 

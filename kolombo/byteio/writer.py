@@ -1,18 +1,20 @@
 import sys
-from typing import IO, AnyStr
+from typing import IO
 
+from .sequencer import Sequencer
 from ..settings import Settings
 
 
 class Writer:
-    def __init__(self):
+    def __init__(self, sequencer: Sequencer):
+        self._sequencer = sequencer
         self._io_primary: IO = sys.stdout
         self._io_support: IO = sys.stderr
 
-    def write_line(self, output_line: str, helper_line: str = None):
-        self._io_primary.write(output_line)
+    def write(self):
+        self._io_primary.write(self._sequencer.pop_final())
 
-        if helper_line and Settings.pipe_stderr:
-            self._io_support.write(helper_line)
+        if Settings.pipe_stderr:
+            self._io_support.write(self._sequencer.pop_final_orig())
             self._io_primary.flush()
             self._io_support.flush()

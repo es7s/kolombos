@@ -5,6 +5,7 @@ import re
 import sys
 from typing import AnyStr, Callable
 
+from ..console import Console
 from ..settings import Settings
 
 
@@ -12,7 +13,7 @@ class Reader(metaclass=abc.ABCMeta):
     _READ_CHUNK_SIZE: int = 1024
     _READ_CHUNK_SIZE_DEBUG: int = 64
 
-    def __init__(self, filename: str|None, read_callback: Callable[[bytes, int], None]):
+    def __init__(self, filename: str|None, read_callback: Callable[[bytes, int, bool], None]):
         self._filename = filename
         self._io = None
         self._offset = 0
@@ -25,8 +26,7 @@ class Reader(metaclass=abc.ABCMeta):
     def read(self):
         self._open()
         chunk_size = self._get_chunk_size()
-        if Settings.debug > 0:
-            print(f'Read buffer size set to {chunk_size:d} bytes')
+        Console.debug(f'Read buffer size set to {chunk_size:d} bytes')
 
         max_bytes = Settings.max_bytes
         max_lines = Settings.max_lines
@@ -42,14 +42,14 @@ class Reader(metaclass=abc.ABCMeta):
                 if max_bytes and self._offset + len(raw_input) > max_bytes:
                     raw_input = raw_input[:max_bytes - (self._offset + len(raw_input))]
 
-                self.read_callback(raw_input, self._offset)
+                self.read_callback(raw_input, self._offset, False)
                 self._offset += len(raw_input)
 
                 if (max_bytes and self._offset >= max_bytes) or \
                     (max_lines and lines >= max_lines):
                     break
 
-            self.read_callback(b'', self._offset)
+            self.read_callback(b'', self._offset, True)
 
         except KeyboardInterrupt:
             pass

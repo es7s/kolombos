@@ -1,18 +1,20 @@
 import re
-from typing import List, Match
+from typing import Match
 
-from pytermor import fmt, seq, autof
-from pytermor.seq import SequenceSGR, EmptySequenceSGR
+from pytermor import fmt
+from pytermor.seq import SequenceSGR
 from pytermor.util import ReplaceSGR
 
+from kolombo.byteio.sequencer import Sequencer
 from .. import print_offset
 from ..formatter import AbstractFormatter
-from ..segment.segment import Segment
 from ...settings import Settings
 
 
 class TextFormatter(AbstractFormatter):
-    def __init__(self):
+    def __init__(self, sequencer: Sequencer):
+        super().__init__(sequencer)
+
         self._line_num = 0
         # self._whitespace_map = {
         #     '\t':   MarkerRegistry.marker_tab_keep_orig,
@@ -23,29 +25,21 @@ class TextFormatter(AbstractFormatter):
         #     '\x20': MarkerRegistry.marker_space,
         # }
 
-    def format(self, segs: List[Segment], offset: int):
-        e = EmptySequenceSGR()
-        assert isinstance(e, EmptySequenceSGR)
-
-        processed_lines = ''.join([autof(s.opening)(s.processed) for s in segs])
-        output = []
-        output_pipe = []
-
-        for processed_line in processed_lines.splitlines(keepends=True):
-            if Settings.no_line_numbers:
+    def format(self):
+        while seg := self._sequencer.pop_segment():
+            if not seg:
+                continue
+            for processed in seg.processed.splitlines(keepends=True):
                 prefix = ''
-            else:
-                prefix = print_offset(self._line_num, fmt.green)
+                if not Settings.no_line_numbers:
+                    prefix = print_offset(self._line_num, fmt.green)
 
-            formatted_line = prefix + processed_line + str(seq.RESET)
-            output.append(formatted_line)
-            if Settings.pipe_stderr:
-                aligned_raw_line = ReplaceSGR('')(prefix) + processed_line
-                output_pipe.append(aligned_raw_line)
+                final = f'{prefix}{self._sequencer.close_segment()(processed)}'
+                final_orig = ReplaceSGR('')(prefix).encode() + seg.raw
 
-            self._line_num += 1
-
-        return ''.join(output), ''.join(output_pipe)
+                self._sequencer.append_final(final)
+                self._sequencer.append_final_orig(final_orig)
+                self._line_num += 1
 
     def _format_csi_sequence(self, match: Match) -> str:
         if Settings.ignore_esc:

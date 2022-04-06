@@ -12,6 +12,16 @@ class Segment:
         self._opening = _opt_arg(opening)
         self._type_label = type_label
 
+    def __repr__(self):
+        return '{}[{}, {:.14s}, {!r}, {:.14s}]'.format(
+            self.__class__.__name__,
+            self._type_label,
+            self._raw.hex(' '),
+            self._opening,
+            self._processed.encode().hex(' '),
+            id(self),
+        )
+
     @property
     def raw(self) -> bytes: return self._raw
     @property

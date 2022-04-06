@@ -33,11 +33,6 @@ class Settings(Namespace):
         if not any([Settings.text, Settings.binary]):
             Settings.auto = True
 
-        if Settings.debug > 0 and (Settings.auto or Settings.text):
-            Settings.auto = False
-            Settings.binary = True
-            Settings.text = False
-
     @staticmethod
     def effective_color_content() -> bool:
         if Settings.binary:
