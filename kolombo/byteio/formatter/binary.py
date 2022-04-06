@@ -65,7 +65,7 @@ class BinaryFormatter(AbstractFormatter):
             seg_row = seg.raw[:cols]
             final_debug += Console.debug_on(
                 self._wrap_bg('{}{}{}{}'.format(
-                    self._print_offset_custom('', seg_offset, autof(seq.HI_MAGENTA),
+                    self._print_offset_custom('', seg_offset, autof(seq.HI_YELLOW),
                                               suffix=autof(seq.GRAY)('│')+autof(seq.INVERSED if seg.type_label.isupper() else seq.DIM
                                                                                      )(f'{seg.type_label}')+' '),
                     self._format_hex_row(seg_row, cols),
@@ -92,7 +92,7 @@ class BinaryFormatter(AbstractFormatter):
 
                 final_debug += Console.debug(
                     self._wrap_bg('{}{}{}{}'.format(
-                        self._print_offset_custom("", offset, autof(seq.HI_BLUE), suffix=autof(seq.GRAY)("│  ")),
+                        self._print_offset_custom("", offset, autof(seq.YELLOW), suffix=autof(seq.GRAY)("│  ")),
                         self._format_hex_row(self._sanitize(processed_row), cols),
                         autof(seq.GRAY)('  │'),
                         self._translate_ascii_only(processed_row)),
