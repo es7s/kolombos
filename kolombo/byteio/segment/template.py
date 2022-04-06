@@ -1,10 +1,7 @@
 from __future__ import annotations
 
-from copy import copy
-from math import ceil
-
 from pytermor import seq
-from pytermor.seq import SequenceSGR, EmptySequenceSGR
+from pytermor.seq import SequenceSGR
 
 from . import _opt_arg
 from .segment import Segment
@@ -18,7 +15,12 @@ class SegmentTemplate:
         self._opening: SequenceSGR = _opt_arg(opening)
 
     def __repr__(self):
-        return f'{self.__class__.__name__}["{self._label}", "{self._type_label}", {self._opening!r}]'
+        return '{}["{}", "{}", {!r}]'.format(
+            self.__class__.__name__,
+            self._label,
+            self._type_label,
+            self._opening
+    )
 
     def default(self, span: bytes, ov_label: str | None = None, ov_type_label: str = None) -> Segment:
         if ov_type_label is None:
@@ -37,6 +39,10 @@ class SegmentTemplate:
     @property
     def type_label(self) -> str:
         return self._type_label
+
+    @property
+    def opening(self) -> SequenceSGR:
+        return self._opening
 
 
 class SegmentTemplateWhitespace(SegmentTemplate):

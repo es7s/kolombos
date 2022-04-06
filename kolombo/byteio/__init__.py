@@ -13,7 +13,7 @@ class ReadMode(Enum):
 
 
 def align_offset(offset: int) -> str:
-    return f'{offset:6}'
+    return f'{offset:6x}'
 
 
 def print_offset(offset: int, addr_fmt: Format):

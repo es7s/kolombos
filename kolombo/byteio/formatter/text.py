@@ -26,20 +26,29 @@ class TextFormatter(AbstractFormatter):
         # }
 
     def format(self):
-        while seg := self._sequencer.pop_segment():
+        buffer_raw: bytes = b''
+        buffer_processed: str = ''
+
+        while seg := self._sequencer.get_active_segment():
             if not seg:
                 continue
-            for processed in seg.processed.splitlines(keepends=True):
-                prefix = ''
-                if not Settings.no_line_numbers:
-                    prefix = print_offset(self._line_num, fmt.green)
+            raw, processed = seg.read_all(close=True)
+            buffer_raw = raw
+            #print('A', end='')
+            buffer_processed += processed
 
-                final = f'{prefix}{self._sequencer.close_segment()(processed)}'
-                final_orig = ReplaceSGR('')(prefix).encode() + seg.raw
+        for processed in buffer_processed.splitlines(keepends=False):
+            self._line_num += 1
+            prefix = ''
+            if not Settings.no_line_numbers:
+                prefix = fmt.green(f'{self._line_num:2d}') + fmt.cyan(f'│  ')
 
-                self._sequencer.append_final(final)
-                self._sequencer.append_final_orig(final_orig)
-                self._line_num += 1
+            final = f'{prefix}{processed}\n'
+            #final_orig = ReplaceSGR('')(prefix).encode() + buffer_raw
+
+            self._sequencer.append_final(final)
+            #self._sequencer.append_final_orig(final_orig)
+
 
     def _format_csi_sequence(self, match: Match) -> str:
         if Settings.ignore_esc:

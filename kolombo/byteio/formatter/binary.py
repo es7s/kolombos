@@ -50,58 +50,55 @@ class BinaryFormatter(AbstractFormatter):
 
         final = ''
         final_debug = ''
-        while seg := self._sequencer.pop_segment():
+        while seg := self._sequencer.get_active_segment():
             if final_debug:
                 final_debug += Console.debug_on(self._print_debug_separator(cols, sgr=seq.GRAY), 3, ret=True)
             final_debug += Console.debug_on(self._wrap_bg(
                 f'POP {id(seg):x} {seg!r}',
                 seq.BG_BLACK) + '\n', 3, ret=True)
+
             if not seg:
                 continue
-            seg_offset = self._sequencer.offset_raw
-            self._buffer_raw += seg.raw
-            self._buffer_processed += f'{self._sequencer.close_segment()(seg.processed)}'
 
-            seg_row = seg.raw[:cols]
+            seg_offset = self._sequencer.offset_raw
+            seg_raw, seg_processed = seg.read_all(close=False)
             final_debug += Console.debug_on(
-                self._wrap_bg('{}{}{}{}'.format(
+                self._wrap_bg('{}{}{:+d}{}{}'.format(
                     self._print_offset_custom('', seg_offset, autof(seq.HI_YELLOW),
                                               suffix=autof(seq.GRAY)('│')+autof(seq.INVERSED if seg.type_label.isupper() else seq.DIM
                                                                                      )(f'{seg.type_label}')+' '),
-                    self._format_hex_row(seg_row, cols),
+                    self._format_hex_row(seg_raw[:cols-1], cols-1),
+                    max(0, len(seg_raw) - cols),
                     autof(seq.GRAY)('  │'),
-                    self._translate_ascii_only(seg_row.decode())
+                    self._translate_ascii_only(seg_raw[:cols-1].decode())
                 ), seq.BG_BLACK) + '\n', 2, ret=True
             )
-            seg_offset += len(seg.raw)
+            seg_offset += len(seg_raw)
 
-            max_buffer_len = cols
-            if self._sequencer.read_finished:  # reading finished, we have to empty the buffer completely
-                max_buffer_len = 0
+            #max_buffer_len = cols
+            #if self._sequencer.read_finished:  # reading finished, we have to empty the buffer completely
+            #    max_buffer_len = 0
 
-            while len(self._buffer_raw) > max_buffer_len:
-                raw_row = self._buffer_raw[:cols]
-                raw_hex_row = self._format_hex_row(raw_row, cols)
-                processed_row = self._buffer_processed[:cols]
+            #while seg.bytes_left > max_buffer_len:
+            raw_row, processed_row = seg.read(cols)
+            raw_hex_row = self._format_hex_row(raw_row, cols)
 
-                final += f'{print_offset(offset, fmt.green)}' \
-                         f'{raw_hex_row}  ' + \
-                         autof(seq.CYAN)(f'│') + \
-                         f'{processed_row}' + \
-                         f'\n'
+            final += f'{print_offset(offset, fmt.green)}' \
+                     f'{raw_hex_row}  ' + \
+                     autof(seq.CYAN)(f'│') + \
+                     f'{processed_row}' + \
+                     f'\n'
 
-                final_debug += Console.debug(
-                    self._wrap_bg('{}{}{}{}'.format(
-                        self._print_offset_custom("", offset, autof(seq.YELLOW), suffix=autof(seq.GRAY)("│  ")),
-                        self._format_hex_row(self._sanitize(processed_row), cols),
-                        autof(seq.GRAY)('  │'),
-                        self._translate_ascii_only(processed_row)),
-                        seq.BG_BLACK) + '\n',
-                    ret=True)
+            final_debug += Console.debug(
+                self._wrap_bg('{}{}{}{}'.format(
+                    self._print_offset_custom("", offset, autof(seq.YELLOW), suffix=autof(seq.GRAY)("│  ")),
+                    self._format_hex_row(self._sanitize(processed_row), cols),
+                    autof(seq.GRAY)('  │'),
+                    self._translate_ascii_only(processed_row)),
+                    seq.BG_BLACK) + '\n',
+                ret=True)
 
-                offset += len(raw_row)
-                self._buffer_raw = self._buffer_raw[len(raw_row):]
-                self._buffer_processed = self._buffer_processed[len(raw_row):]
+            offset += len(raw_row)
 
         if self._sequencer.read_finished:
             final += (print_offset(offset, autof(seq.HI_CYAN)) + '\n')

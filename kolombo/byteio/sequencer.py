@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from typing import Deque
 
-from pytermor import autof
-from pytermor.fmt import Format
 from pytermor.seq import SequenceSGR
 
 from kolombo.byteio import Segment
@@ -18,7 +16,6 @@ class Sequencer:
         self._match_counter_raw: int = 0
         self._match_counter_processed: int = 0
 
-        self._active_sgrs: Deque[SequenceSGR] = Deque[SequenceSGR]()
         self._active_seg: Segment|None = None
         self._segments: Deque[Segment] = Deque[Segment]()
 
@@ -30,7 +27,6 @@ class Sequencer:
         self._match_counter_processed = 0
 
     def append_raw(self, b: bytes, offset: int, finish: bool = False):
-
         self._buffer_raw += b
         self._offset_raw = offset
         self._read_finished = finish
@@ -39,30 +35,32 @@ class Sequencer:
         return self._buffer_raw
 
     def crop_raw(self, new_buffer: bytes):
+        if len(new_buffer) == 0:
+            self._buffer_raw = b''
+            return
+
         offset_delta = self._buffer_raw.find(new_buffer)
         if offset_delta == -1:
             raise RuntimeError(f'New buffer is not a part of the current one: {new_buffer.hex(" "):.32s}')
+
         self._buffer_raw = self._buffer_raw[offset_delta:]
         self._offset_raw += offset_delta
 
     def append_segment(self, seg: Segment):
         self._segments.append(seg)
-        self._match_counter_raw += len(seg.raw)
-        self._match_counter_processed += len(seg.processed)
+        self._match_counter_raw += len(seg._raw)
+        self._match_counter_processed += len(seg._processed)
 
-    def pop_segment(self) -> Segment|None:
+    def get_active_segment(self) -> Segment|None:
+        if self._active_seg and not self._active_seg.is_closed:
+            return self._active_seg
+
         if (len(self._segments) == 1 and not self._read_finished) or \
            (len(self._segments) == 0):
             return None
 
         self._active_seg = self._segments.popleft()
-        self._active_sgrs.append(self._active_seg.opening)
         return self._active_seg
-
-    def close_segment(self) -> Format:
-        f = autof(*self._active_sgrs)
-        self._active_sgrs.clear()
-        return f
 
     def append_final(self, s: str):
         self._buffer_final += s
