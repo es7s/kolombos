@@ -1,80 +1,40 @@
-from __future__ import annotations
+from math import ceil
+from typing import Any, List, AnyStr
 
-import re
-from typing import TypeVar, Dict, Match, AnyStr
-
-from pytermor.util import StringFilter
-
-from .marker import Marker
-from .marker.sgr import MarkerSGR
-from .settings import Settings
-
-KT = TypeVar('KT')  # Key type.
-VT = TypeVar('VT')  # Value type.
+from pytermor import fmt, seq
 
 
-class ConfidentDict(Dict[KT, VT]):
-    def find_or_die(self, key: KT) -> VT | None:
-        if key not in self:
-            raise LookupError(f'Key not found: {key}')
-        return self[key]
-
-    def require_or_die(self, key: KT) -> VT:
-        val = self.find_or_die(key)
-        if val is None:
-            raise ValueError(f'Value is None: {key}')
-        return val
+def get_terminal_width() -> int:
+    try:
+        import shutil as _shutil
+        width = _shutil.get_terminal_size().columns - 2
+        return width
+    except ImportError:
+        return 80
 
 
-class ReplaceNonAscii(StringFilter[str]):
-    """Keep [0x00 - 0x7f], replace if greater than 0x7f."""
-    def __init__(self, repl: bytes = ''):
-        super().__init__(lambda s: re.sub(r'[\x80-\xff]', repl, s))
+def println(n: int = 1):
+    print('\n'*n, end='')
 
 
-class MarkerMatch:
-    def __init__(self, match: Match, marker: Marker = None, overwrite: bool = False, autosize: bool = False,
-                 no_format_processed: bool = False):
-        self.match = match
-        self.fmt = None
-        self.marker_char = None
-        if marker:
-            self.set_marker(marker)
+def printd(v: Any, max_input_len: int = 5) -> str:
+    from .byteio.chain import Chain
+    if isinstance(v, Chain):
+        v = v.preview(max_input_len)
 
-        self.overwrite = overwrite
-        self.autosize = autosize
-        self.no_format_processed = no_format_processed
-        self.sgr_seq: AnyStr|None = None
-        self.applied: bool = False
+    if isinstance(v, (bytes, List)):
+        length = 'len ' + fmt.bold(str(len(v)))
+        if len(v) == 0:
+            return f'{length} {seq.GRAY}[]{seq.COLOR_OFF}'
+        if isinstance(v, bytes):
+            v = ' '.join([f'{b:02x}' for b in v])
+        return f'{length} ' + \
+               f'{seq.GRAY}[' + \
+               f'{v[:2*(max_input_len-1)]}' + \
+               (('..' + ''.join(v[-2:] )if len(v) > 2*(max_input_len - 1) else '')) + \
+               f']{seq.COLOR_OFF}'
 
-    def __repr__(self):
-        return f'{self.__class__.__name__}[{self.match!r}]'
+    if isinstance(v, int):
+        return f'0x{v:0{ceil(len(str(v))/2)*2}x}'
 
-    def set_marker(self, marker: Marker):
-        self.fmt = marker.get_fmt()
-        self.marker_char = marker.marker_char
-
-    def _format(self, source_text: str) -> str:
-        if self.fmt is None:
-            return source_text
-        return self.fmt(source_text)
-
-    def target_text_hex(self, source_text: str) -> str:
-        return self._format(source_text)
-
-    def target_text_processed(self, source_text: str) -> str:
-        if self.overwrite:
-            target_text_len = (len(source_text) if self.autosize else 1)
-            target_text = (self.marker_char if self.marker_char else '?')*target_text_len
-        else:
-            target_text = source_text
-
-        if self.no_format_processed:
-            pass
-        else:
-            target_text = self._format(target_text)
-
-        if self.sgr_seq and Settings.effective_color_content():
-            target_text += self.sgr_seq + str(MarkerSGR.PROHIBITED_CONTENT_BREAKER)
-
-        return target_text
+    return f'{v!s}'

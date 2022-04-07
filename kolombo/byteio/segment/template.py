@@ -4,8 +4,22 @@ from pytermor import seq
 from pytermor.seq import SequenceSGR
 
 from . import _opt_arg
-from .segment import Segment
 from ...settings import Settings
+
+
+class SegmentTemplateSample:
+    def __init__(self, tpl: SegmentTemplate, processed: str = None):
+        self._template = tpl
+        self._processed = processed
+
+    @property
+    def template(self) -> SegmentTemplate:
+        return self._template
+
+    def get_processed(self, len: int) -> str:
+        if self._processed is None:
+            self._processed = self._template.label * len
+        return self._processed
 
 
 class SegmentTemplate:
@@ -22,15 +36,8 @@ class SegmentTemplate:
             self._opening
     )
 
-    def default(self, span: bytes, ov_label: str | None = None, ov_type_label: str = None) -> Segment:
-        if ov_type_label is None:
-            ov_type_label = self._type_label
-        if ov_label is None:
-            ov_label = self._label * len(span)
-        return Segment(span, ov_label, self._opening, ov_type_label)
-
-    def ignore(self, span: bytes):
-        return T_IGNORED.default(span, ov_type_label=self._type_label.lower())
+    def sample(self, processed: str = None) -> SegmentTemplateSample:
+        return SegmentTemplateSample(self, processed)
 
     @property
     def label(self) -> str:
@@ -46,22 +53,20 @@ class SegmentTemplate:
 
 
 class SegmentTemplateWhitespace(SegmentTemplate):
-    def __init__(self,
-                 label: str,
-                 type_label: str = 'S',
-                 opening: SequenceSGR = seq.DIM,
-                 opening_focused: SequenceSGR = seq.BG_CYAN + seq.BLACK
-                 ):
+    def __init__(self, label: str, type_label: str = 'S'):
+        opening = seq.DIM
+        opening_focused = seq.BG_CYAN + seq.BLACK
         super().__init__(label, type_label, opening=(opening_focused if Settings.focus_space else opening))
 
 
 T_DEFAULT = SegmentTemplate('.', 'P')
-T_IGNORED = SegmentTemplate('×', '', seq.BG_BLACK + seq.GRAY)
+T_IGNORED = SegmentTemplate('×', '', seq.GRAY)
 T_UTF8 = SegmentTemplate('ṳ', 'U', (seq.HI_BLUE + seq.INVERSED) if Settings.focus_utf8 else seq.HI_BLUE)  # ǚ
 T_WHITESPACE = SegmentTemplateWhitespace('␣')
 T_NEWLINE = SegmentTemplateWhitespace('↵')
 T_NEWLINE_TEXT = SegmentTemplateWhitespace('↵\n')
 T_CONTROL = SegmentTemplate('Ɐ', 'C', (seq.RED + seq.INVERSED) if Settings.focus_control else seq.RED)
+T_TEMP = SegmentTemplate('?', '?', seq.MAGENTA)
 
 # marker_tab = MarkerWhitespace('⇥')
 # marker_tab_keep_orig = MarkerWhitespace('⇥\t')

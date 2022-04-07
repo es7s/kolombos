@@ -2,11 +2,14 @@ from __future__ import annotations
 
 from .arghelp import AppArgumentParser
 from .console import Console
-from .mode_processor import ModeProcessorFactory
+from .mode import ModeProcessorFactory
 from .settings import Settings
 
 
 # noinspection PyMethodMayBeStatic
+from .util import println
+
+
 class App:
     def run(self):
         try:
@@ -23,5 +26,5 @@ class App:
 
     @staticmethod
     def exit(code: int = 0):
-        Console.println()
+        println()
         exit(code)

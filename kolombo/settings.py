@@ -25,7 +25,6 @@ class Settings(Namespace):
     no_color_content: bool
     no_color_markers: bool
     no_line_numbers: bool
-    pipe_stderr: bool
     text: bool
 
     @staticmethod

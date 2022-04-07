@@ -1,22 +1,26 @@
+from kolombo.byteio.parser_buf import ParserBuffer
 from . import AbstractModeProcessor
 from ..app import App
 from ..byteio import ReadMode
+from ..byteio.chain import ChainBuffer
 from ..byteio.formatter import FormatterFactory
 from ..byteio.parser import Parser
 from ..byteio.reader import Reader
-from kolombo.byteio.sequencer import Sequencer
 from ..byteio.writer import Writer
-from ..console import Console
+from ..console import Console, ConsoleBuffer
 from ..settings import Settings
 
 
 class ByteIoProcessor(AbstractModeProcessor):
     def _init(self, read_mode: ReadMode):
-        self._sequencer = Sequencer()
         self._reader = Reader(Settings.filename, self._process_chunk_buffered)
-        self._parser = Parser(read_mode, self._sequencer)
-        self._formatter = FormatterFactory.create(read_mode, self._sequencer)
-        self._writer = Writer(self._sequencer)
+        self._parser_buffer = ParserBuffer()
+        self._chain_buffer = ChainBuffer()
+        self._parser = Parser(read_mode, self._parser_buffer, self._chain_buffer)
+        self._formatter = FormatterFactory.create(read_mode, self._parser_buffer, self._chain_buffer)
+        self._writer = Writer()
+
+        self._debug_buffer = Console.register_buffer(ConsoleBuffer(1, key_prefix=None))
 
     def invoke(self):
         try:
@@ -31,10 +35,13 @@ class ByteIoProcessor(AbstractModeProcessor):
             self._reader.read()
 
     def _process_chunk_buffered(self, raw_input: bytes, offset: int, finish: bool):
-        self._sequencer.append_raw(raw_input, offset, finish)
-        self._parser.parse()
-        self._formatter.format()
-        self._writer.write()
+        self._parser_buffer.append_raw(raw_input, finish)
+        self._parser.parse(self._parser_buffer.get_raw(), offset)
+        self._chain_buffer.status()
+        output = self._formatter.format(offset)
+        self._writer.write(output)
+
+        self._debug_buffer.write(Console.separator())
 
     def _get_read_mode_from_settings(self) -> ReadMode:
         if Settings.binary:

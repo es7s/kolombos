@@ -140,7 +140,6 @@ class AppArgumentParser(CustomArgumentParser):
         text_mode_group.add_argument('-i', '--info', metavar='<level>', action='store', type=int, default=1, help='control and escape marker details (0-2, default %(default)s)')
         text_mode_group.add_argument('--no-line-numbers', action='store_true', default=False, help='do not print line numbers')
         text_mode_group.add_argument('--no-color-markers', action='store_true', default=False, help='disable applying input file formatting to SGR markers')
-        text_mode_group.add_argument('--pipe-stderr', action='store_true', default=False, help='send raw input lines to stderr along with default output')
 
         bin_mode_group = self.add_argument_group('binary mode only')
         bin_mode_group.add_argument('-d', '--decode', action='store_true', default=False, help='decode valid utf-8 sequences, print as unicode chars')

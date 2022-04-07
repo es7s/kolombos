@@ -4,19 +4,20 @@ import abc
 from typing import Match, Tuple
 
 from .. import ReadMode
-from kolombo.byteio.sequencer import Sequencer
+from ..chain import ChainBuffer
+from ..parser_buf import ParserBuffer
 
 
 class FormatterFactory:
     @staticmethod
-    def create(mode: ReadMode, sequencer: Sequencer) -> AbstractFormatter:
+    def create(mode: ReadMode, *args) -> AbstractFormatter:
         from .binary import BinaryFormatter
         from .text import TextFormatter
 
         if mode is ReadMode.TEXT:
-            return TextFormatter(sequencer)
+            return TextFormatter(*args)
         elif mode is ReadMode.BINARY:
-            return BinaryFormatter(sequencer)
+            return BinaryFormatter(*args)
         raise RuntimeError(f'Invalid read mode {mode}')
 
 
@@ -26,11 +27,12 @@ class AbstractFormatter(metaclass=abc.ABCMeta):
     WHITESPACE_CHARCODES = list(range(0x09, 0x0e)) + [0x20]
     PRINTABLE_CHARCODES = list(range(0x21, 0x7f))
 
-    def __init__(self, sequencer: Sequencer):
-        self._sequencer = sequencer
+    def __init__(self, parser_buffer: ParserBuffer, data_flow: ChainBuffer):
+        self._parser_buffer = parser_buffer
+        self._chain_buffer = data_flow
 
     @abc.abstractmethod
-    def format(self) -> Tuple[str, str|None]: raise NotImplementedError
+    def format(self, offset: int) -> str: raise NotImplementedError
 
     @abc.abstractmethod
     def _format_csi_sequence(self, match: Match) -> str: raise NotImplementedError

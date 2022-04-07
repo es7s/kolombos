@@ -1,2 +1,2 @@
-pytermor~=1.2.0
-unicodedata2
+pytermor~=1.2
+unicodedata2~=14

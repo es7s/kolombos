@@ -5,15 +5,16 @@ from pytermor import fmt
 from pytermor.seq import SequenceSGR
 from pytermor.util import ReplaceSGR
 
-from kolombo.byteio.sequencer import Sequencer
+from kolombo.byteio.parser_buf import ParserBuffer
 from .. import print_offset
+from ..chain import ChainBuffer
 from ..formatter import AbstractFormatter
 from ...settings import Settings
 
 
 class TextFormatter(AbstractFormatter):
-    def __init__(self, sequencer: Sequencer):
-        super().__init__(sequencer)
+    def __init__(self, parser_buffer: ParserBuffer, data_flow: ChainBuffer):
+        super().__init__(parser_buffer, data_flow)
 
         self._line_num = 0
         # self._whitespace_map = {
@@ -25,7 +26,7 @@ class TextFormatter(AbstractFormatter):
         #     '\x20': MarkerRegistry.marker_space,
         # }
 
-    def format(self):
+    def format(self, offset: int):
         buffer_raw: bytes = b''
         buffer_processed: str = ''
 
@@ -75,11 +76,11 @@ class TextFormatter(AbstractFormatter):
 
         if terminator == SequenceSGR.TERMINATOR:
             if len(params_values) == 0:
-                result = MarkerRegistry.marker_sgr_reset.print()
+                result = MarkerRegistry.marker_sgr_reset._print()
             else:
-                result = MarkerRegistry.marker_sgr.print(info, SequenceSGR(*params_values))
+                result = MarkerRegistry.marker_sgr._print(info, SequenceSGR(*params_values))
         else:
-            result = MarkerRegistry.marker_esq_csi.print(info)
+            result = MarkerRegistry.marker_esq_csi._print(info)
         return self._escape_escape_character(result)
 
     def _format_generic_escape_sequence(self, match: Match) -> str:
@@ -96,7 +97,7 @@ class TextFormatter(AbstractFormatter):
             introducer = MarkerRegistry.marker_space.marker_char
         charcode = ord(introducer)
         marker = MarkerRegistry.get_esq_marker(charcode)
-        return self._escape_escape_character(marker.print() + info)
+        return self._escape_escape_character(marker._print() + info)
 
     def _format_control_char(self, match: Match) -> str:
         if Settings.ignore_control:
@@ -104,7 +105,7 @@ class TextFormatter(AbstractFormatter):
 
         charcode = ord(match.group(1))
         marker = self._control_char_map.require_or_die(charcode)
-        return marker.print()
+        return marker._print()
 
     def _format_space(self, match: Match) -> str:
         if Settings.ignore_space:
@@ -120,7 +121,7 @@ class TextFormatter(AbstractFormatter):
         if Settings.ignore_space:
             if match.group(1) == '\n':
                 return f'\n'
-            return MarkerRegistry.marker_ignored.print()
+            return MarkerRegistry.marker_ignored._print()
 
         marker = self._whitespace_map.get(match.group(1))
-        return marker.print()
+        return marker._print()

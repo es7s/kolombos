@@ -5,6 +5,7 @@ from pytermor import fmt
 from pytermor.fmt import Format
 
 from kolombo.byteio.segment.segment import Segment
+from kolombo.console import printd
 
 
 class ReadMode(Enum):
@@ -13,10 +14,10 @@ class ReadMode(Enum):
 
 
 def align_offset(offset: int) -> str:
-    return f'{offset:6x}'
+    return printd(offset).rjust(8)
 
 
 def print_offset(offset: int, addr_fmt: Format):
     aligned = align_offset(offset)
-    return addr_fmt(aligned) + fmt.cyan('│  ')
+    return addr_fmt(aligned) + fmt.cyan('│')
 
