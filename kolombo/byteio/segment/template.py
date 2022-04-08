@@ -61,12 +61,12 @@ class SegmentTemplateWhitespace(SegmentTemplate):
 
 T_DEFAULT = SegmentTemplate('.', 'P')
 T_IGNORED = SegmentTemplate('×', '', seq.GRAY)
-T_UTF8 = SegmentTemplate('ṳ', 'U', (seq.HI_BLUE + seq.INVERSED) if Settings.focus_utf8 else seq.HI_BLUE)  # ǚ
+T_UTF8 = SegmentTemplate('▯', 'U', (seq.HI_BLUE + seq.INVERSED) if Settings.focus_utf8 else seq.HI_BLUE)  # ǚṳ
 T_WHITESPACE = SegmentTemplateWhitespace('␣')
 T_NEWLINE = SegmentTemplateWhitespace('↵')
 T_NEWLINE_TEXT = SegmentTemplateWhitespace('↵\n')
 T_CONTROL = SegmentTemplate('Ɐ', 'C', (seq.RED + seq.INVERSED) if Settings.focus_control else seq.RED)
-T_TEMP = SegmentTemplate('?', '?', seq.MAGENTA)
+T_TEMP = SegmentTemplate('▯', '?', seq.UNDERLINED)
 
 # marker_tab = MarkerWhitespace('⇥')
 # marker_tab_keep_orig = MarkerWhitespace('⇥\t')

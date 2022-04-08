@@ -50,9 +50,9 @@ class BinaryFormatter(AbstractFormatter):
         while len(self._chain_buffer) > 0:
             try:
                 if self._parser_buffer.read_finished:
-                    rows = self._chain_buffer.read_all(self._format_raw)
+                    result = self._chain_buffer.read_all(self._format_raw)
                 else:
-                    rows = self._chain_buffer.read(cols, self._format_raw)
+                    result = self._chain_buffer.read(cols, self._format_raw)
             except EOFError:
                 self._debug_buf2.write('EOF received')
                 break
@@ -60,22 +60,35 @@ class BinaryFormatter(AbstractFormatter):
                 self._debug_buf2.write('BufferWait received')
                 break
 
-            raw_row, raw_hex_row, processed_row = rows
+            bytes_read, raw_row, proc_hex_row, proc_str_row = result
 
             final += f'{print_offset(offset, fmt.green)}' \
                      f'{self.PADDING_SECTION:.2s}' + \
-                     f'{raw_hex_row}' + \
+                     f'{proc_hex_row}' + \
                      f'{self.PADDING_SECTION}' + \
                      autof(seq.CYAN)(f'│') + \
-                     f'{processed_row}' + f'\n'
+                     f'{proc_str_row}' + \
+                     f'\n'
 
             self._debug_buf.write(f'{print_offset(offset, fmt.yellow)}'
                                     f'{self.PADDING_SECTION:.2s}'
-                                    f'{raw_row}'
+                                    f'{self._format_raw(raw_row)}'
                                     f'{self.PADDING_SECTION}' +
                                     autof(seq.CYAN)(f'│') + \
-                                    f'{self._transform_to_printable(bytes.fromhex(raw_row).decode("ascii", errors="replace"))}')
-            offset += len(raw_row)
+                                  f'{self._transform_to_printable(raw_row.decode("ascii", errors="replace"))}',
+                                    autof(seq.CYAN)(f'│'))
+
+
+            # final_debug += Console.debug(
+            #     self._wrap_bg('{}{}{}{}'.format(
+            #         self._print_offset_custom("", offset, autof(seq.YELLOW), suffix=autof(seq.GRAY)("│  ")),
+            #         self._format_hex_row(self._sanitize(processed_row), cols),
+            #         autof(seq.GRAY)('  │'),
+            #         self._translate_ascii_only(processed_row)),
+            #         seq.BG_BLACK) + '\n',
+            #     ret=True)
+
+            offset += bytes_read
 
         if self._parser_buffer.read_finished:
             final += (print_offset(offset, EmptyFormat()) + '\n')

@@ -68,7 +68,9 @@ class Parser:
         mgroups = {idx: grp for idx, grp in enumerate(m.groups()) if grp}
         primary_mgroup = min(mgroups.keys())
         span = cast(bytes, m.group(primary_mgroup+1))
-        self._debug_buffer2.write(f'Group {primary_mgroup:d}', offset=(self._offset + m.start(primary_mgroup + 1)), end='')
+        self._debug_buffer2.write(f'Match group #{primary_mgroup:02d}',
+                                  offset=(self._offset + m.start(primary_mgroup + 1)),
+                                  end='', flush=False)
 
         self._handle(primary_mgroup, span)
         return b''

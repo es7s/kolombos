@@ -67,34 +67,40 @@ class Chain(Sized):
         for element in elements:
             self._elements.append(element)
 
-    def detach_flat(self, num_bytes: int, transform_fn: Transformer = None) -> str:
+    def detach_flat(self, num_bytes: int, transform_fn: Transformer = None) -> Tuple[int, bytes, str]:
+        num_bytes_origin = num_bytes
         if transform_fn is None:
             transform_fn = self._default_transformer
         if len(self._elements) == 0 and self._cur_element is None:
             raise EOFError
 
-        output = self._get_active_sgrs_opening()
+        output_raw = b''
+        output_proc = self._get_active_sgrs_opening()
         while (len(self._elements) > 0 or self._cur_element is not None) and num_bytes > 0:
             if self._cur_element is None:
                 self._cur_element = self._elements.popleft()
 
             if isinstance(self._cur_element, (str, bytes)):
                 if len(self._cur_element) <= num_bytes:
-                    output += transform_fn(self._cur_element)
+                    if isinstance(self._cur_element, bytes):
+                        output_raw += self._cur_element
+                    output_proc += transform_fn(self._cur_element)
                     num_bytes -= len(self._cur_element)
                 else:
-                    output += transform_fn(self._cur_element[:num_bytes])
+                    if isinstance(self._cur_element, bytes):
+                        output_raw += self._cur_element[:num_bytes]
+                    output_proc += transform_fn(self._cur_element[:num_bytes])
                     self._cur_element = self._cur_element[num_bytes:]
                     num_bytes = 0
                     if len(self._cur_element) > 0:
                         continue
 
             if isinstance(self._cur_element, OneUseSequenceRef):
-                output += str(self._cur_element.ref)
+                output_proc += str(self._cur_element.ref)
 
             if isinstance(self._cur_element, StartSequenceRef):
                 sgr_to_start = str(self._cur_element.ref)
-                output += str(sgr_to_start)
+                output_proc += str(sgr_to_start)
                 self._active_sgrs.append(self._cur_element.ref)
 
             if isinstance(self._cur_element, StopSequenceRef):
@@ -102,8 +108,8 @@ class Chain(Sized):
 
             self._cur_element = None
 
-        output += self._get_active_sgrs_closing()
-        return output
+        output_proc += self._get_active_sgrs_closing()
+        return num_bytes_origin - num_bytes, output_raw, output_proc
 
     def _get_active_sgrs_opening(self) -> str:
         return ''.join(str(sgr) for sgr in self._active_sgrs)
@@ -120,6 +126,7 @@ class ChainBuffer(Sized):
         self._raw: Chain = Chain()
         self._processed: Chain = Chain()
         self._debug_buf = Console.register_buffer(ConsoleBuffer(1, 'chainbuf'))
+        self._debug_buf3 = Console.register_buffer(ConsoleBuffer(3, 'chainbuf'))
 
     def __len__(self):
         return len(self._raw)
@@ -136,20 +143,21 @@ class ChainBuffer(Sized):
     def read(self, num_bytes: int,
              transformer_raw: TransformerByte = None,
              transformer_processed: TransformerStr = None
-             ) -> Tuple[str, str, str]:
+             ) -> Tuple[int, bytes, str, str]:
+        self._debug_buf3.write(f'Chain read request: len ' + fmt.bold(f'{num_bytes}'), end='', flush=False)
         if len(self._raw) < num_bytes:
             raise BufferWait('Not enough data to detach')
         try:
-            raw_result, processed_result = self._raw.detach_flat(num_bytes, transformer_raw), \
-                                           self._processed.detach_flat(num_bytes, transformer_processed)
-            return ReplaceSGR()(raw_result), raw_result, processed_result
+            raw_bytes_read, raw_result, proc_hex_result = self._raw.detach_flat(num_bytes, transformer_raw)
+            _, _, proc_str_result = self._processed.detach_flat(num_bytes, transformer_processed)
+            return raw_bytes_read, raw_result, proc_hex_result, proc_str_result
         except EOFError as e:
             raise e
 
     def read_all(self,
                  transformer_raw: TransformerByte = None,
                  transformer_processed: TransformerStr = None
-                 ) -> Tuple[str, str, str]:
+                 ) -> Tuple[int, bytes, str, str]:
         return self.read(len(self._raw), transformer_raw, transformer_processed)
 
     def status(self):
