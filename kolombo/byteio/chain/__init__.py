@@ -56,15 +56,11 @@ class Chain(Sized):
             else:
                 result += 'SG'
 
-        result = autof(seq.GRAY)('['+
-                                 ' '.join(re.findall('(..)', result)[:max_input_len]) +
-                                 ('..')+
-                                 ']')
+        result = autof(seq.GRAY)('[' + ' '.join(re.findall('(..)', result)[:max_input_len]) + '.. ]')
 
         sgr_total_len = sum([len(str(el.ref)) for el in self._elements if isinstance(el, SequenceRef)])
         raw_byte_total_len = len(self)
-        return f'raw {fmt.bold(str(raw_byte_total_len))} + ' \
-               f'sgr {fmt.bold(str(sgr_total_len))} ' + \
+        return f'len {fmt.bold(str(raw_byte_total_len))} (+{fmt.bold(str(sgr_total_len))} sgr) ' + \
                result
 
     def attach(self, *elements: Chainable):

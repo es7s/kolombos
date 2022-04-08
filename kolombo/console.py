@@ -90,7 +90,7 @@ class Console:
 
     @staticmethod
     def separator():
-        prefix = Console.prefix('─'*10, EmptyFormat())
+        prefix = ('─'*8 + '┼')
         width = get_terminal_width()
         main_len = width - len(prefix)
         return prefix + ('─'*main_len)

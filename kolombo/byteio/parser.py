@@ -49,8 +49,8 @@ class Parser:
         self._chain_buffer: ChainBuffer = data_flow
         self._offset = 0
 
-        self._debug_buffer = Console.register_buffer(ConsoleBuffer(level=1, key_prefix='parser'))
-        self._debug_buffer2 = Console.register_buffer(ConsoleBuffer(level=2, key_prefix='parser', offset_fmt=fmt.cyan))
+        self._debug_buffer = Console.register_buffer(ConsoleBuffer(1, 'parser'))
+        self._debug_buffer2 = Console.register_buffer(ConsoleBuffer(2, 'parser', offset_fmt=fmt.cyan))
 
     def parse(self, buffered_raw_input: bytes, offset: int):
         self._offset = offset
@@ -68,7 +68,7 @@ class Parser:
         mgroups = {idx: grp for idx, grp in enumerate(m.groups()) if grp}
         primary_mgroup = min(mgroups.keys())
         span = cast(bytes, m.group(primary_mgroup+1))
-        self._debug_buffer2.write(f'Match group #{primary_mgroup:02d}', offset=(self._offset + m.start(primary_mgroup + 1)), end='')
+        self._debug_buffer2.write(f'Group {primary_mgroup:d}', offset=(self._offset + m.start(primary_mgroup + 1)), end='')
 
         self._handle(primary_mgroup, span)
         return b''
@@ -80,7 +80,7 @@ class Parser:
 
         sample = _handler_fn(span)
 
-        debug_msg = f' {sample.template.type_label}: {printd(span)}'
+        debug_msg = f'/{sample.template.type_label}: {printd(span)}'
         debug_processed_bytes = sample.get_processed(len(span)).encode('ascii', errors="replace")
         if span != debug_processed_bytes:
             debug_msg += f' -> {printd(debug_processed_bytes)}'

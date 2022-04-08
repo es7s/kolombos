@@ -26,24 +26,19 @@ class BinaryFormatter(AbstractFormatter):
     def __init__(self, parser_buffer: ParserBuffer, data_flow: ChainBuffer):
         super().__init__(parser_buffer, data_flow)
 
+        self.ASCII_TO_SAFE_CHAR_MAP = {
+            **{b: chr(b) for b in range(0x00, 0x100)},
+            **{b: '·' for b in AbstractFormatter.WHITESPACE_CHARCODES},
+            **{b: '¿' for b in AbstractFormatter.CONTROL_CHARCODES},
+            **{b: '¿' for b in AbstractFormatter.BINARY_CHARCODES},
+        }
         self.BYTE_CHUNK_LEN = 4
         self.PADDING_SECTION = 3 * ' '
         self.PADDING_HEX_CHUNK = 2 * ' '
 
         self._cols = Settings.columns
-        self._debug_buf = Console.register_buffer(ConsoleBuffer(level=1))
-        self._debug_buf2 = Console.register_buffer(ConsoleBuffer(level=2, key_prefix='binform'))
-
-        # self._control_char_map = ConfidentDict({
-        #     k: MarkerRegistry.get_control_marker(k) for k in self.CONTROL_CHARCODES
-        # })
-        # self._whitespace_map = {
-        #     '\t': MarkerRegistry.marker_tab,
-        #     '\v': MarkerRegistry.marker_vert_tab,
-        #     '\f': MarkerRegistry.marker_form_feed,
-        #     '\r': MarkerRegistry.marker_car_return,
-        #     '\n': MarkerRegistry.marker_newline,
-        # }'
+        self._debug_buf = Console.register_buffer(ConsoleBuffer(1))
+        self._debug_buf2 = Console.register_buffer(ConsoleBuffer(2, 'binform'))
 
     def format(self, offset: int) -> str:
         cols = self._cols
@@ -52,31 +47,6 @@ class BinaryFormatter(AbstractFormatter):
             cols = self._compute_cols_num(len(prefix_example))
 
         final = ''
-            # if final_debug:
-            #     final_debug += Console.debug_on(self._print_debug_separator(cols, sgr=seq.GRAY), 3, ret=True)
-            # final_debug += Console.debug_on(self._wrap_bg(
-            #     f'POP {id(seg):x} {seg!r}',
-            #     seq.BG_BLACK) + '\n', 3, ret=True)
-            #
-            # seg_offset = self._sequencer.offset_raw
-            # seg_raw, seg_processed = seg.read_all(close=False)
-            # final_debug += Console.debug_on(
-            #     self._wrap_bg('{}{}{:+d}{}{}'.format(
-            #         self._print_offset_custom('', seg_offset, autof(seq.HI_YELLOW),
-            #                                   suffix=autof(seq.GRAY)('│')+autof(seq.INVERSED if seg.type_label.isupper() else seq.DIM
-            #                                                                          )(f'{seg.type_label}')+' '),
-            #         self._format_hex_row(seg_raw[:cols-1], cols-1),
-            #         max(0, len(seg_raw) - cols),
-            #         autof(seq.GRAY)('  │'),
-            #         self._translate_ascii_only(seg_raw[:cols-1].decode())
-            #     ), seq.BG_BLACK) + '\n', 2, ret=True
-            # )
-            # seg_offset += len(seg_raw)
-
-            #max_buffer_len = cols
-            #if self._sequencer.read_finished:  # reading finished, we have to empty the buffer completely
-            #    max_buffer_len = 0
-
         while len(self._chain_buffer) > 0:
             try:
                 if self._parser_buffer.read_finished:
@@ -97,27 +67,14 @@ class BinaryFormatter(AbstractFormatter):
                      f'{raw_hex_row}' + \
                      f'{self.PADDING_SECTION}' + \
                      autof(seq.CYAN)(f'│') + \
-                     f'{processed_row}' + \
-                     f'\n'
+                     f'{processed_row}' + f'\n'
 
             self._debug_buf.write(f'{print_offset(offset, fmt.yellow)}'
                                     f'{self.PADDING_SECTION:.2s}'
                                     f'{raw_row}'
                                     f'{self.PADDING_SECTION}' +
                                     autof(seq.CYAN)(f'│') + \
-                                  f'{self._transform_to_printable(bytes.fromhex(raw_row).decode("ascii", errors="replace"))}',
-                                    autof(seq.CYAN)(f'│'))
-
-
-            # final_debug += Console.debug(
-            #     self._wrap_bg('{}{}{}{}'.format(
-            #         self._print_offset_custom("", offset, autof(seq.YELLOW), suffix=autof(seq.GRAY)("│  ")),
-            #         self._format_hex_row(self._sanitize(processed_row), cols),
-            #         autof(seq.GRAY)('  │'),
-            #         self._translate_ascii_only(processed_row)),
-            #         seq.BG_BLACK) + '\n',
-            #     ret=True)
-
+                                    f'{self._transform_to_printable(bytes.fromhex(raw_row).decode("ascii", errors="replace"))}')
             offset += len(raw_row)
 
         if self._parser_buffer.read_finished:
@@ -138,9 +95,15 @@ class BinaryFormatter(AbstractFormatter):
         return ReplaceSGR('')(s)
 
     def _transform_to_printable(self, s: str) -> str:
-        return ''.join([
-            b if ord(b) in AbstractFormatter.PRINTABLE_CHARCODES else "." for b in self._sanitize(s)
-        ])
+        result = ''
+        for c in s:
+            if ord(c) in AbstractFormatter.WHITESPACE_CHARCODES:
+                result += '·'
+            elif ord(c) not in AbstractFormatter.PRINTABLE_CHARCODES:
+                result += '¿'
+            else:
+                result += c
+        return result
 
     def _print_debug_separator(self, cols: int, sgr: SequenceSGR = seq.GRAY + seq.BG_BLACK) -> str:
         if Settings.debug == 0:

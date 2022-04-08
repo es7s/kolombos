@@ -26,6 +26,7 @@ class AbstractFormatter(metaclass=abc.ABCMeta):
     CONTROL_CHARCODES = list(range(0x00, 0x09)) + list(range(0x0e, 0x20)) + list(range(0x7f, 0x100))
     WHITESPACE_CHARCODES = list(range(0x09, 0x0e)) + [0x20]
     PRINTABLE_CHARCODES = list(range(0x21, 0x7f))
+    BINARY_CHARCODES = list(range(0x80, 0x100))
 
     def __init__(self, parser_buffer: ParserBuffer, data_flow: ChainBuffer):
         self._parser_buffer = parser_buffer

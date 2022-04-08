@@ -22,8 +22,8 @@ class Reader(metaclass=abc.ABCMeta):
         self._chunk_size = self._get_chunk_size()
         self.read_callback = read_callback
 
-        self._debug_buf = Console.register_buffer(ConsoleBuffer(level=1, key_prefix='reader', offset_fmt=fmt.blue))
-        self._debug_buf2 = Console.register_buffer(ConsoleBuffer(level=2, key_prefix='reader'))
+        self._debug_buf = Console.register_buffer(ConsoleBuffer(1, 'reader', offset_fmt=fmt.blue))
+        self._debug_buf2 = Console.register_buffer(ConsoleBuffer(2, 'reader'))
 
     @property
     def reading_stdin(self) -> bool:

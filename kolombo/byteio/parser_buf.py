@@ -8,7 +8,7 @@ class ParserBuffer:
         self._raw_buffer: bytes = b''
         self._read_finished: bool = False
 
-        self._debug_buf: ConsoleBuffer = Console.register_buffer(ConsoleBuffer(level=2, key_prefix='parsbuf'))
+        self._debug_buf: ConsoleBuffer = Console.register_buffer(ConsoleBuffer(2, 'parsbuf'))
 
     def append_raw(self, b: bytes, done: bool = False):
         self._raw_buffer += b

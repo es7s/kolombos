@@ -1,5 +1,5 @@
 from math import ceil
-from typing import Any, List, AnyStr
+from typing import Any, List
 
 from pytermor import fmt, seq
 
@@ -31,7 +31,7 @@ def printd(v: Any, max_input_len: int = 5) -> str:
         return f'{length} ' + \
                f'{seq.GRAY}[' + \
                f'{v[:2*(max_input_len-1)]}' + \
-               (('..' + ''.join(v[-2:] )if len(v) > 2*(max_input_len - 1) else '')) + \
+               (('.. ' + ''.join(v[-2:] )if len(v) > 2*(max_input_len - 1) else '')) + \
                f']{seq.COLOR_OFF}'
 
     if isinstance(v, int):

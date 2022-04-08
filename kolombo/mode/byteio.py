@@ -1,4 +1,4 @@
-from kolombo.byteio.parser_buf import ParserBuffer
+from ..byteio.parser_buf import ParserBuffer
 from . import AbstractModeProcessor
 from ..app import App
 from ..byteio import ReadMode
@@ -20,7 +20,7 @@ class ByteIoProcessor(AbstractModeProcessor):
         self._formatter = FormatterFactory.create(read_mode, self._parser_buffer, self._chain_buffer)
         self._writer = Writer()
 
-        self._debug_buffer = Console.register_buffer(ConsoleBuffer(1, key_prefix=None))
+        self._debug_buffer = Console.register_buffer(ConsoleBuffer(1, None))
 
     def invoke(self):
         try:
