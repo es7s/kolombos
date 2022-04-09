@@ -17,9 +17,9 @@ def println(n: int = 1):
     print('\n'*n, end='')
 
 
+# @TODO refactor, move to COnsole
 def printd(v: Any, max_input_len: int = 5) -> str:
-    from .byteio.chain import Chain
-    if isinstance(v, Chain):
+    if hasattr(v, 'preview'):
         v = v.preview(max_input_len)
 
     if isinstance(v, (bytes, List)):
@@ -35,6 +35,7 @@ def printd(v: Any, max_input_len: int = 5) -> str:
                f']{seq.COLOR_OFF}'
 
     if isinstance(v, int):
+        return f'{v:0{ceil(len(str(v))/4)*4}d}'
         return f'0x{v:0{ceil(len(str(v))/2)*2}x}'
 
     return f'{v!s}'

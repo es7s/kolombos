@@ -3,6 +3,7 @@
 %(fmt_logo31)  / //_/%(fmt_logo32) __ \/ / __ \%(fmt_logo33)/ __ '__ \/ __ \/ __ \%(fmt_r)
 %(fmt_logo41) / ,< %(fmt_logo42)/ /_/ / / /_/ %(fmt_logo43)/ / / / / / /_/ / /_/ /%(fmt_r)
 %(fmt_logo51)/_/|_|%(fmt_logo52)\____/_/\____%(fmt_logo53)/_/ /_/ /_/\.___/\____/%(fmt_r)
+                                   %(fmt_ver1)v%(fmt_ver2)%(ver)%(fmt_r)
 
 %(fmt_header)ESCAPE SEQUENCES%(fmt_r)
 %(ex_esq_sgr_reset)SGR reset sequence
@@ -25,7 +26,7 @@
 %(ex_delete)delete
 %(ex_ascii_control)other ASCII control chars (01-07, 0e-1f)
 %(ex_null)null byte
-%(fmt_footer)[chr output  input    description]%(fmt_r)
+%(fmt_footer)[chr output  input]%(fmt_r)
 
 %(fmt_header)HEX OUTPUT FORMATS%(fmt_r) (binary mode):
 %(ex_bin_ascii_control)01 08 1f%(fmt_r)            ASCII controls (01-08, 0e-1f)

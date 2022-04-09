@@ -26,9 +26,10 @@ class Settings(Namespace):
     no_color_markers: bool
     no_line_numbers: bool
     text: bool
+    version: bool
 
     @staticmethod
-    def set_defaults():
+    def init_set_defaults():
         if not any([Settings.text, Settings.binary]):
             Settings.auto = True
 

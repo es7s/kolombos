@@ -1,2 +1,2 @@
-pytermor~=1.2.1
+pytermor~=1.3.1
 unicodedata2~=14.0

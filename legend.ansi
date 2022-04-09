@@ -3,9 +3,7 @@
 [1;92m  / //_/[96m __ \/ / __ \[95m/ __ '__ \/ __ \/ __ \[m
 [1;92m / ,< [36m/ /_/ / / /_/ [35m/ / / / / / /_/ / /_/ /[m
 [1;92m/_/|_|[34m\____/_/\____[34m/_/ /_/ /_/\.___/\____/[m
-
-[2m[chr output  input][22m
-
+                                   [34mv[1m0.9.3[m
 [1mESCAPE SEQUENCES[m:
  ϴ   [38;5;231mϴ[m[m     [38;5;231m1b[m [38;5;231m5b[m [38;5;231m6d[m         SGR reset sequence
  ǝ   [37;40;53mǝ[34;25m[34m[m   [37;40;53m1b[m [37;40;53m5b[m [37;40;53m33[m [37;40;53m34[m [37;40;53m6d[m   SGR sequence [2m(params' color is same as content color)[22m
@@ -27,6 +25,7 @@
  →   [31;40m→[m    [31;40m7f[m   delete
  Ɐ   [31;7;40mⱯ1[m   [31;7;40m01[m   other ASCII control chars (01-07, 0e-1f) [2m(focused)[22m
  Ø   [91;7;40mØ[m    [91;7;40m00[m   null byte [2m(focused)[22m
+[2m[chr output  input][22m
 
 [1mHEX OUTPUT FORMATS[m (binary mode):
  [31;40m01[m [31;40m08[m [31;7;40m1f[m      ASCII controls (01-08, 0e-1f) [2m(last one is focused)[22m

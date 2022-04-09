@@ -2,7 +2,7 @@ import abc
 from typing import Optional
 
 from pytermor import seq
-from pytermor.fmt import Format
+from pytermor.fmt import AbstractFormat
 from pytermor.seq import SequenceSGR
 
 
@@ -22,4 +22,4 @@ class Marker(metaclass=abc.ABCMeta):
         return self._marker_char
 
     @abc.abstractmethod
-    def get_fmt(self) -> Format: raise NotImplementedError
+    def get_fmt(self) -> AbstractFormat: raise NotImplementedError

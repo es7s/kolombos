@@ -4,6 +4,8 @@ from typing import Optional, Iterable, List
 
 from pytermor import fmt
 
+from kolombo.byteio.reader import Reader
+
 
 class CustomHelpFormatter(HelpFormatter):
     INDENT_INCREMENT = 2
@@ -113,6 +115,7 @@ class AppArgumentParser(CustomArgumentParser):
         modes_group_nested.add_argument('-t', '--text', action='store_true', default=False, help='open file in text mode')
         modes_group_nested.add_argument('-b', '--binary', action='store_true', default=False, help='open file in binary mode')
         modes_group_nested.add_argument('-l', '--legend', action='store_true', default=False, help='show annotation symbol list and exit')
+        modes_group.add_argument('-V', '--version', action='store_true', default=False, help='show app version and exit')
         modes_group.add_argument('-h', '--help', action='help', default=SUPPRESS, help='show this help message and exit')
 
         char_class_group = self.add_argument_group('character classes')
@@ -132,8 +135,10 @@ class AppArgumentParser(CustomArgumentParser):
         generic_group = self.add_argument_group('generic options')
         generic_group.add_argument('-L', '--max-lines', metavar='<num>', action='store', type=int, default=0, help='stop after reading <num> lines')
         generic_group.add_argument('-B', '--max-bytes', metavar='<num>', action='store', type=int, default=0, help='stop after reading <num> bytes')
-        generic_group.add_argument('-F', '--buffer', metavar='<size>', default=False, help='read buffer size in bytes; default 1024 (32 in debug mode)')
-        generic_group.add_argument('-D', '--debug', action='count', default=0, help='more details (can be used multiple times); implies -b')
+        generic_group.add_argument('-F', '--buffer', metavar='<size>', default=False,
+                                   help='read buffer size in bytes; default {} ({} in debug mode)'.
+                                   format(Reader.READ_CHUNK_SIZE, Reader.READ_CHUNK_SIZE_DEBUG))
+        generic_group.add_argument('-v', '--debug', action='count', default=0, help='more details (can be used multiple times); implies -b')
         generic_group.add_argument('--no-color-content', action='store_true', default=False, help='disable applying input file formatting to the output')
 
         text_mode_group = self.add_argument_group('text mode only')

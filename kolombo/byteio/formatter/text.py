@@ -6,7 +6,6 @@ from pytermor.seq import SequenceSGR
 from pytermor.util import ReplaceSGR
 
 from kolombo.byteio.parser_buf import ParserBuffer
-from .. import print_offset
 from ..chain import ChainBuffer
 from ..formatter import AbstractFormatter
 from ...settings import Settings
@@ -65,7 +64,7 @@ class TextFormatter(AbstractFormatter):
         # option to apply SGRs even with -E
         #if Settings.ignore_esc:
         #    if terminator == SequenceSGR.TERMINATOR and not Settings.no_color_content:
-        #        return self._escape_escape_character(str(SequenceSGR(*params_values)))
+        #        return self._escape_escape_character(SequenceSGR(*params_values)))
         #    return ''
 
         info = ''

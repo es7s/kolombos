@@ -28,9 +28,9 @@ class MarkerSGR(Marker):
             result += f'{sgr}{self._info_seq}{additional_info}'
 
         if Settings.effective_color_content():
-            result += str(self.PROHIBITED_CONTENT_BREAKER)  # ... content
+            result += (self.PROHIBITED_CONTENT_BREAKER)  # ... content
         else:
-            result += str(seq.RESET)  # ... content
+            result += (seq.RESET)  # ... content
         return result
 
     def get_fmt(self) -> Format:

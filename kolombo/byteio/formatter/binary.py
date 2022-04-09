@@ -6,12 +6,11 @@ from math import floor
 from typing import AnyStr, Match
 
 from pytermor import fmt, seq, autof
-from pytermor.fmt import Format, EmptyFormat
+from pytermor.fmt import AbstractFormat, EmptyFormat, Format
 from pytermor.seq import SequenceSGR
 from pytermor.util import ReplaceSGR
 
 from kolombo.byteio.parser_buf import ParserBuffer
-from .. import print_offset
 from ..chain import ChainBuffer, BufferWait
 from ..formatter import AbstractFormatter
 from ...console import Console, ConsoleBuffer
@@ -37,8 +36,8 @@ class BinaryFormatter(AbstractFormatter):
         self.PADDING_HEX_CHUNK = 2 * ' '
 
         self._cols = Settings.columns
-        self._debug_buf = Console.register_buffer(ConsoleBuffer(1))
-        self._debug_buf2 = Console.register_buffer(ConsoleBuffer(2, 'binform'))
+        self._debug_buf = Console.register_buffer(ConsoleBuffer(1, 'binform', prefix_fmt=fmt.yellow))
+        self._debug_buf2 = Console.register_buffer(ConsoleBuffer(2, 'binform', prefix_fmt=fmt.yellow))
 
     def format(self, offset: int) -> str:
         cols = self._cols
@@ -47,65 +46,50 @@ class BinaryFormatter(AbstractFormatter):
             cols = self._compute_cols_num(len(prefix_example))
 
         final = ''
-        while len(self._chain_buffer) > 0:
+        while self._chain_buffer.data_len > 0:
             try:
                 if self._parser_buffer.read_finished:
                     result = self._chain_buffer.read_all(self._format_raw)
                 else:
                     result = self._chain_buffer.read(cols, self._format_raw)
             except EOFError:
-                self._debug_buf2.write('EOF received')
                 break
             except BufferWait:
-                self._debug_buf2.write('BufferWait received')
                 break
 
             bytes_read, raw_row, proc_hex_row, proc_str_row = result
-
-            final += f'{print_offset(offset, fmt.green)}' \
+            final += f'{Console.prefix_offset(offset, fmt.green)}' \
                      f'{self.PADDING_SECTION:.2s}' + \
                      f'{proc_hex_row}' + \
                      f'{self.PADDING_SECTION}' + \
                      autof(seq.CYAN)(f'│') + \
                      f'{proc_str_row}' + \
                      f'\n'
-
-            self._debug_buf.write(f'{print_offset(offset, fmt.yellow)}'
-                                    f'{self.PADDING_SECTION:.2s}'
-                                    f'{self._format_raw(raw_row)}'
-                                    f'{self.PADDING_SECTION}' +
-                                    autof(seq.CYAN)(f'│') + \
+            self._debug_buf.write(f'{self._format_raw(raw_row)}'
+                                  f'{self.PADDING_SECTION}' +
+                                  autof(seq.CYAN)(f'│') + \
                                   f'{self._transform_to_printable(raw_row.decode("ascii", errors="replace"))}',
-                                    autof(seq.CYAN)(f'│'))
+                                  offset=offset)
 
-
-            # final_debug += Console.debug(
-            #     self._wrap_bg('{}{}{}{}'.format(
-            #         self._print_offset_custom("", offset, autof(seq.YELLOW), suffix=autof(seq.GRAY)("│  ")),
-            #         self._format_hex_row(self._sanitize(processed_row), cols),
-            #         autof(seq.GRAY)('  │'),
-            #         self._translate_ascii_only(processed_row)),
-            #         seq.BG_BLACK) + '\n',
-            #     ret=True)
-
+            Console.flush_buffers()
             offset += bytes_read
 
         if self._parser_buffer.read_finished:
-            final += (print_offset(offset, EmptyFormat()) + '\n')
+            final += (Console.prefix_offset(offset, EmptyFormat()) + '\n')
 
         #if final_debug:
         #    final_debug += (Console.debug(self._print_debug_separator(cols, sgr=seq.CYAN), ret=True))
         #if final_debug:
         #    final += (Console.debug(self._print_debug_separator(cols, sgr=seq.CYAN), ret=True))
 
-        Console.flush_buffers()
         return final
+
 
     def _format_raw(self, bs: bytes) -> str:
         return ''.join([f' {b:02x}' for b in bs])
 
     def _sanitize(self, s: str) -> str:
-        return ReplaceSGR('')(s)
+        return ReplaceSGR('').apply(s)
 
     def _transform_to_printable(self, s: str) -> str:
         result = ''
@@ -122,19 +106,19 @@ class BinaryFormatter(AbstractFormatter):
         if Settings.debug == 0:
             return ''
         s = f'{seq.RESET}{sgr}' + '─'*6 + f'┼' + '─'*(len(self._format_hex_row(b'', cols)) + 4) + f'┼'
-        l = len(ReplaceSGR()(s))
-        return s + '─'*(max(0, self._get_terminal_width() - l)) + f'{seq.RESET}\n'
+        l = len(ReplaceSGR().apply(s))
+        return s + '─'*(max(0, get_terminal_width() - l)) + f'{seq.RESET}\n'
 
     def _wrap_bg(self, s: str, sgr: SequenceSGR) -> str:
-        l = len(ReplaceSGR()(s))
-        return autof(sgr)(s + ' '*(max(0, self._get_terminal_width() - l)))
+        l = len(ReplaceSGR().apply(s))
+        return autof(sgr)(s + ' '*(max(0, get_terminal_width() - l)))
 
     def _print_offset_custom(self, prefix: str, offset: int, f: Format, suffix: str = ''):
         return prefix + \
                f(
-                   f'{offset:d}'.rjust(6 - len(ReplaceSGR().invoke(prefix))) +
+                   f'{offset:d}'.rjust(6 - len(ReplaceSGR().apply(prefix))) +
                    (f'│' if not suffix else '')
-               ) + suffix + ''.rjust(2 - len(ReplaceSGR().invoke(suffix))) + ('' if not suffix else '')
+               ) + suffix + ''.rjust(2 - len(ReplaceSGR().apply(suffix))) + ('' if not suffix else '')
 
     def _format_hex_row(self, row: str, cols: int) -> str:
         chunks = []
@@ -165,7 +149,7 @@ class BinaryFormatter(AbstractFormatter):
                 marker = MarkerRegistry.marker_sgr_reset
             else:
                 marker = MarkerRegistry.marker_sgr
-            mmatch.sgr_seq = str(SequenceSGR(*params_values))
+            mmatch.sgr_seq = (SequenceSGR(*params_values))
         else:
             marker = MarkerRegistry.marker_esq_csi
 
@@ -229,7 +213,6 @@ class BinaryFormatter(AbstractFormatter):
         self._add_marker_match(MarkerMatch(match, marker, overwrite=True))
         return marker.marker_char
 
-
     def _compute_cols_num(self, offset_len: int):
         width = get_terminal_width()
         # offset section
@@ -248,5 +231,5 @@ class BinaryFormatter(AbstractFormatter):
         chunk_fit = floor(available_total / chunk_len)
 
         result = chunk_fit * self.BYTE_CHUNK_LEN
-        self._debug_buf2.write(f'Columns amount autoset: {fmt.bold(str(result))}')
+        self._debug_buf2.write(f'Columns amount set to: {fmt.bold(str(result))}')
         return result

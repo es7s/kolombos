@@ -49,12 +49,11 @@ class Parser:
         self._chain_buffer: ChainBuffer = data_flow
         self._offset = 0
 
-        self._debug_buffer = Console.register_buffer(ConsoleBuffer(1, 'parser'))
-        self._debug_buffer2 = Console.register_buffer(ConsoleBuffer(2, 'parser', offset_fmt=fmt.cyan))
+        self._debug_buffer2 = Console.register_buffer(ConsoleBuffer(2, 'parser', prefix_fmt=fmt.cyan))
 
     def parse(self, buffered_raw_input: bytes, offset: int):
         self._offset = offset
-        self._debug_buffer2.write(f'Received segment: {printd(buffered_raw_input)}')
+        self._debug_buffer2.write(f'Parsing segment: {printd(buffered_raw_input)}')
 
         unmatched = apply_filters(buffered_raw_input, self.F_SEPARATOR)
         try:
@@ -67,28 +66,19 @@ class Parser:
     def _substitute(self, m: Match) -> bytes:
         mgroups = {idx: grp for idx, grp in enumerate(m.groups()) if grp}
         primary_mgroup = min(mgroups.keys())
-        span = cast(bytes, m.group(primary_mgroup+1))
-        self._debug_buffer2.write(f'Match group #{primary_mgroup:02d}',
-                                  offset=(self._offset + m.start(primary_mgroup + 1)),
-                                  end='', flush=False)
-
-        self._handle(primary_mgroup, span)
+        raw = cast(bytes, m.group(primary_mgroup+1))
+        self._debug_print_match_group(primary_mgroup, suboffset=m.start(primary_mgroup + 1))
+        self._handle(primary_mgroup, raw)
         return b''
 
-    def _handle(self, mgroup: int, span: bytes):
+    def _handle(self, mgroup: int, raw: bytes):
         _handler_fn = self._find_handler(mgroup)
         if not _handler_fn:
-            raise RuntimeError(f'No handler defined for mgroup {mgroup}: {span.hex(" ")}')
+            raise RuntimeError(f'No handler defined for mgroup {mgroup}: {raw.hex(" ")}')
 
-        sample = _handler_fn(span)
-
-        debug_msg = f'/{sample.template.type_label}: {printd(span)}'
-        debug_processed_bytes = sample.get_processed(len(span)).encode('ascii', errors="replace")
-        if span != debug_processed_bytes:
-            debug_msg += f' -> {printd(debug_processed_bytes)}'
-        self._debug_buffer2.write(debug_msg, no_default_prefix=True)
-
-        self._chain_buffer.add(span, sample)
+        sample = _handler_fn(raw)
+        self._debug_print_match_sample(raw, sample)
+        self._chain_buffer.add(raw, sample)
 
     def _find_handler(self, mgroup: int) -> Callable[[bytes], SegmentTemplateSample]|None:
         if mgroup == 0:
@@ -108,52 +98,64 @@ class Parser:
         if mgroup == 25:
             return self._handle_ascii_printable_chars
         return None
+    
+    def _debug_print_match_group(self, mgroup: int, suboffset: int):
+        self._debug_buffer2.write(f'Match group #{mgroup:02d}',
+                                  offset=(self._offset + suboffset),
+                                  end='', flush=False)
 
-    def _handle_utf8_char_bytes(self, span: bytes) -> SegmentTemplateSample: 
+    def _debug_print_match_sample(self, raw: bytes, sample: SegmentTemplateSample):
+        debug_msg = f'/{sample.template.type_label}: {printd(raw)}'
+        debug_processed_bytes = sample.get_processed(len(raw)).encode('ascii', errors="replace")
+        if raw != debug_processed_bytes:
+            debug_msg += f' -> {printd(debug_processed_bytes)}'
+        self._debug_buffer2.write(debug_msg, no_default_prefix=True)
+
+    def _handle_utf8_char_bytes(self, raw: bytes) -> SegmentTemplateSample: 
         if Settings.ignore_utf8:
             return template.T_IGNORED.sample()
         if not Settings.decode:
             return template.T_UTF8.sample()
 
-        decoded = span.decode('utf8', errors='replace')
-        if len(decoded) < len(span):
-            decoded = decoded.rjust(len(span), '_')
-        elif len(decoded) > len(span):
-            decoded = decoded[:len(span)]
+        decoded = raw.decode('utf8', errors='replace')
+        if len(decoded) < len(raw):
+            decoded = decoded.rjust(len(raw), '_')
+        elif len(decoded) > len(raw):
+            decoded = decoded[:len(raw)]
         return template.T_UTF8.sample(decoded)
 
-    def _handle_binary_data_bytes(self, span: bytes) -> SegmentTemplateSample: 
+    def _handle_binary_data_bytes(self, raw: bytes) -> SegmentTemplateSample: 
         return template.T_TEMP.sample()
 
-    def _handle_csi_esq_bytes(self, span: bytes) -> SegmentTemplateSample: 
+    def _handle_csi_esq_bytes(self, raw: bytes) -> SegmentTemplateSample: 
         return template.T_TEMP.sample()
 
-    def _handle_nf_esq_bytes(self, span: bytes) -> SegmentTemplateSample: 
+    def _handle_nf_esq_bytes(self, raw: bytes) -> SegmentTemplateSample: 
         return template.T_TEMP.sample()
 
-    def _handle_fp_esq_bytes(self, span: bytes) -> SegmentTemplateSample: 
+    def _handle_fp_esq_bytes(self, raw: bytes) -> SegmentTemplateSample: 
         return template.T_TEMP.sample()
 
-    def _handle_fe_esq_bytes(self, span: bytes) -> SegmentTemplateSample: 
+    def _handle_fe_esq_bytes(self, raw: bytes) -> SegmentTemplateSample: 
         return template.T_TEMP.sample()
 
-    def _handle_fs_esq_bytes(self, span: bytes) -> SegmentTemplateSample: 
+    def _handle_fs_esq_bytes(self, raw: bytes) -> SegmentTemplateSample: 
         return template.T_TEMP.sample()
 
-    def _handle_ascii_control_chars(self, span: bytes) -> SegmentTemplateSample: 
+    def _handle_ascii_control_chars(self, raw: bytes) -> SegmentTemplateSample: 
         if Settings.ignore_control:
             return template.T_IGNORED.sample()
         return template.T_CONTROL.sample()
 
-    def _handle_ascii_whitespace_chars(self, span: bytes) -> SegmentTemplateSample: 
+    def _handle_ascii_whitespace_chars(self, raw: bytes) -> SegmentTemplateSample: 
         if Settings.ignore_space:
             return template.T_IGNORED.sample()
         return template.T_WHITESPACE.sample()
 
-    def _handle_ascii_newline_chars(self, span: bytes) -> SegmentTemplateSample: 
+    def _handle_ascii_newline_chars(self, raw: bytes) -> SegmentTemplateSample: 
         if Settings.ignore_space:
             if self._mode == ReadMode.TEXT:
-                return template.T_NEWLINE_TEXT.sample('\n'*len(span))
+                return template.T_NEWLINE_TEXT.sample('\n'*len(raw))
             else:
                 return template.T_IGNORED.sample()
 
@@ -161,22 +163,21 @@ class Parser:
             return template.T_NEWLINE_TEXT.sample()
         return template.T_NEWLINE.sample()
 
-    def _handle_ascii_space_chars(self, span: bytes) -> SegmentTemplateSample:
-        return self._handle_ascii_whitespace_chars(span)
+    def _handle_ascii_space_chars(self, raw: bytes) -> SegmentTemplateSample:
+        return self._handle_ascii_whitespace_chars(raw)
 
-    def _handle_ascii_printable_chars(self, span: bytes) -> SegmentTemplateSample:
-        return template.T_DEFAULT.sample(span.decode('utf8', errors='replace'))
+    def _handle_ascii_printable_chars(self, raw: bytes) -> SegmentTemplateSample:
+        return template.T_DEFAULT.sample(raw.decode('utf8', errors='replace'))
 
     def _verify(self, unmatched: bytes):
         raw_input = self._parser_buffer.get_raw()
-        self._debug_buffer.write(f'Unmatched: {printd(unmatched)}')
+        self._debug_buffer2.write(f'Pre-parser buffer: {printd(unmatched)}')
 
         if not raw_input.endswith(unmatched):
-            assert len(unmatched) == 0, \
-                f'Some bytes unprocessed ({len(unmatched)}: {unmatched.hex(" ")!s:.32s})'
+            assert len(unmatched) == 0, f'Some bytes unprocessed ({len(unmatched)}: {unmatched.hex(" ")!s:.32s})'
 
-        raw_len = len(self._chain_buffer._raw)
-        processed_len = len(self._chain_buffer._processed)
+        raw_len = self._chain_buffer.data_len
+        processed_len = self._chain_buffer._processed.data_len
         if self._mode == ReadMode.BINARY:
             assert raw_len == processed_len, \
                 f'Total count of processed bytes {processed_len} is not equal to count of raw bytes {raw_len}'

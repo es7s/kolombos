@@ -37,7 +37,6 @@ class ByteIoProcessor(AbstractModeProcessor):
     def _process_chunk_buffered(self, raw_input: bytes, offset: int, finish: bool):
         self._parser_buffer.append_raw(raw_input, finish)
         self._parser.parse(self._parser_buffer.get_raw(), offset)
-        self._chain_buffer.status()
         output = self._formatter.format(offset)
         self._writer.write(output)
 

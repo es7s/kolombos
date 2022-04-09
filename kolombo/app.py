@@ -22,7 +22,7 @@ class App:
 
     def _parse_args(self):
         AppArgumentParser().parse_args(namespace=Settings)
-        Settings.set_defaults()
+        Settings.init_set_defaults()
 
     @staticmethod
     def exit(code: int = 0):

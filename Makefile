@@ -22,6 +22,9 @@ help:
 cleanup:
 	rm -f -v dist/*
 
+prepare:
+	python3 -m pip install --upgrade build twine
+
 set-version: ## set new package version
 	@echo "Current version: ${YELLOW}${VERSION}${RESET}"
 	read -p "New version (press enter to keep current): " VERSION
@@ -33,8 +36,9 @@ set-version: ## set new package version
 
 build: ## build module
 	python3 -m build
+	sed -E -i "s/^VERSION.+/VERSION=$$VERSION/" .env.dist
 
-## Deploying (dev)
+## Making new release (test repo)
 
 upload-dev: ## upload module to test repository
 	python3 -m twine upload --repository testpypi dist/* -u ${PYPI_USERNAME} -p ${PYPI_PASSWORD}
@@ -45,7 +49,7 @@ install-dev: ## install module from test repository
 release-dev: ## build, upload and install using test repository
 release-dev: cleanup build upload-dev install-dev
 
-## Deploying (dist)
+## Making new release
 
 upload: ## upload module
 	echo "upload"

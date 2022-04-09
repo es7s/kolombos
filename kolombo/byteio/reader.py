@@ -12,8 +12,8 @@ from ..settings import Settings
 
 
 class Reader(metaclass=abc.ABCMeta):
-    _READ_CHUNK_SIZE: int = 1024
-    _READ_CHUNK_SIZE_DEBUG: int = 64
+    READ_CHUNK_SIZE: int = 1024
+    READ_CHUNK_SIZE_DEBUG: int = 64
 
     def __init__(self, filename: str|None, read_callback: Callable[[bytes, int, bool], None]):
         self._filename = filename
@@ -22,8 +22,8 @@ class Reader(metaclass=abc.ABCMeta):
         self._chunk_size = self._get_chunk_size()
         self.read_callback = read_callback
 
-        self._debug_buf = Console.register_buffer(ConsoleBuffer(1, 'reader', offset_fmt=fmt.blue))
-        self._debug_buf2 = Console.register_buffer(ConsoleBuffer(2, 'reader'))
+        self._debug_buf = Console.register_buffer(ConsoleBuffer(1, 'reader', fmt.blue))
+        self._debug_buf2 = Console.register_buffer(ConsoleBuffer(2, 'reader', fmt.blue))
 
     @property
     def reading_stdin(self) -> bool:
@@ -80,8 +80,8 @@ class Reader(metaclass=abc.ABCMeta):
         if Settings.buffer:
             return int(Settings.buffer)
         if Settings.debug > 0:
-            return self._READ_CHUNK_SIZE_DEBUG
-        return self._READ_CHUNK_SIZE
+            return self.READ_CHUNK_SIZE_DEBUG
+        return self.READ_CHUNK_SIZE
 
     def close(self):
         if self._io and not self._io.closed:

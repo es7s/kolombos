@@ -66,7 +66,7 @@ T_WHITESPACE = SegmentTemplateWhitespace('␣')
 T_NEWLINE = SegmentTemplateWhitespace('↵')
 T_NEWLINE_TEXT = SegmentTemplateWhitespace('↵\n')
 T_CONTROL = SegmentTemplate('Ɐ', 'C', (seq.RED + seq.INVERSED) if Settings.focus_control else seq.RED)
-T_TEMP = SegmentTemplate('▯', '?', seq.UNDERLINED)
+T_TEMP = SegmentTemplate('▯', '?', seq.HI_YELLOW + seq.BG_RED)
 
 # marker_tab = MarkerWhitespace('⇥')
 # marker_tab_keep_orig = MarkerWhitespace('⇥\t')

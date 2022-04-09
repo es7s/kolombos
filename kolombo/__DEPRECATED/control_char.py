@@ -1,5 +1,5 @@
 from pytermor import seq
-from pytermor.fmt import Format
+from pytermor.fmt import AbstractFormat, Format
 from pytermor.seq import SequenceSGR
 
 from . import Marker
@@ -17,7 +17,7 @@ class MarkerControlChar(Marker):
         marker = self.marker_char.format(*tpl_args)
         return self.get_fmt()(marker)
 
-    def get_fmt(self) -> Format:
+    def get_fmt(self) -> AbstractFormat:
         if self._no_focus:
             return self._fmt
         if Settings.focus_control:

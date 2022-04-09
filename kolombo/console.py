@@ -5,24 +5,25 @@ import traceback
 from typing import List
 
 from pytermor import autof, seq, fmt
-from pytermor.fmt import Format, EmptyFormat
+from pytermor.fmt import AbstractFormat
 
+from .error import ArgumentError
 from .settings import Settings
 from .util import get_terminal_width, printd
 
 
 class ConsoleBuffer:
-    def __init__(self, level: int = 1, key_prefix: str = None, offset_fmt: Format = fmt.green):
+    def __init__(self, level: int = 1, key_prefix: str = None, prefix_fmt: AbstractFormat = fmt.green):
         self._buf = ''
         self._level = level
 
-        self._default_prefix = Console.prefix(key_prefix, autof(seq.GRAY)) if key_prefix else None
-        self._offset_fmt = offset_fmt
+        self._default_prefix = Console.prefix(key_prefix, prefix_fmt) if key_prefix else None
+        self._prefix_fmt = prefix_fmt
 
     def write(self, s: str, offset: int = None, end='\n', no_default_prefix=False, flush=True):
         prefix = ''
         if isinstance(offset, int):
-            prefix = Console.prefix_offset(offset, self._offset_fmt)
+            prefix = Console.prefix_offset(offset, self._prefix_fmt)
         elif self._default_prefix is not None:
             if not no_default_prefix:
                 prefix = self._default_prefix
@@ -34,10 +35,9 @@ class ConsoleBuffer:
     def flush(self):
         if not self._buf:
             return
-        fmted = autof(seq.BG_BLACK)(self._buf)
-        self._buf = ''
 
-        Console.debug(fmted, level=self._level, end='')
+        Console.debug(self._buf, level=self._level, end='')
+        self._buf = ''
 
 
 class Console:
@@ -60,13 +60,19 @@ class Console:
     @staticmethod
     def on_exception(e: Exception):
         Console.flush_buffers()
-        if Settings.debug > 0:
+
+        if isinstance(e, ArgumentError):
+            Console.error(f'{e.__class__.__name__}: {e!s}')
+            Console.info(e.USAGE_MSG)
+
+        elif Settings.debug > 0:
             tb_lines = [line.rstrip('\n')
                         for line
                         in traceback.format_exception(e.__class__, e, e.__traceback__)]
             error = tb_lines.pop(-1)
             Console._print(Console.FMT_ERROR_TRACE('\n'.join(tb_lines)))
             Console.error(error)
+
         else:
             Console.error(f'{e.__class__.__name__}: {e!s}')
             Console.info("Run the app with '--debug' argument to see the details")
@@ -74,7 +80,7 @@ class Console:
     @staticmethod
     def debug(s: str = '', level=1, end='\n'):
         if Settings.debug >= level:
-            Console._print(s, end=end)
+            Console._print(autof(seq.BG_BLACK).wrap(s), end=end)
 
     @staticmethod
     def info(s: str = '', end='\n'):
@@ -89,18 +95,18 @@ class Console:
         Console._print(Console.FMT_ERROR(fmt.bold('ERROR: ') + s), end=end, file=sys.stderr)
 
     @staticmethod
-    def separator():
+    def separator() -> str:
         prefix = ('─'*8 + '┼')
         width = get_terminal_width()
         main_len = width - len(prefix)
         return prefix + ('─'*main_len)
 
     @staticmethod
-    def prefix(label: str, f: Format):
+    def prefix(label: str, f: AbstractFormat) -> str:
         return f(f'{label!s:>8.8s}') + fmt.cyan('│ ')
 
     @staticmethod
-    def prefix_offset(offset: int, f: Format = fmt.green):
+    def prefix_offset(offset: int, f: AbstractFormat = fmt.green) -> str:
         return Console.prefix(printd(offset), f)
 
     @staticmethod
