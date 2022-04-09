@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import abc
-from typing import Match, Tuple
 
 from .. import ReadMode
 from ..chain import ChainBuffer
@@ -28,24 +27,9 @@ class AbstractFormatter(metaclass=abc.ABCMeta):
     PRINTABLE_CHARCODES = list(range(0x21, 0x7f))
     BINARY_CHARCODES = list(range(0x80, 0x100))
 
-    def __init__(self, parser_buffer: ParserBuffer, data_flow: ChainBuffer):
+    def __init__(self, parser_buffer: ParserBuffer, chain_buffer: ChainBuffer):
         self._parser_buffer = parser_buffer
-        self._chain_buffer = data_flow
+        self._chain_buffer = chain_buffer
 
     @abc.abstractmethod
-    def format(self, offset: int) -> str: raise NotImplementedError
-
-    @abc.abstractmethod
-    def _format_csi_sequence(self, match: Match) -> str: raise NotImplementedError
-
-    @abc.abstractmethod
-    def _format_generic_escape_sequence(self, match: Match) -> str: raise NotImplementedError
-
-    @abc.abstractmethod
-    def _format_control_char(self, match: Match) -> str: raise NotImplementedError
-
-    @abc.abstractmethod
-    def _format_space(self, match: Match) -> str: raise NotImplementedError
-
-    @abc.abstractmethod
-    def _format_whitespace(self, match: Match) -> str: raise NotImplementedError
+    def format(self) -> str: raise NotImplementedError

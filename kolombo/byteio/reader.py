@@ -22,8 +22,9 @@ class Reader(metaclass=abc.ABCMeta):
         self._chunk_size = self._get_chunk_size()
         self.read_callback = read_callback
 
-        self._debug_buf = Console.register_buffer(ConsoleBuffer(1, 'reader', fmt.blue))
-        self._debug_buf2 = Console.register_buffer(ConsoleBuffer(2, 'reader', fmt.blue))
+        self._debug_buf = Console.register_buffer(ConsoleBuffer(1, 'reader', fmt.magenta))
+        self._debug_buf2 = Console.register_buffer(ConsoleBuffer(2, 'reader', fmt.magenta))
+        self._debug_buf3 = Console.register_buffer(ConsoleBuffer(3, 'reader', fmt.magenta))
 
     @property
     def reading_stdin(self) -> bool:
@@ -36,22 +37,25 @@ class Reader(metaclass=abc.ABCMeta):
         max_bytes = Settings.max_bytes
         max_lines = Settings.max_lines
         lines = 0
+        chunks = 0
         try:
             while raw_input := self._io.read(self._chunk_size):
-                self._debug_buf.write(f'Read chunk: {printd(raw_input, 5)}', offset=self._offset)
+                self._debug_buf.write(f'Read chunk #{chunks}: {printd(raw_input, 5)}', offset=self._offset)
+                chunks += 1
                 if max_lines:
                     for line_break in re.finditer(b'\x0a', raw_input):
                         lines += 1
                         if lines >= Settings.max_lines:
                             raw_input = raw_input[:line_break.end()-1]
-                            self._debug_buf.write(f'Line limit exceeded: {max_lines}', offset=self._offset)
-                            self._debug_buf2.write(f'Cropping input -> {printd(raw_input)}', offset=self._offset)
+                            self._debug_buf.write('Line limit exceeded: ' + fmt.bold(str(max_lines)), offset=self._offset)
+                            self._debug_buf3.write(f'Cropping input -> {printd(raw_input)}', offset=self._offset)
                             break
 
                 if max_bytes and self._offset + len(raw_input) > max_bytes:
-                    raw_input = raw_input[:max_bytes - (self._offset + len(raw_input))]
-                    self._debug_buf.write(f'Byte limit exceeded: {max_bytes}', offset=self._offset)
-                    self._debug_buf2.write(f'Cropping input -> {printd(raw_input)}', offset=self._offset)
+                    raw_input = raw_input[:max_bytes - self._offset]
+                    self._debug_buf.write('Byte limit exceeded: ' + fmt.bold(str(max_bytes)), offset=self._offset)
+                    self._debug_buf3.write(f'Cropping input -> {printd(raw_input)}', offset=self._offset)
+                    break
 
                 self.read_callback(raw_input, self._offset, False)
                 self._offset += len(raw_input)
@@ -60,7 +64,7 @@ class Reader(metaclass=abc.ABCMeta):
                    (max_lines and lines >= max_lines):
                     break
 
-            self._debug_buf.write(f'Read EOF', offset=self._offset)
+            self._debug_buf.write(f'Encountered EOF', offset=self._offset)
             self.read_callback(raw_input, self._offset, True)
 
         except KeyboardInterrupt:

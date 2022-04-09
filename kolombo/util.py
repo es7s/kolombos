@@ -3,6 +3,8 @@ from typing import Any, List
 
 from pytermor import fmt, seq
 
+from kolombo.settings import Settings
+
 
 def get_terminal_width() -> int:
     try:
@@ -23,19 +25,18 @@ def printd(v: Any, max_input_len: int = 5) -> str:
         v = v.preview(max_input_len)
 
     if isinstance(v, (bytes, List)):
-        length = 'len ' + fmt.bold(str(len(v)))
+        result = 'len ' + fmt.bold(str(len(v)))
+        if not Settings.debug_buffer_contents:
+            return result
+
         if len(v) == 0:
-            return f'{length} {seq.GRAY}[]{seq.COLOR_OFF}'
+            return f'{result} {seq.GRAY}[]{seq.COLOR_OFF}'
         if isinstance(v, bytes):
             v = ' '.join([f'{b:02x}' for b in v])
-        return f'{length} ' + \
+        return f'{result} ' + \
                f'{seq.GRAY}[' + \
                f'{v[:2*(max_input_len-1)]}' + \
                (('.. ' + ''.join(v[-2:] )if len(v) > 2*(max_input_len - 1) else '')) + \
                f']{seq.COLOR_OFF}'
-
-    if isinstance(v, int):
-        return f'{v:0{ceil(len(str(v))/4)*4}d}'
-        return f'0x{v:0{ceil(len(str(v))/2)*2}x}'
 
     return f'{v!s}'

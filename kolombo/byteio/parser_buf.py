@@ -1,18 +1,25 @@
 from __future__ import annotations
 
+from pytermor import fmt
+
 from kolombo.console import Console, printd, ConsoleBuffer
 
 
 class ParserBuffer:
     def __init__(self):
         self._raw_buffer: bytes = b''
-        self._read_finished: bool = False
+        self._closed: bool = False
 
-        self._debug_buf: ConsoleBuffer = Console.register_buffer(ConsoleBuffer(2, 'parsbuf'))
+        self._debug_buf: ConsoleBuffer = Console.register_buffer(ConsoleBuffer(1, 'parsbuf', fmt.blue))
+        self._debug_buf2: ConsoleBuffer = Console.register_buffer(ConsoleBuffer(2, 'parsbuf', fmt.blue))
 
     def append_raw(self, b: bytes, done: bool = False):
         self._raw_buffer += b
-        self._read_finished = done
+        self._closed = done
+
+        self._debug_buf2.write(f'Buffer state: {printd(self._raw_buffer)}')
+        if done:
+            self._debug_buf.write('Closing buffer for input')
 
     def get_raw(self) -> bytes:
         return self._raw_buffer
@@ -27,7 +34,7 @@ class ParserBuffer:
             raise RuntimeError(f'New buffer is not a part of the current one: {printd(new_buffer, 32)}')
 
         self._raw_buffer = self._raw_buffer[offset_delta:]
-        self._debug_buf.write(f'Parser pre-buffer -> {printd(self._raw_buffer)}')
+        self._debug_buf2.write(f'Parser pre-buffer -> {printd(self._raw_buffer)}')
 
     @property
-    def read_finished(self) -> bool: return self._read_finished
+    def closed(self) -> bool: return self._closed

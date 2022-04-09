@@ -37,10 +37,10 @@ class ByteIoProcessor(AbstractModeProcessor):
     def _process_chunk_buffered(self, raw_input: bytes, offset: int, finish: bool):
         self._parser_buffer.append_raw(raw_input, finish)
         self._parser.parse(self._parser_buffer.get_raw(), offset)
-        output = self._formatter.format(offset)
+        output = self._formatter.format()
         self._writer.write(output)
 
-        self._debug_buffer.write(Console.separator())
+        self._debug_buffer.write(Console.separator_line())
 
     def _get_read_mode_from_settings(self) -> ReadMode:
         if Settings.binary:

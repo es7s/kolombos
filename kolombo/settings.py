@@ -8,6 +8,7 @@ class Settings(Namespace):
     buffer: int
     columns: int
     debug: int
+    debug_buffer_contents = bool
     decode: bool
     filename: Optional[str]
     focus_control: bool
@@ -32,6 +33,7 @@ class Settings(Namespace):
     def init_set_defaults():
         if not any([Settings.text, Settings.binary]):
             Settings.auto = True
+        Settings.debug_buffer_contents = (Settings.debug >= 3)
 
     @staticmethod
     def effective_color_content() -> bool:

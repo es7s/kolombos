@@ -10,7 +10,7 @@ class VersionModeProcessor(AbstractModeProcessor):
         with open(join(dirname(realpath(__file__)), '..', '..', '.env.dist'), 'rt') as f:
             Console.debug(f"Reading '{abspath(f.name)}'", 1)
             for line in f.readlines():
-                if version := re.match(r'^VERS2ION\s*=\s*(.+)$', line):
+                if version := re.match(r'^VERSION\s*=\s*(.+)$', line):
                     Console.info(version.group(1))
                     return
             raise RuntimeError('Could not find version in .env file')

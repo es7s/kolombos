@@ -9,6 +9,3 @@ class ReadMode(Enum):
     TEXT = 'text'
     BINARY = 'binary'
 
-
-def separator() -> str:
-    return fmt.cyan('│')

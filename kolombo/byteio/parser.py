@@ -49,17 +49,18 @@ class Parser:
         self._chain_buffer: ChainBuffer = data_flow
         self._offset = 0
 
+        self._debug_buffer = Console.register_buffer(ConsoleBuffer(1, 'parser', prefix_fmt=fmt.cyan))
         self._debug_buffer2 = Console.register_buffer(ConsoleBuffer(2, 'parser', prefix_fmt=fmt.cyan))
 
     def parse(self, buffered_raw_input: bytes, offset: int):
         self._offset = offset
-        self._debug_buffer2.write(f'Parsing segment: {printd(buffered_raw_input)}')
+        self._debug_buffer.write(f'Parsing segment: {printd(buffered_raw_input)}')
 
         unmatched = apply_filters(buffered_raw_input, self.F_SEPARATOR)
         try:
             self._verify(unmatched)
         except AssertionError as e:
-            raise RuntimeError(f'Parsing inconsistency at {printd(self._offset)}') from e
+            raise RuntimeError(f'Parsing inconsistency at {Console.print_offset(self._offset)}') from e
 
         self._parser_buffer.crop_raw(unmatched)
 
@@ -114,15 +115,17 @@ class Parser:
     def _handle_utf8_char_bytes(self, raw: bytes) -> SegmentTemplateSample: 
         if Settings.ignore_utf8:
             return template.T_IGNORED.sample()
-        if not Settings.decode:
-            return template.T_UTF8.sample()
 
-        decoded = raw.decode('utf8', errors='replace')
-        if len(decoded) < len(raw):
-            decoded = decoded.rjust(len(raw), '_')
-        elif len(decoded) > len(raw):
-            decoded = decoded[:len(raw)]
-        return template.T_UTF8.sample(decoded)
+        if self._mode == ReadMode.TEXT or Settings.decode:
+            decoded = raw.decode('utf8', errors='replace')
+            if self._mode == ReadMode.BINARY:
+                if len(decoded) < len(raw):
+                    decoded = decoded.rjust(len(raw), '_')
+                elif len(decoded) > len(raw):
+                    decoded = decoded[:len(raw)]
+            return template.T_UTF8.sample(decoded)
+
+        return template.T_UTF8.sample()
 
     def _handle_binary_data_bytes(self, raw: bytes) -> SegmentTemplateSample: 
         return template.T_TEMP.sample()
@@ -171,8 +174,6 @@ class Parser:
 
     def _verify(self, unmatched: bytes):
         raw_input = self._parser_buffer.get_raw()
-        self._debug_buffer2.write(f'Pre-parser buffer: {printd(unmatched)}')
-
         if not raw_input.endswith(unmatched):
             assert len(unmatched) == 0, f'Some bytes unprocessed ({len(unmatched)}: {unmatched.hex(" ")!s:.32s})'
 

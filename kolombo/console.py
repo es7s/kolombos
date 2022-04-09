@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 import traceback
+from math import ceil
 from typing import List
 
 from pytermor import autof, seq, fmt
@@ -17,7 +18,7 @@ class ConsoleBuffer:
         self._buf = ''
         self._level = level
 
-        self._default_prefix = Console.prefix(key_prefix, prefix_fmt) if key_prefix else None
+        self._default_prefix = Console.prefix(key_prefix, fmt.gray) if key_prefix else None
         self._prefix_fmt = prefix_fmt
 
     def write(self, s: str, offset: int = None, end='\n', no_default_prefix=False, flush=True):
@@ -80,7 +81,7 @@ class Console:
     @staticmethod
     def debug(s: str = '', level=1, end='\n'):
         if Settings.debug >= level:
-            Console._print(autof(seq.BG_BLACK).wrap(s), end=end)
+            Console._print(s, end=end)
 
     @staticmethod
     def info(s: str = '', end='\n'):
@@ -96,19 +97,32 @@ class Console:
 
     @staticmethod
     def separator() -> str:
+        return Console._format_separator('│')
+
+    @staticmethod
+    def separator_line() -> str:
         prefix = ('─'*8 + '┼')
         width = get_terminal_width()
         main_len = width - len(prefix)
-        return prefix + ('─'*main_len)
+        return Console._format_separator(prefix + ('─' * main_len))
 
     @staticmethod
     def prefix(label: str, f: AbstractFormat) -> str:
-        return f(f'{label!s:>8.8s}') + fmt.cyan('│ ')
+        return f(f'{label!s:>8.8s}') + Console.separator() + ' '
 
     @staticmethod
     def prefix_offset(offset: int, f: AbstractFormat = fmt.green) -> str:
-        return Console.prefix(printd(offset), f)
+        return Console.prefix(Console.print_offset(offset), f)
+
+    @staticmethod
+    def print_offset(offset: int) -> str:
+        return f'{offset:0{ceil(len(str(offset))/4)*4}d}'
+        #return f'0x{offset:0{ceil(len(str(offset))/2)*2}x}'
 
     @staticmethod
     def _print(s: str, end='\n', **kwargs):
         print(s, end=end, **kwargs)
+
+    @staticmethod
+    def _format_separator(s: str) -> str:
+        return autof(seq.GRAY)(s) if Settings.debug > 0 else fmt.cyan(s)
