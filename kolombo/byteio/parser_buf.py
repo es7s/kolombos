@@ -13,12 +13,12 @@ class ParserBuffer:
         self._debug_buf: ConsoleBuffer = Console.register_buffer(ConsoleBuffer(1, 'parsbuf', fmt.blue))
         self._debug_buf2: ConsoleBuffer = Console.register_buffer(ConsoleBuffer(2, 'parsbuf', fmt.blue))
 
-    def append_raw(self, b: bytes, done: bool = False):
+    def append_raw(self, b: bytes, finish: bool = False):
         self._raw_buffer += b
-        self._closed = done
+        self._closed = finish
 
         self._debug_buf2.write(f'Buffer state: {printd(self._raw_buffer)}')
-        if done:
+        if finish:
             self._debug_buf.write('Closing buffer for input')
 
     def get_raw(self) -> bytes:

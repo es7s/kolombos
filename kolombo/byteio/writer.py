@@ -5,7 +5,7 @@ from typing import IO
 class Writer:
     def __init__(self):
         self._io_primary: IO = sys.stdout
-        self._io_support: IO = sys.stderr
+        #self._io_support: IO = sys.stderr
 
     def write(self, output: str):
         self._io_primary.write(output)

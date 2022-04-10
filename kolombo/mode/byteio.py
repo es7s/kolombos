@@ -13,9 +13,10 @@ from ..settings import Settings
 
 class ByteIoProcessor(AbstractModeProcessor):
     def _init(self, read_mode: ReadMode):
-        self._reader = Reader(Settings.filename, self._process_chunk_buffered)
         self._parser_buffer = ParserBuffer()
         self._chain_buffer = ChainBuffer()
+
+        self._reader = Reader(Settings.filename, self._process_chunk_buffered)
         self._parser = Parser(read_mode, self._parser_buffer, self._chain_buffer)
         self._formatter = FormatterFactory.create(read_mode, self._parser_buffer, self._chain_buffer)
         self._writer = Writer()
@@ -36,7 +37,7 @@ class ByteIoProcessor(AbstractModeProcessor):
 
     def _process_chunk_buffered(self, raw_input: bytes, offset: int, finish: bool):
         self._parser_buffer.append_raw(raw_input, finish)
-        self._parser.parse(self._parser_buffer.get_raw(), offset)
+        self._parser.parse(offset)
         output = self._formatter.format()
         self._writer.write(output)
 

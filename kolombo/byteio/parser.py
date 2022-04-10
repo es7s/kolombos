@@ -16,6 +16,7 @@ from ..console import Console, printd, ConsoleBuffer
 from ..settings import Settings
 
 
+# noinspection PyMethodMayBeStatic
 class Parser:
     def __init__(self, mode: ReadMode, parser_buffer: ParserBuffer, data_flow: ChainBuffer):
         self.F_SEPARATOR = StringFilter[bytes](
@@ -52,13 +53,14 @@ class Parser:
         self._debug_buffer = Console.register_buffer(ConsoleBuffer(1, 'parser', prefix_fmt=fmt.cyan))
         self._debug_buffer2 = Console.register_buffer(ConsoleBuffer(2, 'parser', prefix_fmt=fmt.cyan))
 
-    def parse(self, buffered_raw_input: bytes, offset: int):
+    def parse(self, offset: int):
+        buffered_raw_input = self._parser_buffer.get_raw()
         self._offset = offset
         self._debug_buffer.write(f'Parsing segment: {printd(buffered_raw_input)}')
 
         unmatched = apply_filters(buffered_raw_input, self.F_SEPARATOR)
         try:
-            self._verify(unmatched)
+            self._verify(buffered_raw_input, unmatched)
         except AssertionError as e:
             raise RuntimeError(f'Parsing inconsistency at {Console.print_offset(self._offset)}') from e
 
@@ -172,13 +174,9 @@ class Parser:
     def _handle_ascii_printable_chars(self, raw: bytes) -> Segment:
         return template.T_DEFAULT.substitute(raw.decode('utf8', errors='replace'))
 
-    def _verify(self, unmatched: bytes):
-        raw_input = self._parser_buffer.get_raw()
-        if not raw_input.endswith(unmatched):
-            assert len(unmatched) == 0, f'Some bytes unprocessed ({len(unmatched)}: {unmatched.hex(" ")!s:.32s})'
+    def _verify(self, buffered_raw_input: bytes, unmatched: bytes):
+        assert len(unmatched) == 0, f'Some bytes unprocessed ({len(unmatched)}: {unmatched.hex(" ")!s:.32s})'
 
         raw_len = self._chain_buffer.data_len
-        processed_len = self._chain_buffer._processed.data_len
-        if self._mode == ReadMode.BINARY:
-            assert raw_len == processed_len, \
-                f'Total count of processed bytes {processed_len} is not equal to count of raw bytes {raw_len}'
+        assert len(buffered_raw_input) == raw_len, \
+            f'Total count of parsed bytes {raw_len} is not equal to count of raw bytes {len(buffered_raw_input)}'
