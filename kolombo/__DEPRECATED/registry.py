@@ -4,7 +4,6 @@ from .control_char import MarkerControlChar
 from .escape_seq import MarkerEscapeSeq
 from .ignored import MarkerIgnored
 from .sgr import MarkerSGR
-from .sgr_reset import MarkerSGRReset
 from .utf8 import MarkerUTF8
 from .whitespace import MarkerWhitespace
 from ..settings import Settings

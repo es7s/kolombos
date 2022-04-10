@@ -1,7 +1,9 @@
-class WaitRequest(Exception): pass
+class WaitRequest(Exception):
+    pass
 
 
-class SegmentError(Exception): pass
+class SegmentError(Exception):
+    pass
 
 
 class ArgumentError(Exception):

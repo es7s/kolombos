@@ -4,10 +4,10 @@ import abc
 
 from .. import ReadMode
 from ..parser_buf import ParserBuffer
-from ..segment.chain import SegmentBuffer, SegmentFormatter, Segment
+from ..segment.buffer import SegmentBuffer
+from ..segment.processor import SegmentProcessor
+from ..segment.segment import Segment
 
-
-# noinspection PyMethodMayBeStatic
 
 class FormatterFactory:
     @staticmethod
@@ -22,6 +22,7 @@ class FormatterFactory:
         raise RuntimeError(f'Invalid read mode {mode}')
 
 
+# noinspection PyMethodMayBeStatic
 class AbstractFormatter(metaclass=abc.ABCMeta):
     CONTROL_CHARCODES = list(range(0x00, 0x09)) + list(range(0x0e, 0x20)) + list(range(0x7f, 0x100))
     WHITESPACE_CHARCODES = list(range(0x09, 0x0e)) + [0x20]
@@ -38,11 +39,11 @@ class AbstractFormatter(metaclass=abc.ABCMeta):
         self._parser_buffer = parser_buffer
         self._segment_buffer = segment_buffer
 
-        self._debug_raw_seg_formatter = SegmentFormatter(False, False, self._seg_raw_to_hex)
-        self._debug_proc_seg_formatter = SegmentFormatter(False, False, self._seg_raw_to_safe)
-        self._debug_sgr_seg_formatter = SegmentFormatter(True, True, self._seg_raw_to_safe)
-        self._raw_seg_formatter = SegmentFormatter(True, False, self._seg_raw_to_hex)
-        self._proc_seg_formatter = SegmentFormatter(True, False, self._seg_processed_noop)
+        self._debug_raw_seg_processor = SegmentProcessor(False, False, self._seg_raw_to_hex)
+        self._debug_proc_seg_processor = SegmentProcessor(False, False, self._seg_raw_to_safe)
+        self._debug_sgr_seg_processor = SegmentProcessor(True, True, self._seg_raw_to_safe)
+        self._raw_seg_processor = SegmentProcessor(True, False, self._seg_raw_to_hex)
+        self._proc_seg_processor = SegmentProcessor(True, False, self._seg_processed_noop)
 
     @abc.abstractmethod
     def format(self): raise NotImplementedError

@@ -7,7 +7,7 @@ from pytermor.fmt import EmptyFormat
 
 from kolombo.byteio.parser_buf import ParserBuffer
 from ..formatter import AbstractFormatter
-from ..segment.chain import SegmentBuffer
+from ..segment.buffer import SegmentBuffer
 from ...console import Console, ConsoleDebugBuffer, ConsoleOutputBuffer
 from ...error import WaitRequest
 from ...settings import Settings
@@ -45,11 +45,11 @@ class BinaryFormatter(AbstractFormatter):
             try:
                 force = self._parser_buffer.closed
                 result = self._segment_buffer.detach_bytes(req_bytes, force, [
-                    self._debug_sgr_seg_formatter,
-                    self._debug_raw_seg_formatter,
-                    self._debug_proc_seg_formatter,
-                    self._raw_seg_formatter,
-                    self._proc_seg_formatter,
+                    self._debug_sgr_seg_processor,
+                    self._debug_raw_seg_processor,
+                    self._debug_proc_seg_processor,
+                    self._raw_seg_processor,
+                    self._proc_seg_processor,
                 ])
             except WaitRequest:
                 break

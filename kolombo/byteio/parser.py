@@ -7,17 +7,17 @@ from typing import Callable, cast
 from pytermor import fmt
 from pytermor.util import StringFilter, apply_filters
 
-import kolombo.byteio.segment.chain
+import kolombo.byteio.segment.template
 from kolombo.byteio.parser_buf import ParserBuffer
 from . import ReadMode
-from .segment.chain import SegmentBuffer, Segment
+from .segment.buffer import SegmentBuffer
+from .segment.segment import Segment
 from ..console import Console, ConsoleDebugBuffer
 from ..settings import Settings
 from ..util import printd
 
 
 # noinspection PyMethodMayBeStatic
-
 class Parser:
     def __init__(self, mode: ReadMode, parser_buffer: ParserBuffer, segment_buffer: SegmentBuffer):
         self.F_SEPARATOR = StringFilter[bytes](
@@ -113,7 +113,7 @@ class Parser:
 
     def _handle_utf8_char_bytes(self, raw: bytes) -> Segment:
         if Settings.ignore_utf8:
-            return kolombo.byteio.segment.chain.T_IGNORED.substitute(raw)
+            return kolombo.byteio.segment.template.T_IGNORED.substitute(raw)
 
         if self._mode == ReadMode.TEXT or Settings.decode:
             decoded = raw.decode('utf8', errors='replace')
@@ -122,37 +122,37 @@ class Parser:
                     decoded = decoded.rjust(len(raw), '_')
                 elif len(decoded) > len(raw):
                     decoded = decoded[:len(raw)]
-            return kolombo.byteio.segment.chain.T_UTF8.substitute(raw, decoded)
+            return kolombo.byteio.segment.template.T_UTF8.substitute(raw, decoded)
 
-        return kolombo.byteio.segment.chain.T_UTF8.substitute(raw)
+        return kolombo.byteio.segment.template.T_UTF8.substitute(raw)
 
     def _handle_binary_data_bytes(self, raw: bytes) -> Segment:
-        return kolombo.byteio.segment.chain.T_TEMP.substitute(raw)
+        return kolombo.byteio.segment.template.T_TEMP.substitute(raw)
 
     def _handle_csi_esq_bytes(self, raw: bytes) -> Segment:
-        return kolombo.byteio.segment.chain.T_TEMP.substitute(raw)
+        return kolombo.byteio.segment.template.T_TEMP.substitute(raw)
 
     def _handle_nf_esq_bytes(self, raw: bytes) -> Segment:
-        return kolombo.byteio.segment.chain.T_TEMP.substitute(raw)
+        return kolombo.byteio.segment.template.T_TEMP.substitute(raw)
 
     def _handle_fp_esq_bytes(self, raw: bytes) -> Segment:
-        return kolombo.byteio.segment.chain.T_TEMP.substitute(raw)
+        return kolombo.byteio.segment.template.T_TEMP.substitute(raw)
 
     def _handle_fe_esq_bytes(self, raw: bytes) -> Segment:
-        return kolombo.byteio.segment.chain.T_TEMP.substitute(raw)
+        return kolombo.byteio.segment.template.T_TEMP.substitute(raw)
 
     def _handle_fs_esq_bytes(self, raw: bytes) -> Segment:
-        return kolombo.byteio.segment.chain.T_TEMP.substitute(raw)
+        return kolombo.byteio.segment.template.T_TEMP.substitute(raw)
 
     def _handle_ascii_control_chars(self, raw: bytes) -> Segment:
         if Settings.ignore_control:
-            return kolombo.byteio.segment.chain.T_IGNORED.substitute(raw)
-        return kolombo.byteio.segment.chain.T_CONTROL.substitute(raw)
+            return kolombo.byteio.segment.template.T_IGNORED.substitute(raw)
+        return kolombo.byteio.segment.template.T_CONTROL.substitute(raw)
 
     def _handle_ascii_whitespace_chars(self, raw: bytes) -> Segment:
         if Settings.ignore_space:
-            return kolombo.byteio.segment.chain.T_IGNORED.substitute(raw)
-        return kolombo.byteio.segment.chain.T_WHITESPACE.substitute(raw)
+            return kolombo.byteio.segment.template.T_IGNORED.substitute(raw)
+        return kolombo.byteio.segment.template.T_WHITESPACE.substitute(raw)
 
     def _handle_ascii_space_chars(self, raw: bytes) -> Segment:
         return self._handle_ascii_whitespace_chars(raw)
@@ -160,13 +160,13 @@ class Parser:
     def _handle_ascii_newline_char(self, raw: bytes) -> Segment:
         if Settings.ignore_space:
             if self._mode == ReadMode.TEXT:
-                return kolombo.byteio.segment.chain.T_NEWLINE_TEXT.substitute(raw, '\n' * len(raw))
+                return kolombo.byteio.segment.template.T_NEWLINE_TEXT.substitute(raw, '\n' * len(raw))
             else:
-                return kolombo.byteio.segment.chain.T_IGNORED.substitute(raw)
+                return kolombo.byteio.segment.template.T_IGNORED.substitute(raw)
 
         if self._mode == ReadMode.TEXT:
-            return kolombo.byteio.segment.chain.T_NEWLINE_TEXT.substitute(raw)
-        return kolombo.byteio.segment.chain.T_NEWLINE.substitute(raw)
+            return kolombo.byteio.segment.template.T_NEWLINE_TEXT.substitute(raw)
+        return kolombo.byteio.segment.template.T_NEWLINE.substitute(raw)
 
     def _handle_ascii_printable_chars(self, raw: bytes) -> Segment:
-        return kolombo.byteio.segment.chain.T_DEFAULT.substitute(raw, raw.decode('utf8', errors='replace'))
+        return kolombo.byteio.segment.template.T_DEFAULT.substitute(raw, raw.decode('utf8', errors='replace'))

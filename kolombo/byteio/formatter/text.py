@@ -2,7 +2,7 @@ from pytermor import fmt
 
 from kolombo.byteio.parser_buf import ParserBuffer
 from ..formatter import AbstractFormatter
-from ..segment.chain import SegmentBuffer
+from ..segment.buffer import SegmentBuffer
 from ...console import ConsoleDebugBuffer, ConsoleOutputBuffer
 from ...error import WaitRequest
 
@@ -23,10 +23,10 @@ class TextFormatter(AbstractFormatter):
                 self._debug_buffer.write(1, 'Requested line')
                 force = self._parser_buffer.closed
                 result = self._segment_buffer.detach_line(force, [
-                    self._debug_sgr_seg_formatter,
-                    self._debug_raw_seg_formatter,
-                    self._debug_proc_seg_formatter,
-                    self._proc_seg_formatter,
+                    self._debug_sgr_seg_processor,
+                    self._debug_raw_seg_processor,
+                    self._debug_proc_seg_processor,
+                    self._proc_seg_processor,
                 ])
             except WaitRequest:
                 break
@@ -39,7 +39,7 @@ class TextFormatter(AbstractFormatter):
             self._debug_buffer.write(2, debug_raw_line, offset=self._offset)
             self._debug_buffer.write(1, debug_proc_line, offset=self._offset)
             self._output_buffer.write_with_line_num(final_proc_line, line_num=self._line_num)
-            #self._output_buffer.write(final_proc_line.encode().hex(' '))
+
             if not final_proc_line.endswith('\n'):
                 self._output_buffer.write('', end='\n')
 
@@ -48,7 +48,6 @@ class TextFormatter(AbstractFormatter):
 
         if self._parser_buffer.closed:
             self._debug_buffer.write(1, 'EOF')
-
 
     # def _format_csi_sequence(self, match: Match) -> str:
     #     if Settings.ignore_esc:

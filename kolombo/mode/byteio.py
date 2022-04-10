@@ -1,15 +1,15 @@
-from ..byteio.parser_buf import ParserBuffer
 from . import AbstractModeProcessor
-from ..app import App
 from ..byteio import ReadMode
 from ..byteio.formatter import FormatterFactory
 from ..byteio.parser import Parser
+from ..byteio.parser_buf import ParserBuffer
 from ..byteio.reader import Reader
-from ..byteio.segment.chain import SegmentBuffer
+from ..byteio.segment.buffer import SegmentBuffer
 from ..console import Console, ConsoleDebugBuffer
 from ..settings import Settings
 
 
+# noinspection PyMethodMayBeStatic
 class ByteIoProcessor(AbstractModeProcessor):
     def _init(self, read_mode: ReadMode):
         self._parser_buffer = ParserBuffer()
@@ -20,11 +20,11 @@ class ByteIoProcessor(AbstractModeProcessor):
         self._formatter = FormatterFactory.create(read_mode, self._parser_buffer, self._segment_buffer)
 
     def invoke(self):
-        #try:
+        # try:
         self._init(self._get_read_mode_from_settings())
         self._reader.read()
 
-        #except BinaryDataError:
+        # except BinaryDataError:
         #    self._reader.close()
         #    self._switch_mode_or_exit()
 

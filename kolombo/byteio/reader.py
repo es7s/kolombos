@@ -7,7 +7,7 @@ from typing import Callable
 
 from pytermor import fmt
 
-from ..console import Console, ConsoleDebugBuffer
+from ..console import ConsoleDebugBuffer
 from ..settings import Settings
 from ..util import printd
 
