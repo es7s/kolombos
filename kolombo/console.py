@@ -116,6 +116,7 @@ class Console:
 
     @staticmethod
     def print_offset(offset: int) -> str:
+
         return f'{offset:0{ceil(len(str(offset))/4)*4}d}'
         #return f'0x{offset:0{ceil(len(str(offset))/2)*2}x}'
 

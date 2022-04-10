@@ -3,8 +3,8 @@ from __future__ import annotations
 import abc
 
 from .. import ReadMode
-from ..chain import ChainBuffer
 from ..parser_buf import ParserBuffer
+from ..segment.chain import ChainBuffer, ChainFormatter, Segment
 
 
 class FormatterFactory:
@@ -26,10 +26,38 @@ class AbstractFormatter(metaclass=abc.ABCMeta):
     WHITESPACE_CHARCODES = list(range(0x09, 0x0e)) + [0x20]
     PRINTABLE_CHARCODES = list(range(0x21, 0x7f))
     BINARY_CHARCODES = list(range(0x80, 0x100))
+    CHARCODE_TO_SAFE_CHAR_MAP = {   # @TODO впилить
+        **{b: chr(b) for b in range(0x00, 0x100)},
+        **{b: '·' for b in WHITESPACE_CHARCODES},
+        **{b: '¿' for b in CONTROL_CHARCODES},
+        **{b: '¿' for b in BINARY_CHARCODES},
+    }
 
     def __init__(self, parser_buffer: ParserBuffer, chain_buffer: ChainBuffer):
         self._parser_buffer = parser_buffer
         self._chain_buffer = chain_buffer
 
+        self._debug_raw_chain_formatter = ChainFormatter(False, self._seg_raw_to_hex)
+        self._debug_proc_chain_formatter = ChainFormatter(False, self._seg_raw_to_safe)
+        self._raw_chain_formatter = ChainFormatter(True, self._seg_raw_to_hex)
+        self._proc_chain_formatter = ChainFormatter(True, self._seg_processed_noop)
+
     @abc.abstractmethod
     def format(self) -> str: raise NotImplementedError
+
+    def _seg_raw_to_hex(self, seg: Segment) -> str:
+        return ''.join([f' {b:02x}' for b in seg.raw])
+
+    def _seg_raw_to_safe(self, seg: Segment) -> str:
+        result = ''
+        for c in seg.raw.decode("ascii", errors="replace"):
+            if ord(c) in AbstractFormatter.WHITESPACE_CHARCODES:
+                result += '·'
+            elif ord(c) not in AbstractFormatter.PRINTABLE_CHARCODES:
+                result += '¿'
+            else:
+                result += c
+        return result
+
+    def _seg_processed_noop(self, seg: Segment) -> str:
+        return seg.processed

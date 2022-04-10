@@ -138,7 +138,7 @@ class AppArgumentParser(CustomArgumentParser):
         generic_group.add_argument('-F', '--buffer', metavar='<size>', default=False,
                                    help='read buffer size in bytes; default {} ({} in debug mode)'.
                                    format(Reader.READ_CHUNK_SIZE, Reader.READ_CHUNK_SIZE_DEBUG))
-        generic_group.add_argument('-v', '--debug', action='count', default=0, help='more details (can be used multiple times); implies -b')
+        generic_group.add_argument('-v', '--debug', action='count', default=0, help='more details (can be used multiple times)')
         generic_group.add_argument('--no-color-content', action='store_true', default=False, help='disable applying input file formatting to the output')
 
         text_mode_group = self.add_argument_group('text mode only')

@@ -6,8 +6,8 @@ from pytermor import fmt, autof, seq
 from pytermor.fmt import EmptyFormat
 
 from kolombo.byteio.parser_buf import ParserBuffer
-from ..chain import ChainBuffer, BufferWait
 from ..formatter import AbstractFormatter
+from ..segment.chain import ChainBuffer
 from ...console import Console, ConsoleBuffer
 from ...settings import Settings
 from ...util import get_terminal_width
@@ -18,12 +18,6 @@ class BinaryFormatter(AbstractFormatter):
     def __init__(self, parser_buffer: ParserBuffer, chain_buffer: ChainBuffer):
         super().__init__(parser_buffer, chain_buffer)
 
-        self.ASCII_TO_SAFE_CHAR_MAP = {
-            **{b: chr(b) for b in range(0x00, 0x100)},
-            **{b: '·' for b in AbstractFormatter.WHITESPACE_CHARCODES},
-            **{b: '¿' for b in AbstractFormatter.CONTROL_CHARCODES},
-            **{b: '¿' for b in AbstractFormatter.BINARY_CHARCODES},
-        }
         self.BYTE_CHUNK_LEN = 4
         self.PADDING_SECTION = 3 * ' '
         self.PADDING_HEX_CHUNK = 2 * ' '
@@ -41,19 +35,14 @@ class BinaryFormatter(AbstractFormatter):
 
         final = ''
         num_bytes = cols
-        no_wait = False
         if self._parser_buffer.closed:
             num_bytes = min(self._chain_buffer.data_len, cols)
-            no_wait = True
 
-        while self._chain_buffer.data_len > 0:
-            self._debug_buf.write('Requested ' + fmt.bold(str(num_bytes)) + ' byte(s)' +
-                                  (' (no waiting)' if no_wait else ''))
+        while True:
+            self._debug_buf.write('Requested ' + fmt.bold(str(num_bytes)) + ' byte(s)')
             try:
-                result = self._chain_buffer.read(num_bytes,
-                                                 no_wait,
-                                                 self._process_raw)
-            except BufferWait:
+                result = self._chain_buffer.detach_bytes(num_bytes, )
+            except EOFError:
                 break
 
             bytes_read, raw_row, proc_hex_row, proc_str_row = result
@@ -68,7 +57,7 @@ class BinaryFormatter(AbstractFormatter):
                                   self._justify_raw(cols - bytes_read) +
                                   self.PADDING_SECTION +
                                   Console.separator() +
-                                  self._transform_to_printable(raw_row),
+                                  self._seg_raw_to_safe(raw_row),
                                   offset=self._offset)
 
             Console.flush_buffers()
@@ -79,22 +68,10 @@ class BinaryFormatter(AbstractFormatter):
 
         return final
 
-    def _process_raw(self, bs: bytes) -> str:
-        return ''.join([f' {b:02x}' for b in bs])
-
     def _justify_raw(self, num_bytes: int) -> str:
         return '   '*num_bytes
 
-    def _transform_to_printable(self, b: bytes) -> str:
-        result = ''
-        for c in b.decode("ascii", errors="replace"):
-            if ord(c) in AbstractFormatter.WHITESPACE_CHARCODES:
-                result += '·'
-            elif ord(c) not in AbstractFormatter.PRINTABLE_CHARCODES:
-                result += '¿'
-            else:
-                result += c
-        return result
+
 
     # def _format_csi_sequence(self, match: Match) -> str:
     #     if Settings.ignore_esc:

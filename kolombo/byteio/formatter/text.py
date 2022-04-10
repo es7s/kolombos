@@ -1,8 +1,10 @@
 from pytermor import fmt
 
 from kolombo.byteio.parser_buf import ParserBuffer
-from ..chain import ChainBuffer
 from ..formatter import AbstractFormatter
+from ..segment.chain import ChainBuffer
+from ...console import Console, ConsoleBuffer
+from ...error import WaitRequest
 from ...settings import Settings
 
 
@@ -10,25 +12,45 @@ class TextFormatter(AbstractFormatter):
     def __init__(self, parser_buffer: ParserBuffer, chain_buffer: ChainBuffer):
         super().__init__(parser_buffer, chain_buffer)
 
+        self._offset = 0
         self._line_num = 0
+
+        self._debug_buf = Console.register_buffer(ConsoleBuffer(1, 'txtform', prefix_fmt=fmt.yellow))
 
     def format(self):
         final = ''
-        num_bytes = self._chain_buffer.data_len
-        if num_bytes == 0:
-            return final
+        while True:
+            try:
+                self._debug_buf.write('Requested line')
+                output_debug, output_processed = self._chain_buffer.detach_line(self._parser_buffer.closed, [
+                    self._debug_proc_chain_formatter,
+                    self._proc_chain_formatter,
+                ])
+            except WaitRequest:
+                break
+            except EOFError:
+                break
 
-        result = self._chain_buffer.read(num_bytes, False, lambda b: b.decode())
-        bytes_read, raw_row, proc_hex, proc_str = result
-
-        for proc_line in proc_str.splitlines(keepends=False):
             self._line_num += 1
-            prefix = ''
-            if not Settings.no_line_numbers:
-                prefix = fmt.green(f'{self._line_num:2d}') + fmt.cyan(f'│  ')
+            prefix = self._format_prefix()
 
-            final += f'{prefix}{proc_line}\n'
+            final += f'{prefix}{output_processed}'
+            self._debug_buf.write(f'{output_debug}', offset=self._offset)
+            self._offset += self._chain_buffer.last_detached_data_len
+
+        if self._parser_buffer.closed:
+            if Settings.debug:
+                final += '\n'
+            self._debug_buf.write('EOF')
+
         return final
+
+    def _format_prefix(self) -> str:
+        if Settings.debug:
+            return Console.prefix(str(self._line_num), fmt.green)
+        if Settings.no_line_numbers:
+            return ''
+        return fmt.green(f'{self._line_num:2d}') + Console.separator()
 
     # def _format_csi_sequence(self, match: Match) -> str:
     #     if Settings.ignore_esc:

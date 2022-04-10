@@ -2,12 +2,13 @@ from ..byteio.parser_buf import ParserBuffer
 from . import AbstractModeProcessor
 from ..app import App
 from ..byteio import ReadMode
-from ..byteio.chain import ChainBuffer
 from ..byteio.formatter import FormatterFactory
 from ..byteio.parser import Parser
 from ..byteio.reader import Reader
+from ..byteio.segment.chain import ChainBuffer
 from ..byteio.writer import Writer
 from ..console import Console, ConsoleBuffer
+from ..error import BinaryDataError
 from ..settings import Settings
 
 
@@ -28,7 +29,7 @@ class ByteIoProcessor(AbstractModeProcessor):
             self._init(self._get_read_mode_from_settings())
             self._reader.read()
 
-        except UnicodeDecodeError:
+        except BinaryDataError:
             self._reader.close()
             self._switch_mode_or_exit()
 
@@ -49,8 +50,6 @@ class ByteIoProcessor(AbstractModeProcessor):
         elif Settings.text:
             return ReadMode.TEXT
         # auto:
-        if Settings.debug > 0:
-            return ReadMode.BINARY
         return ReadMode.TEXT
 
     def _switch_mode_or_exit(self):
