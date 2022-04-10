@@ -1,6 +1,10 @@
 
 class BufferWait(Exception):
-    pass
+    def __init__(self):
+        super().__init__('Not enough data to detach')
+
+
+class SegmentError(Exception): pass
 
 
 class ArgumentError(Exception):

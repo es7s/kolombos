@@ -9,9 +9,8 @@ from pytermor.util import StringFilter, apply_filters
 
 from kolombo.byteio.parser_buf import ParserBuffer
 from . import ReadMode
-from .chain import ChainBuffer
 from .segment import template
-from .segment.template import Segment
+from .segment.chain import ChainBuffer, Segment
 from ..console import Console, printd, ConsoleBuffer
 from ..settings import Settings
 
@@ -40,7 +39,7 @@ class Parser:
                 b'((\x1b)([\x60-\x7e]))|'                                     # - Fs escape sequences
                 +                                       # 7-BIT ASCII
                 b'([\x00-\x08\x0e-\x1f\x7f]+)|'         # - control chars (incl. standalone escapes \x1b)
-                b'([\x09\x0b-\x0d]+)|(\x0a+)|(\x20+)|'  # - whitespaces (\t,\v,\f,\r) | newlines | spaces
+                b'([\x09\x0b-\x0d]+)|(\x20+)|(\x0a)|'   # - whitespaces (\t,\v,\f,\r) | spaces | newline
                 b'([\x21-\x7e]+)',                      # - printable chars (letters, digits, punctuation)
                 self._substitute, b
             ))
@@ -54,13 +53,13 @@ class Parser:
         self._debug_buffer2 = Console.register_buffer(ConsoleBuffer(2, 'parser', prefix_fmt=fmt.cyan))
 
     def parse(self, offset: int):
-        buffered_raw_input = self._parser_buffer.get_raw()
+        raw = self._parser_buffer.get_raw()
         self._offset = offset
-        self._debug_buffer.write(f'Parsing segment: {printd(buffered_raw_input)}')
+        self._debug_buffer.write(f'Parsing segment: {printd(raw)}')
 
-        unmatched = apply_filters(buffered_raw_input, self.F_SEPARATOR)
+        unmatched = apply_filters(raw, self.F_SEPARATOR)
         try:
-            self._verify(buffered_raw_input, unmatched)
+            self._validate(raw, unmatched)
         except AssertionError as e:
             raise RuntimeError(f'Parsing inconsistency at {Console.print_offset(self._offset)}') from e
 
@@ -71,6 +70,7 @@ class Parser:
         primary_mgroup = min(mgroups.keys())
         raw = cast(bytes, m.group(primary_mgroup+1))
         self._debug_print_match_group(primary_mgroup, suboffset=m.start(primary_mgroup + 1))
+
         self._handle(primary_mgroup, raw)
         return b''
 
@@ -79,9 +79,10 @@ class Parser:
         if not _handler_fn:
             raise RuntimeError(f'No handler defined for mgroup {mgroup}: {raw.hex(" ")}')
 
-        sample = _handler_fn(raw)
-        self._debug_print_match_sample(raw, sample)
-        self._chain_buffer.add(raw, sample)
+        segment = _handler_fn(raw)
+        self._debug_print_match_segment(raw, segment)
+
+        self._chain_buffer.attach(segment)
 
     def _find_handler(self, mgroup: int) -> Callable[[bytes], Segment] | None:
         if mgroup == 0:
@@ -95,9 +96,9 @@ class Parser:
         if mgroup == 22:
             return self._handle_ascii_whitespace_chars
         if mgroup == 23:
-            return self._handle_ascii_newline_chars
-        if mgroup == 24:
             return self._handle_ascii_space_chars
+        if mgroup == 24:
+            return self._handle_ascii_newline_char
         if mgroup == 25:
             return self._handle_ascii_printable_chars
         return None
@@ -107,16 +108,16 @@ class Parser:
                                   offset=(self._offset + suboffset),
                                   end='', flush=False)
 
-    def _debug_print_match_sample(self, raw: bytes, sample: Segment):
-        debug_msg = f'/{sample.template.type_label}: {printd(raw)}'
-        debug_processed_bytes = sample.get_processed(len(raw)).encode('ascii', errors="replace")
+    def _debug_print_match_segment(self, raw: bytes, segment: Segment):
+        debug_msg = f'/{segment.template.type_label}: {printd(raw)}'
+        debug_processed_bytes = segment.processed.encode('ascii', errors="replace")
         if raw != debug_processed_bytes:
             debug_msg += f' -> {printd(debug_processed_bytes)}'
         self._debug_buffer2.write(debug_msg, no_default_prefix=True)
 
     def _handle_utf8_char_bytes(self, raw: bytes) -> Segment:
         if Settings.ignore_utf8:
-            return template.T_IGNORED.substitute()
+            return template.T_IGNORED.substitute(raw)
 
         if self._mode == ReadMode.TEXT or Settings.decode:
             decoded = raw.decode('utf8', errors='replace')
@@ -125,58 +126,58 @@ class Parser:
                     decoded = decoded.rjust(len(raw), '_')
                 elif len(decoded) > len(raw):
                     decoded = decoded[:len(raw)]
-            return template.T_UTF8.substitute(decoded)
+            return template.T_UTF8.substitute(raw, decoded)
 
-        return template.T_UTF8.substitute()
+        return template.T_UTF8.substitute(raw)
 
     def _handle_binary_data_bytes(self, raw: bytes) -> Segment:
-        return template.T_TEMP.substitute()
+        return template.T_TEMP.substitute(raw)
 
     def _handle_csi_esq_bytes(self, raw: bytes) -> Segment:
-        return template.T_TEMP.substitute()
+        return template.T_TEMP.substitute(raw)
 
     def _handle_nf_esq_bytes(self, raw: bytes) -> Segment:
-        return template.T_TEMP.substitute()
+        return template.T_TEMP.substitute(raw)
 
     def _handle_fp_esq_bytes(self, raw: bytes) -> Segment:
-        return template.T_TEMP.substitute()
+        return template.T_TEMP.substitute(raw)
 
     def _handle_fe_esq_bytes(self, raw: bytes) -> Segment:
-        return template.T_TEMP.substitute()
+        return template.T_TEMP.substitute(raw)
 
     def _handle_fs_esq_bytes(self, raw: bytes) -> Segment:
-        return template.T_TEMP.substitute()
+        return template.T_TEMP.substitute(raw)
 
     def _handle_ascii_control_chars(self, raw: bytes) -> Segment:
         if Settings.ignore_control:
-            return template.T_IGNORED.substitute()
-        return template.T_CONTROL.substitute()
+            return template.T_IGNORED.substitute(raw)
+        return template.T_CONTROL.substitute(raw)
 
     def _handle_ascii_whitespace_chars(self, raw: bytes) -> Segment:
         if Settings.ignore_space:
-            return template.T_IGNORED.substitute()
-        return template.T_WHITESPACE.substitute()
-
-    def _handle_ascii_newline_chars(self, raw: bytes) -> Segment:
-        if Settings.ignore_space:
-            if self._mode == ReadMode.TEXT:
-                return template.T_NEWLINE_TEXT.substitute('\n' * len(raw))
-            else:
-                return template.T_IGNORED.substitute()
-
-        if self._mode == ReadMode.TEXT:
-            return template.T_NEWLINE_TEXT.substitute()
-        return template.T_NEWLINE.substitute()
+            return template.T_IGNORED.substitute(raw)
+        return template.T_WHITESPACE.substitute(raw)
 
     def _handle_ascii_space_chars(self, raw: bytes) -> Segment:
         return self._handle_ascii_whitespace_chars(raw)
 
+    def _handle_ascii_newline_char(self, raw: bytes) -> Segment:
+        if Settings.ignore_space:
+            if self._mode == ReadMode.TEXT:
+                return template.T_NEWLINE_TEXT.substitute(raw, '\n' * len(raw))
+            else:
+                return template.T_IGNORED.substitute(raw)
+
+        if self._mode == ReadMode.TEXT:
+            return template.T_NEWLINE_TEXT.substitute(raw)
+        return template.T_NEWLINE.substitute(raw)
+
     def _handle_ascii_printable_chars(self, raw: bytes) -> Segment:
-        return template.T_DEFAULT.substitute(raw.decode('utf8', errors='replace'))
+        return template.T_DEFAULT.substitute(raw, raw.decode('utf8', errors='replace'))
 
-    def _verify(self, buffered_raw_input: bytes, unmatched: bytes):
-        assert len(unmatched) == 0, f'Some bytes unprocessed ({len(unmatched)}: {unmatched.hex(" ")!s:.32s})'
+    def _validate(self, raw: bytes, unmatched: bytes):
+        assert len(unmatched) == 0, f'Some bytes unprocessed: {printd(unmatched)})'
 
-        raw_len = self._chain_buffer.data_len
-        assert len(buffered_raw_input) == raw_len, \
-            f'Total count of parsed bytes {raw_len} is not equal to count of raw bytes {len(buffered_raw_input)}'
+        chained_len = self._chain_buffer.raw_len
+        assert len(raw) == chained_len, \
+            f'Total count of chained bytes {chained_len} is not equal to count of raw bytes {len(raw)}'

@@ -1,25 +1,10 @@
 from __future__ import annotations
 
 from pytermor import seq
-from pytermor.seq import SequenceSGR
+from pytermor.seq import SequenceSGR, EmptySequenceSGR
 
-from . import _opt_arg
+from .chain import Segment
 from ...settings import Settings
-
-
-class Segment:
-    def __init__(self, tpl: SegmentTemplate, processed: str = None):
-        self._template = tpl
-        self._processed = processed
-
-    @property
-    def template(self) -> SegmentTemplate:
-        return self._template
-
-    def get_processed(self, len: int) -> str:
-        if self._processed is None:
-            self._processed = self._template.label * len
-        return self._processed
 
 
 class SegmentTemplate:
@@ -36,8 +21,10 @@ class SegmentTemplate:
             self._opening
     )
 
-    def substitute(self, processed: str = None) -> Segment:
-        return Segment(self, processed)
+    def substitute(self, raw: bytes, processed: str = None) -> Segment:
+        if processed is None:
+            processed = self._label * len(raw)
+        return Segment(self, raw, processed)
 
     @property
     def label(self) -> str:
@@ -83,3 +70,11 @@ T_TEMP = SegmentTemplate('▯', '?', seq.HI_YELLOW + seq.BG_RED)
 #
 # fmt_first_chunk_col = autof(build_c256(231) + build_c256(238, bg=True))
 # fmt_nth_row_col = autof(build_c256(231) + build_c256(238, bg=True) + seq.OVERLINED)
+
+
+def _opt_arg(arg: SequenceSGR | None, allow_none: bool = False) -> SequenceSGR | None:
+    if isinstance(arg, SequenceSGR):
+        return arg
+    if allow_none:
+        return None
+    return EmptySequenceSGR()
