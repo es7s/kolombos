@@ -1,4 +1,5 @@
-from pytermor import fmt
+from pytermor import fmt, seq
+from pytermor.util import ReplaceSGR
 
 from kolombo.byteio.parser_buf import ParserBuffer
 from ..formatter import AbstractFormatter
@@ -15,7 +16,7 @@ class TextFormatter(AbstractFormatter):
         self._line_num = 1
 
         self._output_buffer = ConsoleOutputBuffer()
-        self._debug_buffer = ConsoleDebugBuffer('txtfmt', prefix_fmt=fmt.yellow)
+        self._debug_buffer = ConsoleDebugBuffer('txtfmt', seq.YELLOW)
 
     def format(self):
         while True:
@@ -40,7 +41,7 @@ class TextFormatter(AbstractFormatter):
             self._debug_buffer.write(1, debug_proc_line, offset=self._offset)
             self._output_buffer.write_with_line_num(final_proc_line, line_num=self._line_num)
 
-            if not final_proc_line.endswith('\n'):
+            if not ReplaceSGR().apply(final_proc_line).endswith('\n'):
                 self._output_buffer.write('', end='\n')
 
             self._offset += self._segment_buffer.last_detached_data_len

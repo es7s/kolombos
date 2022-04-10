@@ -21,14 +21,14 @@ class BinaryFormatter(AbstractFormatter):
         super().__init__(parser_buffer, segment_buffer)
 
         self.BYTE_CHUNK_LEN = 4
-        self.PADDING_SECTION = 3 * ' '
+        self.PADDING_SECTION = 1 * ' '
         self.PADDING_HEX_CHUNK = 2 * ' '
 
         self._offset = 0
         self._cols = Settings.columns
 
         self._output_buffer = ConsoleOutputBuffer()
-        self._debug_buffer = ConsoleDebugBuffer('binfmt', prefix_fmt=fmt.yellow)
+        self._debug_buffer = ConsoleDebugBuffer('binfmt', seq.YELLOW)
 
     def format(self):
         cols = self._cols

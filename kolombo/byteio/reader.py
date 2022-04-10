@@ -5,7 +5,7 @@ import re
 import sys
 from typing import Callable
 
-from pytermor import fmt
+from pytermor import fmt, seq
 
 from ..console import ConsoleDebugBuffer
 from ..settings import Settings
@@ -23,7 +23,7 @@ class Reader(metaclass=abc.ABCMeta):
         self._chunk_size = self._get_chunk_size()
         self.read_callback = read_callback
 
-        self._debug_buffer = ConsoleDebugBuffer('reader', fmt.magenta)
+        self._debug_buffer = ConsoleDebugBuffer('reader', seq.MAGENTA)
 
     @property
     def reading_stdin(self) -> bool:

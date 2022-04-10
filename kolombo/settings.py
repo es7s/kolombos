@@ -8,9 +8,9 @@ class Settings(Namespace):
     buffer: int
     columns: int
     debug: int
-    debug_buffer_contents = bool
-    debug_buffer_contents_full = bool
-    decimal_offsets = bool
+    debug_buffer_contents: bool
+    debug_buffer_contents_full: bool
+    decimal_offsets: bool
     decode: bool
     filename: Optional[str]
     focus_control: bool

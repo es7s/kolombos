@@ -4,7 +4,7 @@ import re
 from re import Match
 from typing import Callable, cast
 
-from pytermor import fmt
+from pytermor import fmt, seq
 from pytermor.util import StringFilter, apply_filters
 
 import kolombo.byteio.segment.template
@@ -51,7 +51,7 @@ class Parser:
         self._segment_buffer: SegmentBuffer = segment_buffer
         self._offset = 0
 
-        self._debug_buffer = ConsoleDebugBuffer('parser', prefix_fmt=fmt.cyan)
+        self._debug_buffer = ConsoleDebugBuffer('parser', seq.CYAN)
 
     def parse(self, offset: int):
         raw = self._parser_buffer.get_raw()
@@ -62,7 +62,7 @@ class Parser:
         try:
             assert len(unmatched) == 0, f'Some bytes unprocessed: {printd(unmatched)})'
         except AssertionError as e:
-            raise RuntimeError(f'Parsing inconsistency at {Console.format_offset(self._offset)}') from e
+            raise RuntimeError(f'Parsing inconsistency at 0x{self._offset:x}/{self._offset:d}') from e
 
         self._parser_buffer.crop_raw(unmatched)
 

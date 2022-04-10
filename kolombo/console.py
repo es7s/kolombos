@@ -8,6 +8,7 @@ from typing import List
 
 from pytermor import autof, seq, fmt
 from pytermor.fmt import AbstractFormat
+from pytermor.seq import SequenceSGR
 
 from .error import ArgumentError
 from .settings import Settings
@@ -32,19 +33,21 @@ class ConsoleOutputBuffer(AbstractConsoleBuffer):
             self.flush()
 
     def write_with_line_num(self, s: str, line_num: int, end='', flush=True):
+        fmt_ = fmt.green
         if Settings.debug:
-            prefix = Console.format_prefix(str(line_num), fmt.green)
+            prefix = Console.format_prefix(str(line_num), fmt_)
         elif Settings.no_line_numbers:
             prefix = ''
         else:
-            prefix = fmt.green(f'{line_num:2d}') + Console.get_separator()
+            prefix = fmt_(f'{line_num:2d}') + Console.get_separator()
 
         self._buf += f'{prefix}{s}{end}'
         if flush:
             self.flush()
 
     def write_with_offset(self, s: str, offset: int, end='\n', flush=True):
-        prefix = Console.format_prefix_with_offset(offset, fmt.green)
+        fmt_ = fmt.green
+        prefix = Console.format_prefix_with_offset(offset, fmt_)
 
         self._buf += f'{prefix}{s}{end}'
         if flush:
@@ -59,11 +62,11 @@ class ConsoleOutputBuffer(AbstractConsoleBuffer):
 
 
 class ConsoleDebugBuffer(AbstractConsoleBuffer):
-    def __init__(self, key_prefix: str = None, prefix_fmt: AbstractFormat = fmt.green):
+    def __init__(self, key_prefix: str = None, prefix_offset_color: SequenceSGR = seq.GRAY):
         self._buf = ''
 
-        self._default_prefix = Console.format_prefix(key_prefix, fmt.gray) if key_prefix else None
-        self._prefix_fmt = prefix_fmt
+        self._default_prefix = Console.format_prefix(key_prefix, autof(seq.GRAY + seq.BG_BLACK)) if key_prefix else None
+        self._prefix_fmt = autof(prefix_offset_color + seq.BG_BLACK)
 
         Console.register_buffer(self)
 
@@ -148,24 +151,22 @@ class Console:
 
     @staticmethod
     def get_separator_line() -> str:
-        prefix = ('─'*8 + '┼')
+        prefix = (autof(seq.BG_BLACK)('─'*8) + '┼')
         width = get_terminal_width()
         main_len = width - len(prefix)
         return Console._format_separator(prefix + ('─' * main_len))
 
     @staticmethod
     def format_prefix(label: str, f: AbstractFormat) -> str:
-        return f(f'{label!s:>8.8s}') + Console.get_separator() + ' '
+        return f(f'{label!s:>8.8s}') + Console.get_separator()
 
     @staticmethod
     def format_prefix_with_offset(offset: int, f: AbstractFormat = fmt.green) -> str:
-        return Console.format_prefix(Console.format_offset(offset), f)
-
-    @staticmethod
-    def format_offset(offset: int) -> str:
         if Settings.decimal_offsets:
-            return f'{offset:d}'
-        return f'0x{offset:0{ceil(len(str(offset))/2)*2}x}'
+            offset_str = f'{offset:d}'
+        else:
+            offset_str = f'0x{offset:0{ceil(len(str(offset))/2)*2}x}'
+        return Console.format_prefix(offset_str, f)
 
     @staticmethod
     def print(s: str, end='\n', **kwargs):

@@ -110,6 +110,7 @@ class SegmentBuffer:
             return []
 
         output = []
+        output.extend([OneUseSequenceRef(sgr) for sgr in self._active_sgrs])
         while len(self._segment_chain) > 0:
             cur_element = self._segment_chain[0]
 
@@ -120,6 +121,8 @@ class SegmentBuffer:
                 if cur_element.data_len <= req_bytes:
                     output.append(cur_element)
                     req_bytes -= cur_element.data_len
+                    self._segment_chain.popleft()
+                    continue
 
                 else:
                     cur_element_left = cur_element.split(req_bytes)
@@ -127,6 +130,8 @@ class SegmentBuffer:
                     break
 
             elif isinstance(cur_element, StartSequenceRef):
+                if req_bytes == 0:
+                    break
                 output.append(cur_element)
                 self._active_sgrs.append(cur_element.ref)
 
@@ -140,6 +145,7 @@ class SegmentBuffer:
 
         self._debug_buffer.write(2, 'Detached ' + fmt.bold(str(sum([el.data_len for el in output]))) + ' data byte(s)')
         self._debug_buffer.write(2, f'Buffer state: {printd(self)}')
+        output.extend([OneUseSequenceRef(autof(sgr).closing_seq) for sgr in self._active_sgrs])
         return output
 
     def _format_multiple(self, detached: List[Chainable], formatters: List[SegmentProcessor, ...]) -> Tuple[str, ...]:
@@ -151,8 +157,7 @@ class SegmentBuffer:
         return tuple(formatted)
 
     def _format(self, detached: List[Chainable], formatter: SegmentProcessor) -> str:
-        output = self._append_sgr_to_output(formatter, self._get_active_sgrs_opening())
-
+        output = ''
         for cur_element in detached:
             if isinstance(cur_element, Segment):
                 output += formatter.format(cur_element)
@@ -160,7 +165,7 @@ class SegmentBuffer:
             elif isinstance(cur_element, SequenceRef):  # StartSequenceRef | OneUseSequenceRef
                 output += self._append_sgr_to_output(formatter, cur_element.ref.print())
 
-        output += self._append_sgr_to_output(formatter, self._get_active_sgrs_closing())
+        #output += self._append_sgr_to_output(formatter, self._get_active_sgrs_closing())
         return output
 
     def _append_sgr_to_output(self, formatter: SegmentProcessor, sgr_str: str) -> str:
