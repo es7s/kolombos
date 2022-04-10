@@ -52,8 +52,7 @@ class BinaryFormatter(AbstractFormatter):
             try:
                 result = self._chain_buffer.read(num_bytes,
                                                  no_wait,
-                                                 self._format_raw,
-                                                 lambda s: s)
+                                                 self._process_raw)
             except BufferWait:
                 break
 
@@ -65,7 +64,7 @@ class BinaryFormatter(AbstractFormatter):
                       Console.separator() +
                       proc_str_row +
                       '\n')
-            self._debug_buf.write(self._format_raw(raw_row) +
+            self._debug_buf.write(self._process_raw(raw_row) +
                                   self._justify_raw(cols - bytes_read) +
                                   self.PADDING_SECTION +
                                   Console.separator() +
@@ -80,7 +79,7 @@ class BinaryFormatter(AbstractFormatter):
 
         return final
 
-    def _format_raw(self, bs: bytes) -> str:
+    def _process_raw(self, bs: bytes) -> str:
         return ''.join([f' {b:02x}' for b in bs])
 
     def _justify_raw(self, num_bytes: int) -> str:

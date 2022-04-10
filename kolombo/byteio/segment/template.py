@@ -7,7 +7,7 @@ from . import _opt_arg
 from ...settings import Settings
 
 
-class SegmentTemplateSample:
+class Segment:
     def __init__(self, tpl: SegmentTemplate, processed: str = None):
         self._template = tpl
         self._processed = processed
@@ -36,8 +36,8 @@ class SegmentTemplate:
             self._opening
     )
 
-    def sample(self, processed: str = None) -> SegmentTemplateSample:
-        return SegmentTemplateSample(self, processed)
+    def substitute(self, processed: str = None) -> Segment:
+        return Segment(self, processed)
 
     @property
     def label(self) -> str:

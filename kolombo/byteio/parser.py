@@ -11,7 +11,7 @@ from kolombo.byteio.parser_buf import ParserBuffer
 from . import ReadMode
 from .chain import ChainBuffer
 from .segment import template
-from .segment.template import SegmentTemplateSample
+from .segment.template import Segment
 from ..console import Console, printd, ConsoleBuffer
 from ..settings import Settings
 
@@ -81,7 +81,7 @@ class Parser:
         self._debug_print_match_sample(raw, sample)
         self._chain_buffer.add(raw, sample)
 
-    def _find_handler(self, mgroup: int) -> Callable[[bytes], SegmentTemplateSample]|None:
+    def _find_handler(self, mgroup: int) -> Callable[[bytes], Segment] | None:
         if mgroup == 0:
             return self._handle_utf8_char_bytes
         if mgroup == 1:
@@ -105,16 +105,16 @@ class Parser:
                                   offset=(self._offset + suboffset),
                                   end='', flush=False)
 
-    def _debug_print_match_sample(self, raw: bytes, sample: SegmentTemplateSample):
+    def _debug_print_match_sample(self, raw: bytes, sample: Segment):
         debug_msg = f'/{sample.template.type_label}: {printd(raw)}'
         debug_processed_bytes = sample.get_processed(len(raw)).encode('ascii', errors="replace")
         if raw != debug_processed_bytes:
             debug_msg += f' -> {printd(debug_processed_bytes)}'
         self._debug_buffer2.write(debug_msg, no_default_prefix=True)
 
-    def _handle_utf8_char_bytes(self, raw: bytes) -> SegmentTemplateSample: 
+    def _handle_utf8_char_bytes(self, raw: bytes) -> Segment:
         if Settings.ignore_utf8:
-            return template.T_IGNORED.sample()
+            return template.T_IGNORED.substitute()
 
         if self._mode == ReadMode.TEXT or Settings.decode:
             decoded = raw.decode('utf8', errors='replace')
@@ -123,54 +123,54 @@ class Parser:
                     decoded = decoded.rjust(len(raw), '_')
                 elif len(decoded) > len(raw):
                     decoded = decoded[:len(raw)]
-            return template.T_UTF8.sample(decoded)
+            return template.T_UTF8.substitute(decoded)
 
-        return template.T_UTF8.sample()
+        return template.T_UTF8.substitute()
 
-    def _handle_binary_data_bytes(self, raw: bytes) -> SegmentTemplateSample: 
-        return template.T_TEMP.sample()
+    def _handle_binary_data_bytes(self, raw: bytes) -> Segment:
+        return template.T_TEMP.substitute()
 
-    def _handle_csi_esq_bytes(self, raw: bytes) -> SegmentTemplateSample: 
-        return template.T_TEMP.sample()
+    def _handle_csi_esq_bytes(self, raw: bytes) -> Segment:
+        return template.T_TEMP.substitute()
 
-    def _handle_nf_esq_bytes(self, raw: bytes) -> SegmentTemplateSample: 
-        return template.T_TEMP.sample()
+    def _handle_nf_esq_bytes(self, raw: bytes) -> Segment:
+        return template.T_TEMP.substitute()
 
-    def _handle_fp_esq_bytes(self, raw: bytes) -> SegmentTemplateSample: 
-        return template.T_TEMP.sample()
+    def _handle_fp_esq_bytes(self, raw: bytes) -> Segment:
+        return template.T_TEMP.substitute()
 
-    def _handle_fe_esq_bytes(self, raw: bytes) -> SegmentTemplateSample: 
-        return template.T_TEMP.sample()
+    def _handle_fe_esq_bytes(self, raw: bytes) -> Segment:
+        return template.T_TEMP.substitute()
 
-    def _handle_fs_esq_bytes(self, raw: bytes) -> SegmentTemplateSample: 
-        return template.T_TEMP.sample()
+    def _handle_fs_esq_bytes(self, raw: bytes) -> Segment:
+        return template.T_TEMP.substitute()
 
-    def _handle_ascii_control_chars(self, raw: bytes) -> SegmentTemplateSample: 
+    def _handle_ascii_control_chars(self, raw: bytes) -> Segment:
         if Settings.ignore_control:
-            return template.T_IGNORED.sample()
-        return template.T_CONTROL.sample()
+            return template.T_IGNORED.substitute()
+        return template.T_CONTROL.substitute()
 
-    def _handle_ascii_whitespace_chars(self, raw: bytes) -> SegmentTemplateSample: 
+    def _handle_ascii_whitespace_chars(self, raw: bytes) -> Segment:
         if Settings.ignore_space:
-            return template.T_IGNORED.sample()
-        return template.T_WHITESPACE.sample()
+            return template.T_IGNORED.substitute()
+        return template.T_WHITESPACE.substitute()
 
-    def _handle_ascii_newline_chars(self, raw: bytes) -> SegmentTemplateSample: 
+    def _handle_ascii_newline_chars(self, raw: bytes) -> Segment:
         if Settings.ignore_space:
             if self._mode == ReadMode.TEXT:
-                return template.T_NEWLINE_TEXT.sample('\n'*len(raw))
+                return template.T_NEWLINE_TEXT.substitute('\n' * len(raw))
             else:
-                return template.T_IGNORED.sample()
+                return template.T_IGNORED.substitute()
 
         if self._mode == ReadMode.TEXT:
-            return template.T_NEWLINE_TEXT.sample()
-        return template.T_NEWLINE.sample()
+            return template.T_NEWLINE_TEXT.substitute()
+        return template.T_NEWLINE.substitute()
 
-    def _handle_ascii_space_chars(self, raw: bytes) -> SegmentTemplateSample:
+    def _handle_ascii_space_chars(self, raw: bytes) -> Segment:
         return self._handle_ascii_whitespace_chars(raw)
 
-    def _handle_ascii_printable_chars(self, raw: bytes) -> SegmentTemplateSample:
-        return template.T_DEFAULT.sample(raw.decode('utf8', errors='replace'))
+    def _handle_ascii_printable_chars(self, raw: bytes) -> Segment:
+        return template.T_DEFAULT.substitute(raw.decode('utf8', errors='replace'))
 
     def _verify(self, unmatched: bytes):
         raw_input = self._parser_buffer.get_raw()

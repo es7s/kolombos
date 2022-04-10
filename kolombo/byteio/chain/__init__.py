@@ -5,7 +5,7 @@ from typing import Deque, AnyStr, Union, List, Callable, Tuple
 from pytermor import autof, fmt, seq
 from pytermor.seq import SequenceSGR
 
-from kolombo.byteio.segment.template import SegmentTemplateSample
+from kolombo.byteio.segment.template import Segment
 from kolombo.console import Console, ConsoleBuffer
 from kolombo.error import BufferWait
 from kolombo.settings import Settings
@@ -33,9 +33,7 @@ class StopSequenceRef(SequenceRef): pass
 
 
 Chainable = Union[AnyStr, SequenceRef]
-Transformer = Callable[[AnyStr], str]
-TransformerByte = Callable[[bytes], str]
-TransformerStr = Callable[[str], str]
+Processor = Callable[[AnyStr], str]
 
 
 class Chain:
@@ -47,11 +45,11 @@ class Chain:
         for element in elements:
             self._elements.append(element)
 
-    def detach_flat(self, num_bytes: int, transform_fn: Transformer = None) -> Tuple[int, bytes, str]:
-        num_bytes_origin = num_bytes
+    def detach_flat(self, num_bytes: int, processor_fn: Processor = None) -> Tuple[int, bytes, str]:
         if len(self._elements) == 0:
-            raise EOFError
+            return 0, b'', ''
 
+        num_bytes_origin = num_bytes
         output_raw = b''
         output_proc = self._get_active_sgrs_opening()
         while len(self._elements) > 0:
@@ -64,12 +62,12 @@ class Chain:
                 if len(cur_element) <= num_bytes:
                     if isinstance(cur_element, bytes):
                         output_raw += cur_element
-                    output_proc += transform_fn(cur_element)
+                    output_proc += processor_fn(cur_element)
                     num_bytes -= len(cur_element)
                 else:
                     if isinstance(cur_element, bytes):
                         output_raw += cur_element[:num_bytes]
-                    output_proc += transform_fn(cur_element[:num_bytes])
+                    output_proc += processor_fn(cur_element[:num_bytes])
                     self._elements[0] = cur_element[num_bytes:]
                     num_bytes = 0
                     if len(cur_element) > 0:
@@ -151,7 +149,7 @@ class ChainBuffer:
         self._debug_buffer = Console.register_buffer(ConsoleBuffer(1, 'chainbuf'))
         self._debug_buffer2 = Console.register_buffer(ConsoleBuffer(2, 'chainbuf'))
 
-    def add(self, raw: bytes, sample: SegmentTemplateSample):
+    def add(self, raw: bytes, sample: Segment):
         fmt = autof(sample.template.opening)
         processed = sample.get_processed(len(raw))
 
@@ -163,25 +161,19 @@ class ChainBuffer:
     def read(self,
              num_bytes: int,
              no_wait: bool,
-             transformer_raw: TransformerByte = None,
-             transformer_processed: TransformerStr = None
+             processor_fn: Processor,
              ) -> Tuple[int, bytes, str, str]:
         self._debug_buffer2.write(f'Buffer state: {printd(self._raw)}')
         if self.data_len < num_bytes and not no_wait:
             self._debug_buffer.write('Responsing with BufferWait')
             raise BufferWait('Not enough data to detach')
 
-        try:
-            raw_bytes_rcvd, raw_result, proc_hex_result = self._raw.detach_flat(num_bytes, transformer_raw)
-            proc_bytes_rcvd, _, proc_str_result = self._processed.detach_flat(num_bytes, transformer_processed)
-            self._debug_buffer2.write('Dequeued ' + fmt.bold(str(raw_bytes_rcvd)) + ' byte(s)')
-            self._debug_buffer2.write(f'Buffer state: {printd(self._raw)}')
-            return raw_bytes_rcvd, raw_result, proc_hex_result, proc_str_result
+        raw_bytes_rcvd, raw_result, proc_hex_result = self._raw.detach_flat(num_bytes, processor_fn)
+        _, _, proc_str_result = self._processed.detach_flat(num_bytes, lambda s: s)
 
-        except EOFError:
-            self._debug_buffer.write('Recieved EOF')
-            self._debug_buffer2.write(f'Buffer state: {printd(self._raw)}')
-            raise
+        self._debug_buffer2.write('Dequeued ' + fmt.bold(str(raw_bytes_rcvd)) + ' byte(s)')
+        self._debug_buffer2.write(f'Buffer state: {printd(self._raw)}')
+        return raw_bytes_rcvd, raw_result, proc_hex_result, proc_str_result
 
     @property
     def data_len(self) -> int:

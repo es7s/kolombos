@@ -18,7 +18,7 @@ class TextFormatter(AbstractFormatter):
         if num_bytes == 0:
             return final
 
-        result = self._chain_buffer.read(num_bytes, False, lambda b: b.hex(), lambda s: s)
+        result = self._chain_buffer.read(num_bytes, False, lambda b: b.decode())
         bytes_read, raw_row, proc_hex, proc_str = result
 
         for proc_line in proc_str.splitlines(keepends=False):
