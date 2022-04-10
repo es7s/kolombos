@@ -7,8 +7,9 @@ from typing import Callable
 
 from pytermor import fmt
 
-from ..console import Console, printd, ConsoleBuffer
+from ..console import Console, ConsoleDebugBuffer
 from ..settings import Settings
+from ..util import printd
 
 
 class Reader(metaclass=abc.ABCMeta):
@@ -22,9 +23,7 @@ class Reader(metaclass=abc.ABCMeta):
         self._chunk_size = self._get_chunk_size()
         self.read_callback = read_callback
 
-        self._debug_buf = Console.register_buffer(ConsoleBuffer(1, 'reader', fmt.magenta))
-        self._debug_buf2 = Console.register_buffer(ConsoleBuffer(2, 'reader', fmt.magenta))
-        self._debug_buf3 = Console.register_buffer(ConsoleBuffer(3, 'reader', fmt.magenta))
+        self._debug_buffer = ConsoleDebugBuffer('reader', fmt.magenta)
 
     @property
     def reading_stdin(self) -> bool:
@@ -32,7 +31,7 @@ class Reader(metaclass=abc.ABCMeta):
 
     def read(self):
         self._open()
-        self._debug_buf2.write(f'Read buffer: size {fmt.bold(str(self._chunk_size))}')
+        self._debug_buffer.write(2, f'Read buffer: size {fmt.bold(str(self._chunk_size))}')
 
         max_bytes = Settings.max_bytes
         max_lines = Settings.max_lines
@@ -40,21 +39,21 @@ class Reader(metaclass=abc.ABCMeta):
         chunks = 0
         try:
             while raw_input := self._io.read(self._chunk_size):
-                self._debug_buf.write(f'Read chunk #{chunks}: {printd(raw_input, 5)}', offset=self._offset)
+                self._debug_buffer.write(1, f'Read chunk #{chunks}: {printd(raw_input, 5)}', offset=self._offset)
                 chunks += 1
                 if max_lines:
                     for line_break in re.finditer(b'\x0a', raw_input):
                         lines += 1
                         if lines >= Settings.max_lines:
                             raw_input = raw_input[:line_break.end()-1]
-                            self._debug_buf.write('Line limit exceeded: ' + fmt.bold(str(max_lines)), offset=self._offset)
-                            self._debug_buf3.write(f'Cropping input -> {printd(raw_input)}', offset=self._offset)
+                            self._debug_buffer.write(1, 'Line limit exceeded: ' + fmt.bold(str(max_lines)), offset=self._offset)
+                            self._debug_buffer.write(3, f'Cropping input -> {printd(raw_input)}', offset=self._offset)
                             break
 
                 if max_bytes and self._offset + len(raw_input) > max_bytes:
                     raw_input = raw_input[:max_bytes - self._offset]
-                    self._debug_buf.write('Byte limit exceeded: ' + fmt.bold(str(max_bytes)), offset=self._offset)
-                    self._debug_buf3.write(f'Cropping input -> {printd(raw_input)}', offset=self._offset)
+                    self._debug_buffer.write(1, 'Byte limit exceeded: ' + fmt.bold(str(max_bytes)), offset=self._offset)
+                    self._debug_buffer.write(3, f'Cropping input -> {printd(raw_input)}', offset=self._offset)
                     break
 
                 self.read_callback(raw_input, self._offset, False)
@@ -64,7 +63,7 @@ class Reader(metaclass=abc.ABCMeta):
                    (max_lines and lines >= max_lines):
                     break
 
-            self._debug_buf.write(f'Encountered EOF', offset=self._offset)
+            self._debug_buffer.write(1, f'Encountered EOF', offset=self._offset)
             self.read_callback(raw_input, self._offset, True)
 
         except KeyboardInterrupt:
@@ -75,10 +74,10 @@ class Reader(metaclass=abc.ABCMeta):
     def _open(self):
         if self.reading_stdin:
             self._io = sys.stdin.buffer
-            self._debug_buf.write(f'Reading from stdin')
+            self._debug_buffer.write(1, f'Reading from stdin')
         else:
             self._io = open(self._filename, 'rb')
-            self._debug_buf.write(f'Opened file: {fmt.bold(self._filename)}')
+            self._debug_buffer.write(1, f'Opened file: {fmt.bold(self._filename)}')
 
     def _get_chunk_size(self) -> int:
         if Settings.buffer:

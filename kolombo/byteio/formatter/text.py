@@ -2,55 +2,53 @@ from pytermor import fmt
 
 from kolombo.byteio.parser_buf import ParserBuffer
 from ..formatter import AbstractFormatter
-from ..segment.chain import ChainBuffer
-from ...console import Console, ConsoleBuffer
+from ..segment.chain import SegmentBuffer
+from ...console import ConsoleDebugBuffer, ConsoleOutputBuffer
 from ...error import WaitRequest
-from ...settings import Settings
 
 
 class TextFormatter(AbstractFormatter):
-    def __init__(self, parser_buffer: ParserBuffer, chain_buffer: ChainBuffer):
-        super().__init__(parser_buffer, chain_buffer)
+    def __init__(self, parser_buffer: ParserBuffer, segment_buffer: SegmentBuffer):
+        super().__init__(parser_buffer, segment_buffer)
 
         self._offset = 0
-        self._line_num = 0
+        self._line_num = 1
 
-        self._debug_buf = Console.register_buffer(ConsoleBuffer(1, 'txtform', prefix_fmt=fmt.yellow))
+        self._output_buffer = ConsoleOutputBuffer()
+        self._debug_buffer = ConsoleDebugBuffer('txtfmt', prefix_fmt=fmt.yellow)
 
     def format(self):
-        final = ''
         while True:
             try:
-                self._debug_buf.write('Requested line')
-                output_debug, output_processed = self._chain_buffer.detach_line(self._parser_buffer.closed, [
-                    self._debug_proc_chain_formatter,
-                    self._proc_chain_formatter,
+                self._debug_buffer.write(1, 'Requested line')
+                force = self._parser_buffer.closed
+                result = self._segment_buffer.detach_line(force, [
+                    self._debug_sgr_seg_formatter,
+                    self._debug_raw_seg_formatter,
+                    self._debug_proc_seg_formatter,
+                    self._proc_seg_formatter,
                 ])
             except WaitRequest:
                 break
             except EOFError:
                 break
 
-            self._line_num += 1
-            prefix = self._format_prefix()
+            debug_sgr_line, debug_raw_line, debug_proc_line, final_proc_line = result
 
-            final += f'{prefix}{output_processed}'
-            self._debug_buf.write(f'{output_debug}', offset=self._offset)
-            self._offset += self._chain_buffer.last_detached_data_len
+            self._debug_buffer.write(3, debug_sgr_line, offset=self._offset)
+            self._debug_buffer.write(2, debug_raw_line, offset=self._offset)
+            self._debug_buffer.write(1, debug_proc_line, offset=self._offset)
+            self._output_buffer.write_with_line_num(final_proc_line, line_num=self._line_num)
+            #self._output_buffer.write(final_proc_line.encode().hex(' '))
+            if not final_proc_line.endswith('\n'):
+                self._output_buffer.write('', end='\n')
+
+            self._offset += self._segment_buffer.last_detached_data_len
+            self._line_num += 1
 
         if self._parser_buffer.closed:
-            if Settings.debug:
-                final += '\n'
-            self._debug_buf.write('EOF')
+            self._debug_buffer.write(1, 'EOF')
 
-        return final
-
-    def _format_prefix(self) -> str:
-        if Settings.debug:
-            return Console.prefix(str(self._line_num), fmt.green)
-        if Settings.no_line_numbers:
-            return ''
-        return fmt.green(f'{self._line_num:2d}') + Console.separator()
 
     # def _format_csi_sequence(self, match: Match) -> str:
     #     if Settings.ignore_esc:

@@ -35,8 +35,8 @@ set-version: ## set new package version
 	echo "Updated version: ${GREEN}$$VERSION${RESET}"
 
 build: ## build module
-	python3 -m build
 	sed -E -i "s/^VERSION.+/VERSION=$$VERSION/" .env.dist
+	python3 -m build
 
 ## Making new release (test repo)
 

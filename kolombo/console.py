@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 import traceback
+from abc import ABCMeta, abstractmethod
 from math import ceil
 from typing import List
 
@@ -10,21 +11,69 @@ from pytermor.fmt import AbstractFormat
 
 from .error import ArgumentError
 from .settings import Settings
-from .util import get_terminal_width, printd
+from .util import get_terminal_width
 
 
-class ConsoleBuffer:
-    def __init__(self, level: int = 1, key_prefix: str = None, prefix_fmt: AbstractFormat = fmt.green):
+# noinspection PyMethodMayBeStatic
+
+class AbstractConsoleBuffer(metaclass=ABCMeta):
+    @abstractmethod
+    def flush(self): raise NotImplementedError
+
+
+class ConsoleOutputBuffer(AbstractConsoleBuffer):
+    def __init__(self):
         self._buf = ''
-        self._level = level
+        Console.register_buffer(self)
 
-        self._default_prefix = Console.prefix(key_prefix, fmt.gray) if key_prefix else None
+    def write(self, s: str, end='\n', flush=True):
+        self._buf += f'{s}{end}'
+        if flush:
+            self.flush()
+
+    def write_with_line_num(self, s: str, line_num: int, end='', flush=True):
+        if Settings.debug:
+            prefix = Console.format_prefix(str(line_num), fmt.green)
+        elif Settings.no_line_numbers:
+            prefix = ''
+        else:
+            prefix = fmt.green(f'{line_num:2d}') + Console.get_separator()
+
+        self._buf += f'{prefix}{s}{end}'
+        if flush:
+            self.flush()
+
+    def write_with_offset(self, s: str, offset: int, end='\n', flush=True):
+        prefix = Console.format_prefix_with_offset(offset, fmt.green)
+
+        self._buf += f'{prefix}{s}{end}'
+        if flush:
+            self.flush()
+
+    def flush(self):
+        if not self._buf:
+            return
+
+        Console.print(self._buf, end='')
+        self._buf = ''
+
+
+class ConsoleDebugBuffer(AbstractConsoleBuffer):
+    def __init__(self, key_prefix: str = None, prefix_fmt: AbstractFormat = fmt.green):
+        self._buf = ''
+
+        self._default_prefix = Console.format_prefix(key_prefix, fmt.gray) if key_prefix else None
         self._prefix_fmt = prefix_fmt
 
-    def write(self, s: str, offset: int = None, end='\n', no_default_prefix=False, flush=True):
+        Console.register_buffer(self)
+
+    def write(self, level: int, s: str, offset: int = None, end='\n', no_default_prefix=False, flush=True):
+        if Settings.debug < level:
+            return
+
         prefix = ''
         if isinstance(offset, int):
-            prefix = Console.prefix_offset(offset, self._prefix_fmt)
+            prefix = Console.format_prefix_with_offset(offset, self._prefix_fmt)
         elif self._default_prefix is not None:
             if not no_default_prefix:
                 prefix = self._default_prefix
@@ -37,7 +86,7 @@ class ConsoleBuffer:
         if not self._buf:
             return
 
-        Console.debug(self._buf, level=self._level, end='')
+        Console.debug(self._buf, end='')
         self._buf = ''
 
 
@@ -46,12 +95,11 @@ class Console:
     FMT_ERROR_TRACE = fmt.red
     FMT_ERROR = autof(seq.HI_RED)
 
-    buffers: List[ConsoleBuffer] = list()
+    buffers: List[AbstractConsoleBuffer] = list()
 
     @staticmethod
-    def register_buffer(buffer: ConsoleBuffer) -> ConsoleBuffer:
+    def register_buffer(buffer: AbstractConsoleBuffer):
         Console.buffers.append(buffer)
-        return buffer
 
     @staticmethod
     def flush_buffers():
@@ -71,7 +119,7 @@ class Console:
                         for line
                         in traceback.format_exception(e.__class__, e, e.__traceback__)]
             error = tb_lines.pop(-1)
-            Console._print(Console.FMT_ERROR_TRACE('\n'.join(tb_lines)))
+            Console.print(Console.FMT_ERROR_TRACE('\n'.join(tb_lines)))
             Console.error(error)
 
         else:
@@ -79,49 +127,48 @@ class Console:
             Console.info("Run the app with '--debug' argument to see the details")
 
     @staticmethod
-    def debug(s: str = '', level=1, end='\n'):
-        if Settings.debug >= level:
-            Console._print(s, end=end)
+    def debug(s: str = '', end='\n'):
+        Console.print(s, end=end)
 
     @staticmethod
     def info(s: str = '', end='\n'):
-        Console._print(s, end=end)
+        Console.print(s, end=end)
 
     @staticmethod
     def warn(s: str = '', end='\n'):
-        Console._print(Console.FMT_WARNING(f'WARNING: {s}'), end=end)
+        Console.print(Console.FMT_WARNING(f'WARNING: {s}'), end=end)
 
     @staticmethod
     def error(s: str = '', end='\n'):
-        Console._print(Console.FMT_ERROR(fmt.bold('ERROR: ') + s), end=end, file=sys.stderr)
+        Console.print(Console.FMT_ERROR(fmt.bold('ERROR: ') + s), end=end, file=sys.stderr)
 
     @staticmethod
-    def separator() -> str:
+    def get_separator() -> str:
         return Console._format_separator('│')
 
     @staticmethod
-    def separator_line() -> str:
+    def get_separator_line() -> str:
         prefix = ('─'*8 + '┼')
         width = get_terminal_width()
         main_len = width - len(prefix)
         return Console._format_separator(prefix + ('─' * main_len))
 
     @staticmethod
-    def prefix(label: str, f: AbstractFormat) -> str:
-        return f(f'{label!s:>8.8s}') + Console.separator() + ' '
+    def format_prefix(label: str, f: AbstractFormat) -> str:
+        return f(f'{label!s:>8.8s}') + Console.get_separator() + ' '
 
     @staticmethod
-    def prefix_offset(offset: int, f: AbstractFormat = fmt.green) -> str:
-        return Console.prefix(Console.print_offset(offset), f)
+    def format_prefix_with_offset(offset: int, f: AbstractFormat = fmt.green) -> str:
+        return Console.format_prefix(Console.format_offset(offset), f)
 
     @staticmethod
-    def print_offset(offset: int) -> str:
-
-        return f'{offset:0{ceil(len(str(offset))/4)*4}d}'
-        #return f'0x{offset:0{ceil(len(str(offset))/2)*2}x}'
+    def format_offset(offset: int) -> str:
+        if Settings.decimal_offsets:
+            return f'{offset:d}'
+        return f'0x{offset:0{ceil(len(str(offset))/2)*2}x}'
 
     @staticmethod
-    def _print(s: str, end='\n', **kwargs):
+    def print(s: str, end='\n', **kwargs):
         print(s, end=end, **kwargs)
 
     @staticmethod

@@ -4,11 +4,10 @@ from .arghelp import AppArgumentParser
 from .console import Console
 from .mode import ModeProcessorFactory
 from .settings import Settings
+from .util import println
 
 
 # noinspection PyMethodMayBeStatic
-from .util import println
-
 
 class App:
     def run(self):

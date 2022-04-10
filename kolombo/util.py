@@ -1,3 +1,4 @@
+import sys
 from math import ceil
 from typing import Any, List
 
@@ -21,6 +22,9 @@ def println(n: int = 1):
 
 # @TODO refactor, move to COnsole
 def printd(v: Any, max_input_len: int = 5) -> str:
+    if Settings.debug_buffer_contents_full:
+        max_input_len = sys.maxsize
+
     if hasattr(v, 'preview'):
         v = v.preview(max_input_len)
 

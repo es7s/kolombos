@@ -10,15 +10,16 @@ from pytermor.util import StringFilter, apply_filters
 import kolombo.byteio.segment.chain
 from kolombo.byteio.parser_buf import ParserBuffer
 from . import ReadMode
-from .segment.chain import ChainBuffer, Segment
-from ..console import Console, printd, ConsoleBuffer
-from ..error import BinaryDataError
+from .segment.chain import SegmentBuffer, Segment
+from ..console import Console, ConsoleDebugBuffer
 from ..settings import Settings
+from ..util import printd
 
 
 # noinspection PyMethodMayBeStatic
+
 class Parser:
-    def __init__(self, mode: ReadMode, parser_buffer: ParserBuffer, chain_buffer: ChainBuffer):
+    def __init__(self, mode: ReadMode, parser_buffer: ParserBuffer, segment_buffer: SegmentBuffer):
         self.F_SEPARATOR = StringFilter[bytes](
             lambda b: re.sub(
                 b'('                                   # UTF-8
@@ -47,22 +48,21 @@ class Parser:
 
         self._mode = mode
         self._parser_buffer: ParserBuffer = parser_buffer
-        self._chain_buffer: ChainBuffer = chain_buffer
+        self._segment_buffer: SegmentBuffer = segment_buffer
         self._offset = 0
 
-        self._debug_buffer = Console.register_buffer(ConsoleBuffer(1, 'parser', prefix_fmt=fmt.cyan))
-        self._debug_buffer2 = Console.register_buffer(ConsoleBuffer(2, 'parser', prefix_fmt=fmt.cyan))
+        self._debug_buffer = ConsoleDebugBuffer('parser', prefix_fmt=fmt.cyan)
 
     def parse(self, offset: int):
         raw = self._parser_buffer.get_raw()
         self._offset = offset
-        self._debug_buffer.write(f'Parsing segment: {printd(raw)}')
+        self._debug_buffer.write(1, f'Parsing segment: {printd(raw)}')
 
         unmatched = apply_filters(raw, self.F_SEPARATOR)
         try:
             assert len(unmatched) == 0, f'Some bytes unprocessed: {printd(unmatched)})'
         except AssertionError as e:
-            raise RuntimeError(f'Parsing inconsistency at {Console.print_offset(self._offset)}') from e
+            raise RuntimeError(f'Parsing inconsistency at {Console.format_offset(self._offset)}') from e
 
         self._parser_buffer.crop_raw(unmatched)
 
@@ -70,20 +70,19 @@ class Parser:
         mgroups = {idx: grp for idx, grp in enumerate(m.groups()) if grp}
         primary_mgroup = min(mgroups.keys())
         raw = cast(bytes, m.group(primary_mgroup+1))
-        self._debug_print_match_group(primary_mgroup, suboffset=m.start(primary_mgroup + 1))
 
-        self._handle(primary_mgroup, raw)
+        self._handle(primary_mgroup, raw, m.start(primary_mgroup + 1))
         return b''
 
-    def _handle(self, mgroup: int, raw: bytes):
+    def _handle(self, mgroup: int, raw: bytes, suboffset: int):
         _handler_fn = self._find_handler(mgroup)
         if not _handler_fn:
             raise RuntimeError(f'No handler defined for mgroup {mgroup}: {raw.hex(" ")}')
 
         segment = _handler_fn(raw)
-        self._debug_print_match_segment(raw, segment)
+        self._debug_print_match_segment(mgroup, raw, segment, suboffset)
 
-        self._chain_buffer.attach(segment)
+        self._segment_buffer.attach(segment)
 
     def _find_handler(self, mgroup: int) -> Callable[[bytes], Segment] | None:
         if mgroup == 0:
@@ -104,17 +103,13 @@ class Parser:
             return self._handle_ascii_printable_chars
         return None
     
-    def _debug_print_match_group(self, mgroup: int, suboffset: int):
-        self._debug_buffer2.write(f'Match group #{mgroup:02d}',
-                                  offset=(self._offset + suboffset),
-                                  end='', flush=False)
-
-    def _debug_print_match_segment(self, raw: bytes, segment: Segment):
-        debug_msg = f'/{segment.template.type_label}: {printd(raw)}'
+    def _debug_print_match_segment(self, mgroup: int, raw: bytes, segment: Segment, suboffset: int):
+        debug_msg = f'Match group #{mgroup:02d}'
+        debug_msg += f'/{segment.template.type_label}: {printd(raw)}'
         debug_processed_bytes = segment.processed.encode('ascii', errors="replace")
         if raw != debug_processed_bytes:
             debug_msg += f' -> {printd(debug_processed_bytes)}'
-        self._debug_buffer2.write(debug_msg, no_default_prefix=True)
+        self._debug_buffer.write(2, debug_msg, offset=(self._offset + suboffset))
 
     def _handle_utf8_char_bytes(self, raw: bytes) -> Segment:
         if Settings.ignore_utf8:
@@ -132,8 +127,6 @@ class Parser:
         return kolombo.byteio.segment.chain.T_UTF8.substitute(raw)
 
     def _handle_binary_data_bytes(self, raw: bytes) -> Segment:
-        if self._mode == ReadMode.TEXT:
-            raise BinaryDataError
         return kolombo.byteio.segment.chain.T_TEMP.substitute(raw)
 
     def _handle_csi_esq_bytes(self, raw: bytes) -> Segment:

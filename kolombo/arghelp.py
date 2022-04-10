@@ -111,8 +111,8 @@ class AppArgumentParser(CustomArgumentParser):
 
         modes_group = self.add_argument_group('mode selection')
         modes_group_nested = modes_group.add_mutually_exclusive_group()
-        modes_group_nested.add_argument('-a', '--auto', action='store_true', default=False, help='open file in text mode, fallback to binary on failure (default)')
-        modes_group_nested.add_argument('-t', '--text', action='store_true', default=False, help='open file in text mode')
+        # modes_group_nested.add_argument('-a', '--auto', action='store_true', default=False, help='open file in text mode, fallback to binary on failure (default)')
+        modes_group_nested.add_argument('-t', '--text', action='store_true', default=True, help='open file in text mode (default)')
         modes_group_nested.add_argument('-b', '--binary', action='store_true', default=False, help='open file in binary mode')
         modes_group_nested.add_argument('-l', '--legend', action='store_true', default=False, help='show annotation symbol list and exit')
         modes_group.add_argument('-V', '--version', action='store_true', default=False, help='show app version and exit')
@@ -138,7 +138,8 @@ class AppArgumentParser(CustomArgumentParser):
         generic_group.add_argument('-F', '--buffer', metavar='<size>', default=False,
                                    help='read buffer size in bytes; default {} ({} in debug mode)'.
                                    format(Reader.READ_CHUNK_SIZE, Reader.READ_CHUNK_SIZE_DEBUG))
-        generic_group.add_argument('-v', '--debug', action='count', default=0, help='more details (can be used multiple times)')
+        generic_group.add_argument('-v', '--debug', action='count', default=0, help='more details (can be used from 1 to 4 times)')
+        generic_group.add_argument('--decimal-offsets', action='store_true', default=False, help='output offsets in decimal format (default hex)')
         generic_group.add_argument('--no-color-content', action='store_true', default=False, help='disable applying input file formatting to the output')
 
         text_mode_group = self.add_argument_group('text mode only')

@@ -3,12 +3,14 @@ from typing import Optional
 
 
 class Settings(Namespace):
-    auto: bool
+    # auto: bool
     binary: bool
     buffer: int
     columns: int
     debug: int
     debug_buffer_contents = bool
+    debug_buffer_contents_full = bool
+    decimal_offsets = bool
     decode: bool
     filename: Optional[str]
     focus_control: bool
@@ -31,9 +33,10 @@ class Settings(Namespace):
 
     @staticmethod
     def init_set_defaults():
-        if not any([Settings.text, Settings.binary]):
-            Settings.auto = True
+        # if not any([Settings.text, Settings.binary]):
+        #     Settings.auto = True
         Settings.debug_buffer_contents = (Settings.debug >= 3)
+        Settings.debug_buffer_contents_full = (Settings.debug >= 4)
 
     @staticmethod
     def effective_color_content() -> bool:

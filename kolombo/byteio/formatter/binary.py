@@ -7,16 +7,18 @@ from pytermor.fmt import EmptyFormat
 
 from kolombo.byteio.parser_buf import ParserBuffer
 from ..formatter import AbstractFormatter
-from ..segment.chain import ChainBuffer
-from ...console import Console, ConsoleBuffer
+from ..segment.chain import SegmentBuffer
+from ...console import Console, ConsoleDebugBuffer, ConsoleOutputBuffer
+from ...error import WaitRequest
 from ...settings import Settings
 from ...util import get_terminal_width
 
 
 # noinspection PyMethodMayBeStatic
+
 class BinaryFormatter(AbstractFormatter):
-    def __init__(self, parser_buffer: ParserBuffer, chain_buffer: ChainBuffer):
-        super().__init__(parser_buffer, chain_buffer)
+    def __init__(self, parser_buffer: ParserBuffer, segment_buffer: SegmentBuffer):
+        super().__init__(parser_buffer, segment_buffer)
 
         self.BYTE_CHUNK_LEN = 4
         self.PADDING_SECTION = 3 * ' '
@@ -24,54 +26,62 @@ class BinaryFormatter(AbstractFormatter):
 
         self._offset = 0
         self._cols = Settings.columns
-        self._debug_buf = Console.register_buffer(ConsoleBuffer(1, 'binform', prefix_fmt=fmt.yellow))
-        self._debug_buf2 = Console.register_buffer(ConsoleBuffer(2, 'binform', prefix_fmt=fmt.yellow))
 
-    def format(self) -> str:
+        self._output_buffer = ConsoleOutputBuffer()
+        self._debug_buffer = ConsoleDebugBuffer('binfmt', prefix_fmt=fmt.yellow)
+
+    def format(self):
         cols = self._cols
         if cols == 0:
-            prefix_example = Console.prefix_offset(self._offset, EmptyFormat())
+            prefix_example = Console.format_prefix_with_offset(self._offset, EmptyFormat())
             cols = self._compute_cols_num(len(prefix_example))
 
-        final = ''
-        num_bytes = cols
+        req_bytes = cols
         if self._parser_buffer.closed:
-            num_bytes = min(self._chain_buffer.data_len, cols)
+            req_bytes = min(self._segment_buffer.data_len, cols)
 
         while True:
-            self._debug_buf.write('Requested ' + fmt.bold(str(num_bytes)) + ' byte(s)')
+            self._debug_buffer.write(1, 'Requested ' + fmt.bold(str(req_bytes)) + ' byte(s)')
             try:
-                result = self._chain_buffer.detach_bytes(num_bytes, )
+                force = self._parser_buffer.closed
+                result = self._segment_buffer.detach_bytes(req_bytes, force, [
+                    self._debug_sgr_seg_formatter,
+                    self._debug_raw_seg_formatter,
+                    self._debug_proc_seg_formatter,
+                    self._raw_seg_formatter,
+                    self._proc_seg_formatter,
+                ])
+            except WaitRequest:
+                break
             except EOFError:
                 break
 
-            bytes_read, raw_row, proc_hex_row, proc_str_row = result
-            final += (Console.prefix_offset(self._offset, fmt.green) +
-                      proc_hex_row +
-                      self._justify_raw(cols - bytes_read) +
-                      self.PADDING_SECTION +
-                      Console.separator() +
-                      proc_str_row +
-                      '\n')
-            self._debug_buf.write(self._process_raw(raw_row) +
-                                  self._justify_raw(cols - bytes_read) +
-                                  self.PADDING_SECTION +
-                                  Console.separator() +
-                                  self._seg_raw_to_safe(raw_row),
-                                  offset=self._offset)
+            data_len = self._segment_buffer.last_detached_data_len
+            debug_sgr_row, debug_raw_row, debug_proc_row, final_raw_row, final_proc_row = result
 
-            Console.flush_buffers()
-            self._offset += bytes_read
+            self._debug_buffer.write(3, debug_sgr_row, offset=self._offset)
+            self._debug_buffer.write(1, debug_raw_row +
+                                     self._justify_raw(cols - data_len) +
+                                     self.PADDING_SECTION +
+                                     Console.get_separator() +
+                                     debug_proc_row,
+                                     offset=self._offset)
+            self._output_buffer.write_with_offset(
+                final_raw_row +
+                self._justify_raw(cols - data_len) +
+                self.PADDING_SECTION +
+                Console.get_separator() +
+                final_proc_row, offset=self._offset, end='\n')
+
+            self._offset += data_len
 
         if self._parser_buffer.closed:
-            final += (Console.prefix_offset(self._offset, autof(seq.HI_GREEN)) + '\n')
-
-        return final
+            self._output_buffer.write(
+                Console.format_prefix_with_offset(self._offset, autof(seq.HI_GREEN))
+            )
 
     def _justify_raw(self, num_bytes: int) -> str:
         return '   '*num_bytes
-
-
 
     # def _format_csi_sequence(self, match: Match) -> str:
     #     if Settings.ignore_esc:
@@ -169,5 +179,5 @@ class BinaryFormatter(AbstractFormatter):
         chunk_fit = floor(available_total / chunk_len)
 
         result = chunk_fit * self.BYTE_CHUNK_LEN
-        self._debug_buf2.write(f'Columns amount set to: {fmt.bold(str(result))}')
+        self._debug_buffer.write(2, f'Columns amount set to: {fmt.bold(str(result))}')
         return result
