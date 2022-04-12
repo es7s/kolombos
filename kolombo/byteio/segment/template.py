@@ -21,7 +21,7 @@ class SegmentTemplate:
             self._opening)
 
     def substitute(self, raw: bytes, processed: str = None):
-        from kolombo.byteio.segment.segment import Segment
+        from .segment import Segment
         if processed is None:
             processed = self._label * len(raw)
         return Segment(self, raw, processed)
@@ -55,10 +55,13 @@ class SegmentTemplateWhitespace(SegmentTemplate):
 
 T_DEFAULT = SegmentTemplate('.', 'P')
 T_IGNORED = SegmentTemplate('×', '', seq.GRAY)
-T_UTF8 = SegmentTemplate('▯', 'U', (seq.HI_BLUE + seq.INVERSED) if Settings.focus_utf8 else seq.HI_BLUE)  # ǚṳ
+# binary mode -> ▯ :
+T_UTF8 = SegmentTemplate('ṳ', 'U', (seq.HI_BLUE + seq.INVERSED) if Settings.focus_utf8 else seq.HI_BLUE)  # ǚṳ
+T_BINARY = SegmentTemplate('▯', 'B', (seq.MAGENTA + seq.INVERSED) if Settings.focus_control else seq.MAGENTA)
 T_WHITESPACE = SegmentTemplateWhitespace('␣')
 T_NEWLINE = SegmentTemplateWhitespace('↵')
 T_NEWLINE_TEXT = SegmentTemplateWhitespace('↵\n')
+# binary mode -> ▯ :
 T_CONTROL = SegmentTemplate('Ɐ', 'C', (seq.RED + seq.INVERSED) if Settings.focus_control else seq.RED)
 T_TEMP = SegmentTemplate('▯', '?', seq.HI_YELLOW + seq.BG_RED)
 

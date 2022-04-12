@@ -127,7 +127,7 @@ class Parser:
         return kolombo.byteio.segment.template.T_UTF8.substitute(raw)
 
     def _handle_binary_data_bytes(self, raw: bytes) -> Segment:
-        return kolombo.byteio.segment.template.T_TEMP.substitute(raw)
+        return kolombo.byteio.segment.template.T_BINARY.substitute(raw)
 
     def _handle_csi_esq_bytes(self, raw: bytes) -> Segment:
         return kolombo.byteio.segment.template.T_TEMP.substitute(raw)

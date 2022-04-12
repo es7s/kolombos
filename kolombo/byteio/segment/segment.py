@@ -45,5 +45,10 @@ class Segment(Chainable):
     def processed(self) -> str:
         return self._processed
 
+    def __eq__(self, other: Segment):
+        return self._template == other._template \
+               and self._raw == other._raw \
+               and self._processed == other._processed
+
     def __repr__(self):
         return f'{self.__class__.__name__}[{self._raw.hex(" ")}]->[{self._processed}]'

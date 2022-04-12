@@ -21,6 +21,9 @@ class SequenceRef(Chainable):
     def ref(self) -> SequenceSGR:
         return self._ref
 
+    def __eq__(self, other):
+        return self._ref.params == self._ref.params
+
     def __repr__(self):
         return f'{self.__class__.__name__}::{self._ref!r}'
 

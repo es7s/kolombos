@@ -7,20 +7,20 @@ class Settings(Namespace):
     binary: bool
     buffer: int
     columns: int
-    debug: int
+    debug: int = 0
     debug_buffer_contents: bool
     debug_buffer_contents_full: bool
     decimal_offsets: bool
     decode: bool
     filename: Optional[str]
-    focus_control: bool
-    focus_esc: bool
-    focus_space: bool
-    focus_utf8: bool
-    ignore_control: bool
-    ignore_esc: bool
-    ignore_space: bool
-    ignore_utf8: bool
+    focus_control: bool = False
+    focus_esc: bool = False
+    focus_space: bool = False
+    focus_utf8: bool = False
+    ignore_control: bool = False
+    ignore_esc: bool = False
+    ignore_space: bool = False
+    ignore_utf8: bool = False
     info: int
     legend: bool
     max_bytes: int
