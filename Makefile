@@ -25,11 +25,11 @@ cleanup:
 prepare:
 	python3 -m pip install --upgrade build twine
 
-test:
+test: ## Run tests
 	. venv/bin/activate
 	python3 -m unittest
 
-set-version: ## set new package version
+set-version: ## Set new package version
 	@echo "Current version: ${YELLOW}${VERSION}${RESET}"
 	read -p "New version (press enter to keep current): " VERSION
 	if [ -z $$VERSION ] ; then echo "No changes" && return 0 ; fi
@@ -38,30 +38,30 @@ set-version: ## set new package version
 	sed -E -i "s/^version.+/version = $$VERSION/" setup.cfg
 	echo "Updated version: ${GREEN}$$VERSION${RESET}"
 
-build: ## build module
+build: ## Build module
 	sed -E -i "s/^VERSION.+/VERSION=$$VERSION/" .env.dist
 	python3 -m build
 
 ## Making new release (test repo)
 
-upload-dev: ## upload module to test repository
+upload-dev: ## Upload module to test repository
 	python3 -m twine upload --repository testpypi dist/* -u ${PYPI_USERNAME} -p ${PYPI_PASSWORD}
 
-install-dev: ## install module from test repository
+install-dev: ## Install module from test repository
 	pip install -i https://test.pypi.org/simple/ kolombo-delameter==${VERSION}
 
-release-dev: ## build, upload and install using test repository
+release-dev: ## Build, upload and install using test repository
 release-dev: cleanup build upload-dev install-dev
 
 ## Making new release
 
-upload: ## upload module
+upload: ## Upload module
 	echo "upload"
 
-install: ## install module
+install: ## Install module
 	echo "install"
 
-release: ## build, upload and install module
+release: ## Build, upload and install module
 release: cleanup build upload install
 
 ##
