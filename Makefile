@@ -25,6 +25,10 @@ cleanup:
 prepare:
 	python3 -m pip install --upgrade build twine
 
+test:
+	. venv/bin/activate
+	python3 -m unittest
+
 set-version: ## set new package version
 	@echo "Current version: ${YELLOW}${VERSION}${RESET}"
 	read -p "New version (press enter to keep current): " VERSION

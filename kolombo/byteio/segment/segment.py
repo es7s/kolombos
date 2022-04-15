@@ -46,6 +46,9 @@ class Segment(Chainable):
         return self._processed
 
     def __eq__(self, other: Segment):
+        if not isinstance(other, Segment):
+            return False
+
         return self._template == other._template \
                and self._raw == other._raw \
                and self._processed == other._processed

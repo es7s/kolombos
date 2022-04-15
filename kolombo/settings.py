@@ -8,8 +8,8 @@ class Settings(Namespace):
     buffer: int
     columns: int
     debug: int = 0
-    debug_buffer_contents: bool
-    debug_buffer_contents_full: bool
+    debug_buffer_contents: bool = False
+    debug_buffer_contents_full: bool = False
     decimal_offsets: bool
     decode: bool
     filename: Optional[str]

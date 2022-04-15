@@ -8,6 +8,7 @@ from kolombo.byteio.segment.template import SegmentTemplate
 class SegmentTemplateTestCase(unittest.TestCase):
     def test_substitution_auto_processing(self):
         template = SegmentTemplate('@', 'A', seq.GREEN)
+
         segment = template.substitute(b'123')
 
         self.assertEqual(segment.data_len, 3)
@@ -18,6 +19,7 @@ class SegmentTemplateTestCase(unittest.TestCase):
 
     def test_substitution_explicit_processing(self):
         template = SegmentTemplate('@', 'A', seq.GREEN)
+
         segment = template.substitute(b'123', 'abc')
 
         self.assertEqual(segment.data_len, 3)
@@ -28,6 +30,7 @@ class SegmentTemplateTestCase(unittest.TestCase):
 
     def test_substitution_with_different_processed_len(self):
         template = SegmentTemplate('@', 'A', seq.GREEN)
+
         segment = template.substitute(b'123', 'abcdef')
 
         self.assertEqual(segment.data_len, 3)
@@ -38,6 +41,7 @@ class SegmentTemplateTestCase(unittest.TestCase):
 
     def test_substitution_with_newline(self):
         template = SegmentTemplate('@', 'A', seq.GREEN)
+
         segment = template.substitute(b'123', '123\n')
 
         self.assertEqual(segment.data_len, 3)
