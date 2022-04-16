@@ -14,7 +14,7 @@ class MarkerRegistry:
 
     @staticmethod
     def get_control_marker(charcode: int):
-        text_max_len = SettingsManager.app_settings.marker_details_max_len
+        text_max_len = SettingsManager.app_settings.marker_max_len
         if charcode == 0x00:
             return MarkerControlChar('Ø', seq.HI_RED)
         elif charcode == 0x1b:  # standalone escape

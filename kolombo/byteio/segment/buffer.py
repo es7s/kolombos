@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Deque, List, Tuple
 
 from pytermor import autof, fmt
-from pytermor.seq import SequenceSGR
+from pytermor.seq import SequenceSGR, SequenceSGR
 from pytermor.util import ReplaceSGR
 
 from kolombo.byteio.segment.chainable import Chainable
@@ -35,7 +35,7 @@ class SegmentBuffer:
 
     def attach(self, segment: Segment):
         f = autof(segment.opening_seq)
-        if len(f.opening_seq.params) == 0 or f.opening_seq.params == [0]:
+        if isinstance(f.opening_seq, SequenceSGR):
             self._segment_chain.append(segment)
             return
 

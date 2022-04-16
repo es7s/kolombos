@@ -1,8 +1,8 @@
 from pytermor import fmt, seq
 from pytermor.util import ReplaceSGR
 
-from kolombo.byteio.parser_buf import ParserBuffer
-from ..formatter import AbstractFormatter
+from kolombo.byteio.parser_buffer import ParserBuffer
+from .abstract import AbstractFormatter
 from ..segment.buffer import SegmentBuffer
 from ...console import ConsoleDebugBuffer, ConsoleOutputBuffer
 from ...error import WaitRequest

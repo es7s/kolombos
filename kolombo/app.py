@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-from pytermor.seq import SequenceSGR
-
 from .arghelp import AppArgumentParser
 from .console import Console
-from .mode import ModeProcessorFactory
+from .mode.factory import ModeProcessorFactory
 from .settings import SettingsManager
 from .util import println
 

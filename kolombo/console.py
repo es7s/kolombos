@@ -8,7 +8,6 @@ from typing import List
 
 from pytermor import autof, seq, fmt
 from pytermor.fmt import AbstractFormat
-from pytermor.seq import SequenceSGR
 from pytermor.util import ReplaceSGR
 
 from .error import ArgumentError

@@ -2,24 +2,23 @@ from __future__ import annotations
 
 import re
 from re import Match
-from typing import Callable, cast
+from typing import cast
 
 from pytermor import seq
 from pytermor.util import StringFilter, apply_filters
 
-import kolombo.byteio.segment.template
-from kolombo.byteio.parser_buf import ParserBuffer
-from . import ReadMode
+from kolombo.byteio.parser_buffer import ParserBuffer
 from .segment.buffer import SegmentBuffer
 from .segment.segment import Segment
+from .template.registry import TemplateRegistry
+from .template.template import Template
 from ..console import ConsoleDebugBuffer
-from ..settings import SettingsManager
 from ..util import printd
 
 
 # noinspection PyMethodMayBeStatic
 class Parser:
-    def __init__(self, mode: ReadMode, parser_buffer: ParserBuffer, segment_buffer: SegmentBuffer):
+    def __init__(self, parser_buffer: ParserBuffer, segment_buffer: SegmentBuffer, template_registry: TemplateRegistry):
         self.F_SEPARATOR = StringFilter[bytes](
             lambda b: re.sub(
                 b'('                                   # UTF-8
@@ -46,9 +45,9 @@ class Parser:
                 self._substitute, b
             ))
 
-        self._mode = mode
         self._parser_buffer: ParserBuffer = parser_buffer
         self._segment_buffer: SegmentBuffer = segment_buffer
+        self._template_registry: TemplateRegistry = template_registry
         self._offset = 0
 
         self._debug_buffer = ConsoleDebugBuffer('parser', seq.CYAN)
@@ -75,32 +74,32 @@ class Parser:
         return b''
 
     def _handle(self, mgroup: int, raw: bytes, suboffset: int):
-        _handler_fn = self._find_handler(mgroup)
-        if not _handler_fn:
-            raise RuntimeError(f'No handler defined for mgroup {mgroup}: {raw.hex(" ")}')
+        template = self._find_template(mgroup)
+        if not template:
+            raise RuntimeError(f'No template defined for mgroup {mgroup}: {raw.hex(" ")}')
 
-        segment = _handler_fn(raw)
+        segment = template.substitute(raw)
         self._debug_print_match_segment(mgroup, raw, segment, suboffset)
 
         self._segment_buffer.attach(segment)
 
-    def _find_handler(self, mgroup: int) -> Callable[[bytes], Segment] | None:
+    def _find_template(self, mgroup: int) -> Template|None:
         if mgroup == 0:
-            return self._handle_utf8_char_bytes
+            return self._template_registry.UTF_8_SEQ
         if mgroup == 1:
-            return self._handle_binary_data_bytes
-        if mgroup == 2:
-            return self._handle_csi_esq_bytes
+            return self._template_registry.BINARY_DATA
+        #if mgroup == 2:
+        #    return self._handle_csi_esq_bytes
         if mgroup == 21:
-            return self._handle_ascii_control_chars
+            return self._template_registry.CONTROL_CHAR  # wat
         if mgroup == 22:
-            return self._handle_ascii_whitespace_chars
+            return self._template_registry.WHITESPACE_CARR_RETURN  # wat
         if mgroup == 23:
-            return self._handle_ascii_space_chars
+            return self._template_registry.WHITESPACE_SPACE
         if mgroup == 24:
-            return self._handle_ascii_newline_char
+            return self._template_registry.WHITESPACE_NEWLINE
         if mgroup == 25:
-            return self._handle_ascii_printable_chars
+            return self._template_registry.PRINTABLE_CHAR
         return None
     
     def _debug_print_match_segment(self, mgroup: int, raw: bytes, segment: Segment, suboffset: int):
@@ -110,67 +109,3 @@ class Parser:
         if raw != debug_processed_bytes:
             debug_msg += f' -> {printd(debug_processed_bytes)}'
         self._debug_buffer.write(2, debug_msg, offset=(self._offset + suboffset))
-
-    def _handle_utf8_char_bytes(self, raw: bytes) -> Segment:
-        if SettingsManager.app_settings.ignore_utf8:
-            return kolombo.byteio.segment.template.T_IGNORED.substitute(raw)
-
-        if self._mode == ReadMode.TEXT or SettingsManager.app_settings.decode:
-            decoded = raw.decode('utf8', errors='replace')
-            if self._mode == ReadMode.BINARY:
-                if len(decoded) < len(raw):
-                    decoded = decoded.rjust(len(raw), '_')
-                elif len(decoded) > len(raw):
-                    decoded = decoded[:len(raw)]
-            return kolombo.byteio.segment.template.T_UTF8.substitute(raw, decoded)
-
-        return kolombo.byteio.segment.template.T_UTF8.substitute(raw)
-
-    def _handle_binary_data_bytes(self, raw: bytes) -> Segment:
-        if SettingsManager.app_settings.ignore_binary:
-            return kolombo.byteio.segment.template.T_IGNORED.substitute(raw)
-        return kolombo.byteio.segment.template.T_BINARY.substitute(raw)
-
-    def _handle_csi_esq_bytes(self, raw: bytes) -> Segment:
-        return kolombo.byteio.segment.template.T_TEMP.substitute(raw)
-
-    def _handle_nf_esq_bytes(self, raw: bytes) -> Segment:
-        return kolombo.byteio.segment.template.T_TEMP.substitute(raw)
-
-    def _handle_fp_esq_bytes(self, raw: bytes) -> Segment:
-        return kolombo.byteio.segment.template.T_TEMP.substitute(raw)
-
-    def _handle_fe_esq_bytes(self, raw: bytes) -> Segment:
-        return kolombo.byteio.segment.template.T_TEMP.substitute(raw)
-
-    def _handle_fs_esq_bytes(self, raw: bytes) -> Segment:
-        return kolombo.byteio.segment.template.T_TEMP.substitute(raw)
-
-    def _handle_ascii_control_chars(self, raw: bytes) -> Segment:
-        if SettingsManager.app_settings.ignore_control:
-            return kolombo.byteio.segment.template.T_IGNORED.substitute(raw)
-        return kolombo.byteio.segment.template.T_CONTROL.substitute(raw)
-
-    def _handle_ascii_whitespace_chars(self, raw: bytes) -> Segment:
-        if SettingsManager.app_settings.ignore_space:
-            return kolombo.byteio.segment.template.T_IGNORED.substitute(raw)
-        return kolombo.byteio.segment.template.T_WHITESPACE.substitute(raw)
-
-    def _handle_ascii_space_chars(self, raw: bytes) -> Segment:
-        return self._handle_ascii_whitespace_chars(raw)
-
-    def _handle_ascii_newline_char(self, raw: bytes) -> Segment:
-        if SettingsManager.app_settings.ignore_space:
-            if self._mode == ReadMode.TEXT:
-                return kolombo.byteio.segment.template.T_NEWLINE_TEXT.substitute(raw, '\n' * len(raw))
-            else:
-                return kolombo.byteio.segment.template.T_IGNORED.substitute(raw)
-
-        if self._mode == ReadMode.TEXT:
-            return kolombo.byteio.segment.template.T_NEWLINE_TEXT.substitute(raw)
-        return kolombo.byteio.segment.template.T_NEWLINE.substitute(raw)
-
-    def _handle_ascii_printable_chars(self, raw: bytes) -> Segment:
-        if SettingsManager.app_settings.ignore_printable:
-            return kolombo.byteio.segment.template.T_IGNORED.substitute(raw)
-        return kolombo.byteio.segment.template.T_PRINTABLE.substitute(raw, raw.decode('utf8', errors='replace'))

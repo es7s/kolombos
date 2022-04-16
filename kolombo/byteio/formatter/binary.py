@@ -5,8 +5,8 @@ from math import floor
 from pytermor import fmt, autof, seq
 from pytermor.fmt import EmptyFormat
 
-from kolombo.byteio.parser_buf import ParserBuffer
-from ..formatter import AbstractFormatter
+from kolombo.byteio.parser_buffer import ParserBuffer
+from .abstract import AbstractFormatter
 from ..segment.buffer import SegmentBuffer
 from ...console import Console, ConsoleDebugBuffer, ConsoleOutputBuffer
 from ...error import WaitRequest
@@ -15,7 +15,6 @@ from ...util import get_terminal_width
 
 
 # noinspection PyMethodMayBeStatic
-
 class BinaryFormatter(AbstractFormatter):
     def __init__(self, parser_buffer: ParserBuffer, segment_buffer: SegmentBuffer):
         super().__init__(parser_buffer, segment_buffer)

@@ -1,9 +1,20 @@
 from __future__ import annotations
 
 from argparse import Namespace
-from typing import Optional, Any
+from typing import Any
 
 from pytermor import fmt, autof, seq
+
+from kolombo.byteio.char_class import CharClass
+from kolombo.byteio.display_mode import DisplayMode
+from kolombo.byteio.read_mode import ReadMode
+
+
+class SettingsEnum:
+    MARKER_NO_DETAILS = 0
+    MARKER_BRIEF_DETAILS = 1
+    MARKER_FULL_DETAILS = 2
+    MARKER_BINARY_STRICT = 3
 
 
 class Settings(Namespace):
@@ -42,6 +53,29 @@ class Settings(Namespace):
         self.version: bool = False
 
     @property
+    def read_mode(self) -> ReadMode:
+        if self.binary:
+            return ReadMode.BINARY
+        elif self.text:
+            return ReadMode.TEXT
+        # auto
+        raise ValueError('Read mode is undefined')
+
+    def get_char_class_display_mode(self, char_class: CharClass) -> DisplayMode:
+        attr_ignored = f'ignore_{char_class.value}'
+        attr_focused = f'focus_{char_class.value}'
+        if not hasattr(self, attr_ignored):
+            raise KeyError(f'Ignore attribute for char class {char_class} not found in settings (tried {attr_ignored})')
+        if not hasattr(self, attr_focused):
+            raise KeyError(f'Focus attribute for char class {char_class} not found in settings (tried {attr_focused})')
+
+        if getattr(self, attr_ignored):
+            return DisplayMode.IGNORED
+        if getattr(self, attr_focused):
+            return DisplayMode.FOCUSED
+        return DisplayMode.DEFAULT
+
+    @property
     def effective_color_content(self) -> bool:
         if self.binary:
             return False
@@ -50,14 +84,10 @@ class Settings(Namespace):
     @property
     def effective_marker_details(self) -> int:
         if self.binary:
-            return 2
-        return max(2, min(0, self.marker))
+            return SettingsEnum.MARKER_BINARY_STRICT
 
-    @property
-    def marker_details_max_len(self) -> int:
-        if self.binary:
-            return 1
-        return max(3, min(0, self.marker + 1))
+        eff = max(SettingsEnum.MARKER_NO_DETAILS, self.marker)
+        return min(SettingsEnum.MARKER_FULL_DETAILS, eff)
 
     @property
     def debug_settings(self) -> int:

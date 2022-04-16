@@ -6,6 +6,9 @@ from kolombo.byteio.segment.template import SegmentTemplate
 
 
 class SegmentTemplateTestCase(unittest.TestCase):
+    def setUp(self) -> None:
+        pass
+
     def test_substitution_auto_processing(self):
         template = SegmentTemplate('@', 'A', seq.GREEN)
 

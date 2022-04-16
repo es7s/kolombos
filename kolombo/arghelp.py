@@ -94,11 +94,6 @@ class AppArgumentParser(CustomArgumentParser):
                 'Binary mode sets '+fmt.bold('--marker')+' verbosity level to 2 (fixed).',
                 'Debug mode sets default '+fmt.bold('--buffer')+' to 64 bytes (can be overriden as usual).',
                 '',
-                'Ignore-<class> options are interpreted as follows::',
-                f'{CustomHelpFormatter.INDENT}* In text mode: replace printable characters to "×", hide markers'
-                f' of non-printable characters;',
-                f'{CustomHelpFormatter.INDENT}* In binary mode: replace ignored chars to "×" and color their hex codes dark gray.',
-                '',
                 'Run \'%(prog)s ' + fmt.bold('--legend') + '\' to see annotation symbol list and color map.',
                 '',
                 '(c) 2022 A. Shavykin <0.delameter@gmail.com>',

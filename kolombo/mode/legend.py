@@ -1,6 +1,6 @@
 from os.path import join, dirname, realpath
 
-from . import AbstractModeProcessor
+from .factory import AbstractModeProcessor
 from ..console import Console
 
 

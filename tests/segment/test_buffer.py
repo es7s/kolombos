@@ -5,23 +5,23 @@ from pytermor import seq
 from kolombo.byteio.segment.buffer import SegmentBuffer
 from kolombo.byteio.segment.segment import Segment
 from kolombo.byteio.segment.sequence_ref import StartSequenceRef, StopSequenceRef, OneUseSequenceRef
-from kolombo.byteio.segment.template import SegmentTemplate
+from kolombo.settings import SettingsManager, Settings
 
 
 class SegmentBufferAttachingTestCase(unittest.TestCase):
     def setUp(self) -> None:
+        SettingsManager.app_settings = Settings()
         self.buffer = SegmentBuffer()
 
     def test_attach_segment(self):
-        template = SegmentTemplate('@', 'A', seq.GREEN)
-        segment = template.substitute(b'123', '123')
+        segment = Segment(seq.GREEN, '@', b'123', '123')
 
         self.buffer.attach(segment)
 
         self.assertEqual(self.buffer.data_len, 3)
         self.assertEqual(len(self.buffer._segment_chain), 4)
         self.assertIn(StartSequenceRef(seq.GREEN), self.buffer._segment_chain)
-        self.assertIn(Segment(template, b'123', '123'), self.buffer._segment_chain)
+        self.assertIn(Segment(seq.GREEN, '@', b'123', '123'), self.buffer._segment_chain)
         self.assertIn(StopSequenceRef(seq.GREEN), self.buffer._segment_chain)
         self.assertIn(OneUseSequenceRef(seq.COLOR_OFF), self.buffer._segment_chain)
 

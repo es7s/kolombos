@@ -1,6 +1,5 @@
 from pytermor import seq
 from pytermor.fmt import Format
-from pytermor.seq import SequenceSGR
 
 from . import Marker
 from ..settings import SettingsManager

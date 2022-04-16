@@ -3,7 +3,6 @@ from typing import Optional
 
 from pytermor import seq
 from pytermor.fmt import AbstractFormat
-from pytermor.seq import SequenceSGR
 
 
 class Marker(metaclass=abc.ABCMeta):

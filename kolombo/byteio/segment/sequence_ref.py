@@ -24,7 +24,7 @@ class SequenceRef(Chainable):
     def __eq__(self, other):
         if not isinstance(other, SequenceRef):
             return False
-        return self._ref.params == self._ref.params
+        return self._ref == self._ref
 
     def __repr__(self):
         return f'{self.__class__.__name__}::{self._ref!r}'
