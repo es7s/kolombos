@@ -38,7 +38,7 @@ class Template:
         read_mode = app_settings.read_mode
 
         return Segment(
-            self._opening_seq_stack.get(display_mode, read_mode),  # display_mode has more priority
+            self._opening_seq_stack.get(display_mode, read_mode),  # display_mode has higher priority
             TYPE_LABEL_MAP[self._char_class],
             raw,
             self._process(raw, display_mode, read_mode)
@@ -51,7 +51,7 @@ class Template:
         return processed
 
     def _process_byte(self, b: int, display_mode: DisplayMode, read_mode: ReadMode) -> str:
-        return self._label_stack.get(display_mode, read_mode)  # display_mode has more priority
+        return self._label_stack.get(display_mode, read_mode)  # display_mode has higher priority
 
 # CharClass.ESCAPE_SEQ     'E' ! GN|Y|WH|vari  marker:byte-dep: 'ϴǝϽꟻƎ' | +seq.INVERSED marker:byte-dep:content-dep:'ϴǝϽꟻƎ' | const.IGNORED | binary invisible
 # content-dep:: ^^^^^^^^^^

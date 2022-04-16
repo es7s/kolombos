@@ -35,10 +35,11 @@ class Parser:
                 b'((\x1b)([\x30-\x3f]))|'                                     # - Fp escape sequences
                 b'((\x1b)([\x40-\x5f]))|'                                     # - Fe escape sequences
                 b'((\x1b)([\x60-\x7e]))|'                                     # - Fs escape sequences
-                +                                       # 7-BIT ASCII
-                b'([\x00-\x08\x0e-\x1f\x7f]+)|'         # - control chars (incl. standalone escapes \x1b)
-                b'([\x09\x0b-\x0d]+)|(\x20+)|(\x0a)|'   # - whitespaces (\t,\v,\f,\r) | spaces | newline
-                b'([\x21-\x7e]+)',                      # - printable chars (letters, digits, punctuation)
+                +                                                   # 7-BIT ASCII
+                b'([\x01-\x07\x0e-\x1a\x1c-\x1f]+)|'                # - generic control chars
+                b'(\x00+)|(\x08+)|(\x1b+)|(\x7f+)|'                 # - nulls | backspaces | escapes | deletes
+                b'(\x09+)|(\x0a)|(\x0b+)|(\x0c+)|(\x0d+)|(\x20+)|'  # - whitespace (\t | \n(x1) | \v | \f | \r | spaces)
+                b'([\x21-\x7e]+)',                                  # - printable chars (letters, digits, punctuation)
                 self._substitute, b
             ))
 
@@ -88,14 +89,28 @@ class Parser:
         #if mgroup == 2:
         #    return self._handle_csi_esq_bytes
         if mgroup == 21:
-            return self._template_registry.CONTROL_CHAR  # wat
+            return self._template_registry.CONTROL_CHAR
         if mgroup == 22:
-            return self._template_registry.WHITESPACE_CARR_RETURN  # wat
+            return self._template_registry.CONTROL_CHAR_NULL
         if mgroup == 23:
-            return self._template_registry.WHITESPACE_SPACE
+            return self._template_registry.CONTROL_CHAR_BACKSPACE
         if mgroup == 24:
-            return self._template_registry.WHITESPACE_NEWLINE
+            return self._template_registry.CONTROL_CHAR_ESCAPE
         if mgroup == 25:
+            return self._template_registry.CONTROL_CHAR_DELETE
+        if mgroup == 26:
+            return self._template_registry.WHITESPACE_TAB
+        if mgroup == 27:
+            return self._template_registry.WHITESPACE_NEWLINE
+        if mgroup == 28:
+            return self._template_registry.WHITESPACE_VERT_TAB
+        if mgroup == 29:
+            return self._template_registry.WHITESPACE_FORM_FEED
+        if mgroup == 30:
+            return self._template_registry.WHITESPACE_CARR_RETURN
+        if mgroup == 31:
+            return self._template_registry.WHITESPACE_SPACE
+        if mgroup == 32:
             return self._template_registry.PRINTABLE_CHAR
         return None
     

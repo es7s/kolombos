@@ -2,7 +2,7 @@ import re
 from argparse import HelpFormatter, Action, ArgumentParser, SUPPRESS
 from typing import Optional, Iterable, List
 
-from pytermor import fmt
+from pytermor import fmt, autof, seq
 
 from .byteio import Reader
 
@@ -148,6 +148,8 @@ class AppArgumentParser(CustomArgumentParser):
 
         text_mode_group = self.add_argument_group('text mode only options')
         text_mode_group.add_argument('-m', '--marker', metavar='<level>', action='store', type=int, default=1, help='control and escape marker verbosity (0-2) '+fmt_default('[default: %(default)s]'))
+        text_mode_group.add_argument('-Q', '--squeeze-ignored', action='store_true', default=False, help=autof(seq.HI_YELLOW)('TODO')+'replace sequences of ignored characters with one character')
+        text_mode_group.add_argument('-H', '--hide-ignored', action='store_true', default=False, help=autof(seq.HI_YELLOW)('TODO')+'completely hide ignored character classes')
         text_mode_group.add_argument('--no-line-numbers', action='store_true', default=False, help='do not print line numbers')
         text_mode_group.add_argument('--no-color-markers', action='store_true', default=False, help='disable applying input file formatting to SGR marker details')
 
