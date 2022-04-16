@@ -4,12 +4,9 @@ from typing import Dict
 
 from pytermor.seq import SequenceSGR
 
-from kolombo.byteio.char_class import CharClass
-from kolombo.byteio.display_mode import DisplayMode
-from kolombo.byteio.read_mode import ReadMode
-from kolombo.byteio.template.partial_override import OpeningSeqPOV, LabelPOV
-from kolombo.byteio.template.template import Template
-from kolombo.settings import SettingsManager, SettingsEnum
+from . import OpeningSeqPOV, LabelPOV, Template
+from .. import CharClass, DisplayMode, ReadMode, MarkerDetailsEnum
+from ...settings import SettingsManager
 
 
 class ControlCharGenericTemplate(Template):
@@ -30,15 +27,15 @@ class ControlCharGenericTemplate(Template):
         if display_mode is DisplayMode.IGNORED:
             return default_label
 
-        if read_mode is ReadMode.BINARY or self._marker_details == SettingsEnum.MARKER_NO_DETAILS:  # Ɐ
+        if read_mode is ReadMode.BINARY or self._marker_details is MarkerDetailsEnum.NO_DETAILS:  # Ɐ
             return default_label
 
-        if self._marker_details == SettingsEnum.MARKER_BRIEF_DETAILS:  # ⱯZ
+        if self._marker_details is MarkerDetailsEnum.BRIEF_DETAILS:  # ⱯZ
             if b not in self._brief_label_map.keys():
                 raise KeyError(f'No brief label defined for byte 0x{b:02x}')
             return default_label + self._brief_label_map[b]
 
-        if self._marker_details == SettingsEnum.MARKER_FULL_DETAILS:  # Ɐ1a
+        if self._marker_details is MarkerDetailsEnum.FULL_DETAILS:  # Ɐ1a
             return default_label + f'{b:02x}'
 
         return default_label

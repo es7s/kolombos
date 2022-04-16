@@ -1,0 +1,3 @@
+class WaitRequest(Exception):
+    pass
+

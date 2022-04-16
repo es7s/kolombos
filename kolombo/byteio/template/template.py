@@ -3,12 +3,11 @@ from __future__ import annotations
 from pytermor import seq
 from pytermor.seq import SequenceSGR
 
-from kolombo.byteio.char_class import CharClass, TYPE_LABEL_MAP
-from kolombo.byteio.display_mode import DisplayMode
-from kolombo.byteio.read_mode import ReadMode
-from kolombo.byteio.segment.segment import Segment
-from kolombo.byteio.template.partial_override import PartialOverride, OpeningSeqPOV, LabelPOV
-from kolombo.settings import SettingsManager
+from . import PartialOverride, OpeningSeqPOV, LabelPOV
+from .. import CharClass, DisplayMode, ReadMode
+from ..enum import TYPE_LABEL_MAP
+from ..segment import Segment
+from ...settings import SettingsManager
 
 
 class Template:

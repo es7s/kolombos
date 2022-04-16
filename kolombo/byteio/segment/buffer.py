@@ -3,17 +3,13 @@ from __future__ import annotations
 from typing import Deque, List, Tuple
 
 from pytermor import autof, fmt
-from pytermor.seq import SequenceSGR, SequenceSGR
+from pytermor.seq import SequenceSGR
 from pytermor.util import ReplaceSGR
 
-from kolombo.byteio.segment.chainable import Chainable
-from kolombo.byteio.segment.processor import SegmentProcessor
-from kolombo.byteio.segment.segment import Segment
-from kolombo.byteio.segment.sequence_ref import StartSequenceRef, StopSequenceRef, OneUseSequenceRef, SequenceRef
-from kolombo.console import ConsoleDebugBuffer
-from kolombo.error import WaitRequest
-from kolombo.settings import SettingsManager
-from kolombo.util import printd
+from . import Chainable, SegmentProcessor, Segment, StartSequenceRef, StopSequenceRef, OneUseSequenceRef, SequenceRef
+from .. import WaitRequest
+from ...console import ConsoleDebugBuffer, Console
+from ...settings import SettingsManager
 
 
 # noinspection PyMethodMayBeStatic
@@ -35,7 +31,7 @@ class SegmentBuffer:
 
     def attach(self, segment: Segment):
         f = autof(segment.opening_seq)
-        if isinstance(f.opening_seq, SequenceSGR):
+        if len(f.opening_seq.params) == 0 or set(f.opening_seq.params) == {0}:
             self._segment_chain.append(segment)
             return
 
@@ -51,13 +47,13 @@ class SegmentBuffer:
             detached = self._detach(req_bytes)
             if len(detached) == 0:
                 self._debug_buffer.write(1, 'Responsing with EOF')
-                self._debug_buffer.write(2, f'Buffer state: {printd(self)}')
+                self._debug_buffer.write(2, f'Buffer state: {Console.printd(self)}')
                 raise EOFError
 
             return self._format_multiple(detached, formatters)
 
         self._debug_buffer.write(1, 'Responsing with WaitRequest')
-        self._debug_buffer.write(2, f'Buffer state: {printd(self)}')
+        self._debug_buffer.write(2, f'Buffer state: {Console.printd(self)}')
         raise WaitRequest
 
     def detach_line(self, force: bool, formatters: List[SegmentProcessor, ...]) -> Tuple[str, ...]:
@@ -71,7 +67,7 @@ class SegmentBuffer:
 
         if avail_bytes == 0:
             self._debug_buffer.write(1, 'Responsing with EOF')
-            self._debug_buffer.write(2, f'Buffer state: {printd(self)}')
+            self._debug_buffer.write(2, f'Buffer state: {Console.printd(self)}')
             raise EOFError
 
         if has_newline or force:
@@ -79,7 +75,7 @@ class SegmentBuffer:
             return self._format_multiple(detached, formatters)
 
         self._debug_buffer.write(1, 'Responsing with WaitRequest')
-        self._debug_buffer.write(2, f'Buffer state: {printd(self)}')
+        self._debug_buffer.write(2, f'Buffer state: {Console.printd(self)}')
         raise WaitRequest
 
     def preview(self, max_input_len: int = 5) -> str:
@@ -108,7 +104,7 @@ class SegmentBuffer:
         return result
 
     def _detach(self, req_bytes: int) -> List[Chainable]:
-        self._debug_buffer.write(2, f'Buffer state: {printd(self)}')
+        self._debug_buffer.write(2, f'Buffer state: {Console.printd(self)}')
 
         if len(self._segment_chain) == 0:
             return []
@@ -148,7 +144,7 @@ class SegmentBuffer:
             self._segment_chain.popleft()
 
         self._debug_buffer.write(2, 'Detached ' + fmt.bold(sum([el.data_len for el in output])) + ' data byte(s)')
-        self._debug_buffer.write(2, f'Buffer state: {printd(self)}')
+        self._debug_buffer.write(2, f'Buffer state: {Console.printd(self)}')
         output.extend([OneUseSequenceRef(autof(sgr).closing_seq) for sgr in self._active_sgrs])
         return output
 

@@ -4,7 +4,7 @@ from typing import Optional, Iterable, List
 
 from pytermor import fmt
 
-from kolombo.byteio.reader import Reader
+from .byteio import Reader
 
 
 class CustomHelpFormatter(HelpFormatter):

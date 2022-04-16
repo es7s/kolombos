@@ -1,9 +1,7 @@
 import abc
 
-from kolombo.byteio.parser_buffer import ParserBuffer
-from kolombo.byteio.segment.buffer import SegmentBuffer
-from kolombo.byteio.segment.processor import SegmentProcessor
-from kolombo.byteio.segment.segment import Segment
+from .. import ParserBuffer
+from ..segment import SegmentBuffer, SegmentProcessor, Segment
 
 
 # noinspection PyMethodMayBeStatic

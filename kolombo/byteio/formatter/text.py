@@ -1,11 +1,10 @@
-from pytermor import fmt, seq
+from pytermor import seq
 from pytermor.util import ReplaceSGR
 
-from kolombo.byteio.parser_buffer import ParserBuffer
-from .abstract import AbstractFormatter
-from ..segment.buffer import SegmentBuffer
+from . import AbstractFormatter
+from .. import ParserBuffer, WaitRequest
+from ..segment import SegmentBuffer
 from ...console import ConsoleDebugBuffer, ConsoleOutputBuffer
-from ...error import WaitRequest
 
 
 class TextFormatter(AbstractFormatter):

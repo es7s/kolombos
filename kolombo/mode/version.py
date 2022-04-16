@@ -1,7 +1,7 @@
 import re
 from os.path import join, dirname, realpath, abspath
 
-from .factory import AbstractModeProcessor
+from . import AbstractModeProcessor
 from ..console import Console, ConsoleDebugBuffer
 
 

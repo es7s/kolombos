@@ -1,22 +1,23 @@
 from __future__ import annotations
 
+import re
 import sys
 import traceback
 from abc import ABCMeta, abstractmethod
 from math import ceil
-from typing import List
+from typing import List, Any
 
 from pytermor import autof, seq, fmt
 from pytermor.fmt import AbstractFormat
+from pytermor.seq import SequenceSGR
 from pytermor.util import ReplaceSGR
 
-from .error import ArgumentError
-from .settings import SettingsManager
-from .util import get_terminal_width
+from . import ArgumentError, get_terminal_width
+from .byteio import CharClass
+from .settings import SettingsManager, Settings
 
 
 # noinspection PyMethodMayBeStatic
-
 class AbstractConsoleBuffer(metaclass=ABCMeta):
     @abstractmethod
     def flush(self): raise NotImplementedError
@@ -35,7 +36,7 @@ class ConsoleOutputBuffer(AbstractConsoleBuffer):
     def write_with_line_num(self, s: str, line_num: int, end='', flush=True):
         fmt_ = fmt.green
         if SettingsManager.app_settings.debug:
-            prefix = Console.format_prefix(line_num, fmt_)
+            prefix = Console.format_prefix(str(line_num), fmt_)
         elif SettingsManager.app_settings.no_line_numbers:
             prefix = ''
         else:
@@ -189,6 +190,61 @@ class Console:
         return Console._format_separator(main_part + settings_part + ('─' * filler_len))
 
     @staticmethod
+    def debug_settings():
+        app_settings = SettingsManager.app_settings
+        if not app_settings.debug_settings:
+            return
+
+        def is_derived(attr: str, settings: Settings) -> bool:
+            return attr not in settings.__dict__
+
+        def debug_print(attr, app_value, default_value):
+            if app_value != default_value:
+                fmt_attr_seq = fmt_header.opening_seq
+                values = fmt.green(f'{app_value!s}') + ' ' + fmt.gray(f'[{default_value!s}]')
+            else:
+                fmt_attr_seq = seq.BG_BLACK
+                values = fmt.yellow(f'{default_value!s}')
+
+            if is_derived(attr, app_settings):
+                fmt_attr_seq += seq.ITALIC
+
+            debug_buffer.write(3, autof(fmt_attr_seq)(attr.rjust(max_attr_len)) + Console.get_separator() + values)
+
+        default_settings = Settings()
+        debug_buffer = ConsoleDebugBuffer()
+        fmt_header = autof(seq.BG_BLACK + seq.BOLD)
+        derived = app_settings.debug_settings_derived
+
+        attrs = [attr for attr in sorted(
+            app_settings.__dir__(),
+            key=lambda attr: attr if is_derived(attr, app_settings) else '_'+attr
+        ) if not attr.startswith(('_', 'init', 'get')) and (not is_derived(attr, app_settings) or derived)]
+
+        max_attr_len = max([len(attr) for attr in attrs]) + 3
+        Console.settings_prefix_len = max_attr_len
+
+        debug_buffer.write(3, Console.get_separator_line(settings_open=True))
+        header = 'Settings [Derived]'.upper().ljust(max_attr_len)
+        if derived:
+            header = header.replace('[', f'[{seq.ITALIC}').replace(']', f'{seq.ITALIC_OFF}]')
+        else:
+            header = re.sub(r'\[\w+]', lambda m: len(m.group(0)) * ' ', header)
+
+        debug_buffer.write(3, fmt_header(header) + Console.get_separator())
+
+        for attr in attrs:
+            debug_print(attr, getattr(app_settings, attr), getattr(default_settings, attr))
+
+        if derived:
+            for char_class in CharClass:
+                debug_print(f'{char_class}',
+                            app_settings.get_char_class_display_mode(char_class),
+                            default_settings.get_char_class_display_mode(char_class))
+
+        debug_buffer.write(3, Console.get_separator_line(settings_close=True, main_open=True))
+
+    @staticmethod
     def format_prefix(label: str, f: AbstractFormat) -> str:
         return f(f'{label!s:>{Console.MAIN_PREFIX_LEN}.{Console.MAIN_PREFIX_LEN}s}') + Console.get_separator()
 
@@ -203,6 +259,31 @@ class Console:
     @staticmethod
     def print(s: str, end='\n', **kwargs):
         print(s, end=end, **kwargs)
+
+    @staticmethod
+    def printd(v: Any, max_input_len: int = 5) -> str:
+        if SettingsManager.app_settings.debug_buffer_contents_full:
+            max_input_len = sys.maxsize
+
+        if hasattr(v, 'preview'):
+            v = v.preview(max_input_len)
+
+        if isinstance(v, (bytes, List)):
+            result = 'len ' + fmt.bold(len(v))
+            if not SettingsManager.app_settings.debug_buffer_contents:
+                return result
+
+            if len(v) == 0:
+                return f'{result} {seq.GRAY}[]{seq.COLOR_OFF}'
+            if isinstance(v, bytes):
+                v = ' '.join([f'{b:02x}' for b in v])
+            return f'{result} ' + \
+                   f'{seq.GRAY}[' + \
+                   f'{v[:2*(max_input_len-1)]}' + \
+                   ('.. ' + ''.join(v[-2:])if len(v) > 2 * (max_input_len - 1) else '') + \
+                   f']{seq.COLOR_OFF}'
+
+        return f'{v!s}'
 
     @staticmethod
     def _format_separator(s: str) -> str:

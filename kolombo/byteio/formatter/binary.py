@@ -5,13 +5,12 @@ from math import floor
 from pytermor import fmt, autof, seq
 from pytermor.fmt import EmptyFormat
 
-from kolombo.byteio.parser_buffer import ParserBuffer
-from .abstract import AbstractFormatter
-from ..segment.buffer import SegmentBuffer
+from . import AbstractFormatter
+from .. import ParserBuffer, WaitRequest
+from ..segment import SegmentBuffer
+from ... import get_terminal_width
 from ...console import Console, ConsoleDebugBuffer, ConsoleOutputBuffer
-from ...error import WaitRequest
 from ...settings import SettingsManager
-from ...util import get_terminal_width
 
 
 # noinspection PyMethodMayBeStatic

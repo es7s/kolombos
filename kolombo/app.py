@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from .arghelp import AppArgumentParser
+from . import AppArgumentParser
 from .console import Console
-from .mode.factory import ModeProcessorFactory
+from .mode import ModeProcessorFactory
 from .settings import SettingsManager
-from .util import println
 
 
 # noinspection PyMethodMayBeStatic
@@ -22,9 +21,9 @@ class App:
     def _parse_args(self):
         SettingsManager.init()
         AppArgumentParser().parse_args(namespace=SettingsManager.app_settings)
-        SettingsManager.debug_print_values()
+        Console.debug_settings()
 
     @staticmethod
     def exit(code: int = 0):
-        println()
+        print()
         exit(code)

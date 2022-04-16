@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from pytermor.seq import SequenceSGR
 
-from kolombo.byteio.segment.chainable import Chainable
-from kolombo.error import SegmentError
+from . import Chainable
 
 
 class Segment(Chainable):
@@ -15,7 +14,7 @@ class Segment(Chainable):
 
     def split(self, num_bytes: int) -> Segment:
         if not self.is_consistent:
-            raise SegmentError('Unknown how to split inconsistent segment')
+            raise BufferError('Unknown how to split inconsistent segment')
 
         left = Segment(self._opening_seq, self._type_label, self._raw[:num_bytes], self._processed[:num_bytes])
 

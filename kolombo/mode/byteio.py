@@ -1,10 +1,8 @@
-from .factory import AbstractModeProcessor
-from ..byteio.formatter.factory import FormatterFactory
-from ..byteio.parser import Parser
-from ..byteio.parser_buffer import ParserBuffer
-from ..byteio.reader import Reader
-from ..byteio.segment.buffer import SegmentBuffer
-from ..byteio.template.registry import TemplateRegistry
+from . import AbstractModeProcessor
+from ..byteio import ParserBuffer, Parser, Reader
+from ..byteio.formatter import FormatterFactory
+from ..byteio.segment import SegmentBuffer
+from ..byteio.template import TemplateRegistry
 from ..console import Console, ConsoleDebugBuffer
 from ..settings import SettingsManager
 

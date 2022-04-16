@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Callable
 
-from kolombo.byteio.segment.segment import Segment
+from . import Segment
 
 
 class SegmentProcessor:

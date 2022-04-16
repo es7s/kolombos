@@ -3,18 +3,7 @@ from __future__ import annotations
 from argparse import Namespace
 from typing import Any
 
-from pytermor import fmt, autof, seq
-
-from kolombo.byteio.char_class import CharClass
-from kolombo.byteio.display_mode import DisplayMode
-from kolombo.byteio.read_mode import ReadMode
-
-
-class SettingsEnum:
-    MARKER_NO_DETAILS = 0
-    MARKER_BRIEF_DETAILS = 1
-    MARKER_FULL_DETAILS = 2
-    MARKER_BINARY_STRICT = 3
+from .byteio import CharClass, DisplayMode, ReadMode, MarkerDetailsEnum
 
 
 class Settings(Namespace):
@@ -82,12 +71,15 @@ class Settings(Namespace):
         return not self.no_color_content
 
     @property
-    def effective_marker_details(self) -> int:
+    def effective_marker_details(self) -> MarkerDetailsEnum:
         if self.binary:
-            return SettingsEnum.MARKER_BINARY_STRICT
+            return MarkerDetailsEnum.BINARY_STRICT
 
-        eff = max(SettingsEnum.MARKER_NO_DETAILS, self.marker)
-        return min(SettingsEnum.MARKER_FULL_DETAILS, eff)
+        if self.marker <= 0:
+            return MarkerDetailsEnum.NO_DETAILS
+        if self.marker == 1:
+            return MarkerDetailsEnum.BRIEF_DETAILS
+        return MarkerDetailsEnum.FULL_DETAILS
 
     @property
     def debug_settings(self) -> int:
@@ -112,53 +104,3 @@ class SettingsManager:
     @staticmethod
     def init():
         SettingsManager.app_settings = Settings()
-
-    @staticmethod
-    def debug_print_values():
-        app_settings = SettingsManager.app_settings
-        if not app_settings.debug_settings:
-            return
-        from kolombo.console import Console, ConsoleDebugBuffer
-
-        def is_derived(attr: str, settings: Settings) -> bool:
-            return attr not in settings.__dict__
-
-        default_settings = Settings()
-        debug_buffer = ConsoleDebugBuffer()
-        fmt_header = autof(seq.BG_BLACK + seq.BOLD)
-
-        attrs = [attr for attr in sorted(app_settings.__dir__(),
-                                         key=lambda attr: attr if is_derived(attr, app_settings) else '_'+attr)
-                 if not attr.startswith('_') and not attr.startswith('init')]
-        if not app_settings.debug_settings_derived:
-            attrs = list(filter(lambda attr: not is_derived(attr, app_settings), attrs))
-
-        max_attr_len = max([len(attr) for attr in attrs]) + 3
-        Console.settings_prefix_len = max_attr_len
-        debug_buffer.write(3, Console.get_separator_line(settings_open=True))
-        debug_buffer.write(3, fmt_header(f'Settings'.upper().ljust(max_attr_len)) + Console.get_separator())
-
-        printed_derived_separator = False
-        for attr in attrs:
-            app_value = getattr(app_settings, attr)
-            default_value = getattr(default_settings, attr)
-
-            if app_value != default_value:
-                fmt_attr_seq = fmt_header.opening_seq
-                values = fmt.green(f'{app_value!s}') + ' ' + fmt.gray(f'[{default_value!s}]')
-            else:
-                fmt_attr_seq = seq.BG_BLACK
-                values = fmt.yellow(f'{default_value!s}')
-
-            if is_derived(attr, app_settings):
-                fmt_attr_seq += seq.ITALIC
-                if not printed_derived_separator:
-                    debug_buffer.write(3, Console.get_separator_line(settings_mid=True))
-                    debug_buffer.write(3,
-                                       fmt_header(f'Derived settings'.upper().ljust(max_attr_len)) +
-                                       Console.get_separator())
-                    printed_derived_separator = True
-
-            debug_buffer.write(3, autof(fmt_attr_seq)(attr.rjust(max_attr_len)) + Console.get_separator() + values)
-
-        debug_buffer.write(3, Console.get_separator_line(settings_close=True, main_open=True))

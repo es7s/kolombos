@@ -7,13 +7,10 @@ from typing import cast
 from pytermor import seq
 from pytermor.util import StringFilter, apply_filters
 
-from kolombo.byteio.parser_buffer import ParserBuffer
-from .segment.buffer import SegmentBuffer
-from .segment.segment import Segment
-from .template.registry import TemplateRegistry
-from .template.template import Template
-from ..console import ConsoleDebugBuffer
-from ..util import printd
+from . import ParserBuffer
+from .segment import SegmentBuffer, Segment
+from .template import Template, TemplateRegistry
+from ..console import ConsoleDebugBuffer, Console
 
 
 # noinspection PyMethodMayBeStatic
@@ -55,11 +52,11 @@ class Parser:
     def parse(self, offset: int):
         raw = self._parser_buffer.get_raw()
         self._offset = offset
-        self._debug_buffer.write(1, f'Parsing segment: {printd(raw)}')
+        self._debug_buffer.write(1, f'Parsing segment: {Console.printd(raw)}')
 
         unmatched = apply_filters(raw, self.F_SEPARATOR)
         try:
-            assert len(unmatched) == 0, f'Some bytes unprocessed: {printd(unmatched)})'
+            assert len(unmatched) == 0, f'Some bytes unprocessed: {Console.printd(unmatched)})'
         except AssertionError as e:
             raise RuntimeError(f'Parsing inconsistency at 0x{self._offset:x}/{self._offset:d}') from e
 
@@ -104,8 +101,8 @@ class Parser:
     
     def _debug_print_match_segment(self, mgroup: int, raw: bytes, segment: Segment, suboffset: int):
         debug_msg = f'Match group #{mgroup:02d}'
-        debug_msg += f'/{segment.type_label}: {printd(raw)}'
+        debug_msg += f'/{segment.type_label}: {Console.printd(raw)}'
         debug_processed_bytes = segment.processed.encode('ascii', errors="replace")
         if raw != debug_processed_bytes:
-            debug_msg += f' -> {printd(debug_processed_bytes)}'
+            debug_msg += f' -> {Console.printd(debug_processed_bytes)}'
         self._debug_buffer.write(2, debug_msg, offset=(self._offset + suboffset))

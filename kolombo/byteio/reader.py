@@ -7,9 +7,8 @@ from typing import Callable, IO
 
 from pytermor import fmt, seq
 
-from ..console import ConsoleDebugBuffer
+from ..console import ConsoleDebugBuffer, Console
 from ..settings import SettingsManager
-from ..util import printd
 
 
 class Reader(metaclass=abc.ABCMeta):
@@ -39,8 +38,8 @@ class Reader(metaclass=abc.ABCMeta):
         chunks = 0
         try:
             while raw_input := self._io.read(self._chunk_size):
-                self._debug_buffer.write(1, f'Read chunk #{chunks}: {printd(raw_input, 5)}', offset=self._offset)
-                self._debug_buffer.write(3, f'Current position: {fmt.bold(self._io.tell())}', offset=self._offset)
+                self._debug_buffer.write(1, f'Read chunk #{chunks}: {Console.printd(raw_input, 5)}', offset=self._offset)
+                self._debug_buffer.write(3, f'Current position: {fmt.bold(self._io.tell() if not self.reading_stdin else "n/a")}', offset=self._offset)
                 chunks += 1
                 if max_lines:
                     for line_break in re.finditer(b'\x0a', raw_input):
@@ -48,13 +47,13 @@ class Reader(metaclass=abc.ABCMeta):
                         if lines >= max_lines:
                             raw_input = raw_input[:line_break.end()-1]
                             self._debug_buffer.write(2, 'Line limit exceeded: ' + fmt.bold(max_lines), offset=self._offset)
-                            self._debug_buffer.write(3, f'Cropping input -> {printd(raw_input)}', offset=self._offset)
+                            self._debug_buffer.write(3, f'Cropping input -> {Console.printd(raw_input)}', offset=self._offset)
                             break
 
                 if max_bytes and self._offset + len(raw_input) > max_bytes:
                     raw_input = raw_input[:max_bytes - self._offset]
                     self._debug_buffer.write(2, 'Byte limit exceeded: ' + fmt.bold(max_bytes), offset=self._offset)
-                    self._debug_buffer.write(3, f'Cropping input -> {printd(raw_input)}', offset=self._offset)
+                    self._debug_buffer.write(3, f'Cropping input -> {Console.printd(raw_input)}', offset=self._offset)
                     break
 
                 self.read_callback(raw_input, self._offset, False)

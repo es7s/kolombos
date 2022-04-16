@@ -1,14 +1,8 @@
 from pytermor import seq
 from pytermor.seq import SequenceSGR
 
-from kolombo.byteio.char_class import CharClass
-from kolombo.byteio.display_mode import DisplayMode
-from kolombo.byteio.read_mode import ReadMode
-from kolombo.byteio.template.template_printable import PrintableCharTemplate
-from kolombo.byteio.template.template import Template
-from kolombo.byteio.template.template_utf8 import Utf8SequenceTemplate
-from kolombo.byteio.template.template_control import ControlCharGenericTemplate
-from kolombo.byteio.template.partial_override import OpeningSeqPOV, LabelPOV
+from . import Template, OpeningSeqPOV, LabelPOV, ControlCharGenericTemplate, Utf8SequenceTemplate, PrintableCharTemplate
+from .. import CharClass, DisplayMode, ReadMode
 
 
 class TemplateRegistry:

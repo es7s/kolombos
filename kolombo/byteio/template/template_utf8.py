@@ -2,12 +2,9 @@ from __future__ import annotations
 
 from pytermor.seq import SequenceSGR
 
-from kolombo.byteio.char_class import CharClass
-from kolombo.byteio.display_mode import DisplayMode
-from kolombo.byteio.read_mode import ReadMode
-from kolombo.byteio.template.partial_override import OpeningSeqPOV, LabelPOV
-from kolombo.byteio.template.template import Template
-from kolombo.settings import SettingsManager
+from . import OpeningSeqPOV, LabelPOV, Template
+from .. import CharClass, DisplayMode, ReadMode
+from ...settings import SettingsManager
 
 
 class Utf8SequenceTemplate(Template):
