@@ -7,16 +7,16 @@ class ModeProcessorFactory:
     @staticmethod
     def create() -> AbstractModeProcessor:
         from ..error import ArgumentError
-        from ..settings import Settings
+        from ..settings import SettingsManager
         from .byteio import ByteIoProcessor
         from .legend import LegendModeProcessor
         from .version import VersionModeProcessor
 
-        if Settings.legend:
+        if SettingsManager.app_settings.legend:
             return LegendModeProcessor()
-        elif Settings.version:
+        elif SettingsManager.app_settings.version:
             return VersionModeProcessor()
-        elif Settings.binary or Settings.text or Settings.auto:
+        elif SettingsManager.app_settings.binary or SettingsManager.app_settings.text:
             return ByteIoProcessor()
         raise ArgumentError('No mode specified')
 

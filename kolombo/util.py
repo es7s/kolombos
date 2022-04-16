@@ -3,13 +3,15 @@ from typing import Any, List
 
 from pytermor import fmt, seq
 
-from kolombo.settings import Settings
+from kolombo.settings import SettingsManager
 
 
-def get_terminal_width() -> int:
+def get_terminal_width(exact: bool = False) -> int:
     try:
         import shutil as _shutil
-        width = _shutil.get_terminal_size().columns - 2
+        width = _shutil.get_terminal_size().columns
+        if not exact:
+            width -= 2
         return width
     except ImportError:
         return 80
@@ -21,15 +23,15 @@ def println(n: int = 1):
 
 # @TODO refactor, move to COnsole
 def printd(v: Any, max_input_len: int = 5) -> str:
-    if Settings.debug_buffer_contents_full:
+    if SettingsManager.app_settings.debug_buffer_contents_full:
         max_input_len = sys.maxsize
 
     if hasattr(v, 'preview'):
         v = v.preview(max_input_len)
 
     if isinstance(v, (bytes, List)):
-        result = 'len ' + fmt.bold(str(len(v)))
-        if not Settings.debug_buffer_contents:
+        result = 'len ' + fmt.bold(len(v))
+        if not SettingsManager.app_settings.debug_buffer_contents:
             return result
 
         if len(v) == 0:

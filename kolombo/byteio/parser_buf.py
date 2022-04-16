@@ -17,6 +17,7 @@ class ParserBuffer:
         self._raw_buffer += b
         self._closed = finish
 
+        self._debug_buffer.write(3, f'Appending {fmt.bold(len(b))} bytes')
         self._debug_buffer.write(2, f'Buffer state: {printd(self._raw_buffer)}')
         if finish:
             self._debug_buffer.write(1, 'Closing buffer for input')
@@ -27,6 +28,8 @@ class ParserBuffer:
     def crop_raw(self, new_buffer: bytes):
         if len(new_buffer) == 0:
             self._raw_buffer = b''
+            self._debug_buffer.write(3, f'Purging')
+            self._debug_buffer.write(2, f'Buffer state: {printd(self._raw_buffer)}')
             return
 
         offset_delta = self._raw_buffer.find(new_buffer)
@@ -34,7 +37,8 @@ class ParserBuffer:
             raise RuntimeError(f'New buffer is not a part of the current one: {printd(new_buffer, 32)}')
 
         self._raw_buffer = self._raw_buffer[offset_delta:]
-        self._debug_buffer.write(2, f'Parser pre-buffer -> {printd(self._raw_buffer)}')
+        self._debug_buffer.write(3, f'Cropping')
+        self._debug_buffer.write(2, f'Buffer state: {printd(self._raw_buffer)}')
 
     @property
     def closed(self) -> bool: return self._closed

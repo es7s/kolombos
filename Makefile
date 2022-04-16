@@ -50,9 +50,6 @@ upload-dev: ## Upload module to test repository
 install-dev: ## Install module from test repository
 	pip install -i https://test.pypi.org/simple/ kolombo-delameter==${VERSION}
 
-release-dev: ## Build, upload and install using test repository
-release-dev: cleanup build upload-dev install-dev
-
 ## Making new release
 
 upload: ## Upload module
@@ -60,8 +57,5 @@ upload: ## Upload module
 
 install: ## Install module
 	echo "install"
-
-release: ## Build, upload and install module
-release: cleanup build upload install
 
 ##

@@ -3,7 +3,7 @@ from pytermor.fmt import Format
 from pytermor.seq import SequenceSGR
 
 from . import Marker
-from ..settings import Settings
+from ..settings import SettingsManager
 
 
 class MarkerSGR(Marker):
@@ -22,12 +22,12 @@ class MarkerSGR(Marker):
         self._init_seqs()
         result = f'{seq.RESET}{self._marker_seq}{self._marker_char}'
 
-        if Settings.no_color_markers:
+        if SettingsManager.app_settings.no_color_markers:
             result += f'{additional_info}{sgr}'
         else:
             result += f'{sgr}{self._info_seq}{additional_info}'
 
-        if Settings.effective_color_content():
+        if SettingsManager.app_settings.effective_color_content:
             result += (self.PROHIBITED_CONTENT_BREAKER)  # ... content
         else:
             result += (seq.RESET)  # ... content
@@ -42,9 +42,9 @@ class MarkerSGR(Marker):
             return
 
         self._marker_seq = seq.WHITE + seq.BG_BLACK
-        if Settings.focus_esc:
+        if SettingsManager.app_settings.focus_esc:
             self._info_seq = seq.INVERSED
-            if not Settings.no_color_markers:
+            if not SettingsManager.app_settings.no_color_markers:
                 self._info_seq += seq.OVERLINED
         else:
             self._info_seq = seq.OVERLINED

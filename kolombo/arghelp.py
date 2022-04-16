@@ -86,67 +86,79 @@ class AppArgumentParser(CustomArgumentParser):
     def __init__(self):
         super().__init__(
             description='Escape sequences and control characters visualiser',
-            usage='%(prog)s [[-a] | -t | -b | -l | -h] [<options>] [<file>]',
+            usage='%(prog)s [[-t] | -b | -l | -v | -h] [<options>] [<file>]',
             epilog=[
                 'Mandatory or optional arguments to long options are also mandatory or optional for any'
                 ' corresponding short options.',
+                '',
+                'Binary mode sets '+fmt.bold('--marker')+' verbosity level to 2 (fixed).',
+                'Debug mode sets default '+fmt.bold('--buffer')+' to 64 bytes (can be overriden as usual).',
                 '',
                 'Ignore-<class> options are interpreted as follows::',
                 f'{CustomHelpFormatter.INDENT}* In text mode: replace printable characters to "×", hide markers'
                 f' of non-printable characters;',
                 f'{CustomHelpFormatter.INDENT}* In binary mode: replace ignored chars to "×" and color their hex codes dark gray.',
                 '',
+                'Run \'%(prog)s ' + fmt.bold('--legend') + '\' to see annotation symbol list and color map.',
+                '',
                 '(c) 2022 A. Shavykin <0.delameter@gmail.com>',
             ],
             examples=[
-                '%(prog)s -i 2 --focus-space file.txt',
+                '%(prog)s -m2 --focus-space file.txt',
                 '%(prog)s -b -w16 - file.bin', '\n'
             ],
             add_help=False,
             formatter_class=lambda prog: CustomHelpFormatter(prog),
             prog='kolombo'
         )
+        fmt_default = fmt.yellow
 
         self.add_argument('filename', metavar='<file>', nargs='?', help='file to read from; if empty or "-", read stdin instead')
 
-        modes_group = self.add_argument_group('mode selection')
+        modes_group = self.add_argument_group('operating mode')
         modes_group_nested = modes_group.add_mutually_exclusive_group()
-        # modes_group_nested.add_argument('-a', '--auto', action='store_true', default=False, help='open file in text mode, fallback to binary on failure (default)')
-        modes_group_nested.add_argument('-t', '--text', action='store_true', default=True, help='open file in text mode (default)')
+        # modes_group_nested.add_argument('-a', '--auto', action='store_true', default=True, help='open file in text mode, fallback to binary on failure (default)')
+        modes_group_nested.add_argument('-t', '--text', action='store_true', default=True, help='open file in text mode '+fmt_default('[this is a default]'))
         modes_group_nested.add_argument('-b', '--binary', action='store_true', default=False, help='open file in binary mode')
         modes_group_nested.add_argument('-l', '--legend', action='store_true', default=False, help='show annotation symbol list and exit')
-        modes_group.add_argument('-V', '--version', action='store_true', default=False, help='show app version and exit')
+        modes_group.add_argument('-v', '--version', action='store_true', default=False, help='show app version and exit')
         modes_group.add_argument('-h', '--help', action='help', default=SUPPRESS, help='show this help message and exit')
 
-        char_class_group = self.add_argument_group('character classes')
+        char_class_group = self.add_argument_group('character class options')
         esc_output_group = char_class_group.add_mutually_exclusive_group()
         space_output_group = char_class_group.add_mutually_exclusive_group()
         control_output_group = char_class_group.add_mutually_exclusive_group()
         utf8_output_group = char_class_group.add_mutually_exclusive_group()
+        binary_output_group = char_class_group.add_mutually_exclusive_group()
+        printable_output_group = char_class_group.add_mutually_exclusive_group()
         esc_output_group.add_argument('-e', '--focus-esc', action='store_true', default=False, help='highlight escape sequences markers')
         space_output_group.add_argument('-s', '--focus-space', action='store_true', default=False, help='highlight whitespace markers')
         control_output_group.add_argument('-c', '--focus-control', action='store_true', default=False, help='highlight control char markers')
         utf8_output_group.add_argument('-u', '--focus-utf8', action='store_true', default=False, help='highlight utf-8 sequences')
+        binary_output_group.add_argument('-i', '--focus-binary', action='store_true', default=False, help='highlight binary data')
+        printable_output_group.add_argument('-p', '--focus-printable', action='store_true', default=False, help='highlight printable chars')
         esc_output_group.add_argument('-E', '--ignore-esc', action='store_true', default=False, help='ignore escape sequences')
         space_output_group.add_argument('-S', '--ignore-space', action='store_true', default=False, help='ignore whitespaces')
         control_output_group.add_argument('-C', '--ignore-control', action='store_true', default=False, help='ignore control chars')
         utf8_output_group.add_argument('-U', '--ignore-utf8', action='store_true', default=False, help='ignore utf-8 sequences')
+        binary_output_group.add_argument('-I', '--ignore-binary', action='store_true', default=False, help='ignore binary data')
+        printable_output_group.add_argument('-P', '--ignore-printable', action='store_true', default=False, help='ignore printable chars')
 
         generic_group = self.add_argument_group('generic options')
-        generic_group.add_argument('-L', '--max-lines', metavar='<num>', action='store', type=int, default=0, help='stop after reading <num> lines')
-        generic_group.add_argument('-B', '--max-bytes', metavar='<num>', action='store', type=int, default=0, help='stop after reading <num> bytes')
-        generic_group.add_argument('-F', '--buffer', metavar='<size>', default=False,
-                                   help='read buffer size in bytes; default {} ({} in debug mode)'.
-                                   format(Reader.READ_CHUNK_SIZE, Reader.READ_CHUNK_SIZE_DEBUG))
-        generic_group.add_argument('-v', '--debug', action='count', default=0, help='more details (can be used from 1 to 4 times)')
-        generic_group.add_argument('--decimal-offsets', action='store_true', default=False, help='output offsets in decimal format (default hex)')
-        generic_group.add_argument('--no-color-content', action='store_true', default=False, help='disable applying input file formatting to the output')
+        generic_group.add_argument('-L', '--max-lines', metavar='<num>', action='store', type=int, default=0, help='stop after reading <num> lines '+fmt_default('[default: no limit]'))
+        generic_group.add_argument('-B', '--max-bytes', metavar='<num>', action='store', type=int, default=0, help='stop after reading <num> bytes '+fmt_default('[default: no limit]'))
+        generic_group.add_argument('-f', '--buffer', metavar='<size>', type=int, default=None, help='read buffer size in bytes '+fmt_default(f'[default: {Reader.READ_CHUNK_SIZE}]'))
+        generic_group.add_argument('-d', '--debug', action='count', default=0, help='enable debug mode; can be used from 1 to 4 times, each level increases verbosity')
+        generic_group.add_argument('--no-color-content', action='store_true', default=False, help='disable applying input file formatting to the content output')
 
-        text_mode_group = self.add_argument_group('text mode only')
-        text_mode_group.add_argument('-i', '--info', metavar='<level>', action='store', type=int, default=1, help='control and escape marker details (0-2, default %(default)s)')
+        text_mode_group = self.add_argument_group('text mode only options')
+        text_mode_group.add_argument('-m', '--marker', metavar='<level>', action='store', type=int, default=1, help='control and escape marker verbosity (0-2) '+fmt_default('[default: %(default)s]'))
         text_mode_group.add_argument('--no-line-numbers', action='store_true', default=False, help='do not print line numbers')
-        text_mode_group.add_argument('--no-color-markers', action='store_true', default=False, help='disable applying input file formatting to SGR markers')
+        text_mode_group.add_argument('--no-color-markers', action='store_true', default=False, help='disable applying input file formatting to SGR marker details')
 
-        bin_mode_group = self.add_argument_group('binary mode only')
-        bin_mode_group.add_argument('-d', '--decode', action='store_true', default=False, help='decode valid utf-8 sequences, print as unicode chars')
-        bin_mode_group.add_argument('-w', '--columns', metavar='<num>', action='store', type=int, default=0, help='format output as <num>-columns wide table (default %(default)s = auto)')
+        bin_mode_group = self.add_argument_group('binary mode only options')
+        bin_mode_group.add_argument('-D', '--decode', action='store_true', default=False, help='decode valid utf-8 sequences, print as unicode chars')
+        bin_mode_group.add_argument('-w', '--columns', metavar='<num>', action='store', type=int, default=0, help='format output as <num>-columns wide table '+fmt_default('[default: auto]'))
+        offsets_group = bin_mode_group.add_mutually_exclusive_group()
+        offsets_group.add_argument('--decimal-offsets', action='store_true', default=False, help='output offsets in decimal format '+fmt_default('[default: hex]'))
+        offsets_group.add_argument('--no-offsets', action='store_true', default=False, help='do not print offsets')

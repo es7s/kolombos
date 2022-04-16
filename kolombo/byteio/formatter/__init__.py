@@ -31,8 +31,8 @@ class AbstractFormatter(metaclass=abc.ABCMeta):
     CHARCODE_TO_SAFE_CHAR_MAP = {   # @TODO впилить
         **{b: chr(b) for b in range(0x00, 0x100)},
         **{b: '·' for b in WHITESPACE_CHARCODES},
-        **{b: '¿' for b in CONTROL_CHARCODES},
-        **{b: '¿' for b in BINARY_CHARCODES},
+        **{b: '▯' for b in CONTROL_CHARCODES},
+        **{b: '▯' for b in BINARY_CHARCODES},
     }
 
     def __init__(self, parser_buffer: ParserBuffer, segment_buffer: SegmentBuffer):
@@ -57,7 +57,7 @@ class AbstractFormatter(metaclass=abc.ABCMeta):
             if ord(c) in AbstractFormatter.WHITESPACE_CHARCODES:
                 result += '·'
             elif ord(c) not in AbstractFormatter.PRINTABLE_CHARCODES:
-                result += '¿'
+                result += '▯'
             else:
                 result += c
         return result

@@ -6,16 +6,20 @@ from ..byteio.parser_buf import ParserBuffer
 from ..byteio.reader import Reader
 from ..byteio.segment.buffer import SegmentBuffer
 from ..console import Console, ConsoleDebugBuffer
-from ..settings import Settings
+from ..settings import SettingsManager
 
 
 # noinspection PyMethodMayBeStatic
 class ByteIoProcessor(AbstractModeProcessor):
     def _init(self, read_mode: ReadMode):
+        self._debug_buffer = ConsoleDebugBuffer()
+        if not SettingsManager.app_settings.debug_settings:
+            self._debug_buffer.write(1, Console.get_separator_line(main_open=True))
+
         self._parser_buffer = ParserBuffer()
         self._segment_buffer = SegmentBuffer()
 
-        self._reader = Reader(Settings.filename, self._process_chunk_buffered)
+        self._reader = Reader(SettingsManager.app_settings.filename, self._process_chunk_buffered)
         self._parser = Parser(read_mode, self._parser_buffer, self._segment_buffer)
         self._formatter = FormatterFactory.create(read_mode, self._parser_buffer, self._segment_buffer)
 
@@ -36,12 +40,12 @@ class ByteIoProcessor(AbstractModeProcessor):
         self._parser.parse(offset)
         self._formatter.format()
 
-        ConsoleDebugBuffer().write(1, Console.get_separator_line())
+        self._debug_buffer.write(1, Console.get_separator_line(main_close=finish))
 
     def _get_read_mode_from_settings(self) -> ReadMode:
-        if Settings.binary:
+        if SettingsManager.app_settings.binary:
             return ReadMode.BINARY
-        elif Settings.text:
+        elif SettingsManager.app_settings.text:
             return ReadMode.TEXT
         # auto:
         return ReadMode.TEXT
@@ -49,7 +53,7 @@ class ByteIoProcessor(AbstractModeProcessor):
     # def _switch_mode_or_exit(self):
     #     Console.warn('Binary data detected, cannot proceed in text mode')
     #
-    #     if not Settings.auto:
+    #     if not SettingsManager.app_settings.auto:
     #         Console.info('Use -b option to run in binary mode')
     #         App.exit(2)
     #

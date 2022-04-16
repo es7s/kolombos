@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from pytermor.seq import SequenceSGR
+
 from .arghelp import AppArgumentParser
 from .console import Console
 from .mode import ModeProcessorFactory
-from .settings import Settings
+from .settings import SettingsManager
 from .util import println
 
 
@@ -20,8 +22,9 @@ class App:
         self.exit()
 
     def _parse_args(self):
-        AppArgumentParser().parse_args(namespace=Settings)
-        Settings.init_set_defaults()
+        SettingsManager.init()
+        AppArgumentParser().parse_args(namespace=SettingsManager.app_settings)
+        SettingsManager.debug_print_values()
 
     @staticmethod
     def exit(code: int = 0):

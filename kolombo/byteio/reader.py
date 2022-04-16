@@ -3,12 +3,12 @@ from __future__ import annotations
 import abc
 import re
 import sys
-from typing import Callable
+from typing import Callable, IO
 
 from pytermor import fmt, seq
 
 from ..console import ConsoleDebugBuffer
-from ..settings import Settings
+from ..settings import SettingsManager
 from ..util import printd
 
 
@@ -18,7 +18,7 @@ class Reader(metaclass=abc.ABCMeta):
 
     def __init__(self, filename: str|None, read_callback: Callable[[bytes, int, bool], None]):
         self._filename = filename
-        self._io = None
+        self._io: IO|None = None
         self._offset = 0
         self._chunk_size = self._get_chunk_size()
         self.read_callback = read_callback
@@ -31,33 +31,35 @@ class Reader(metaclass=abc.ABCMeta):
 
     def read(self):
         self._open()
-        self._debug_buffer.write(2, f'Read buffer: size {fmt.bold(str(self._chunk_size))}')
+        self._debug_buffer.write(2, f'Read buffer: size {fmt.bold(self._chunk_size)}')
 
-        max_bytes = Settings.max_bytes
-        max_lines = Settings.max_lines
+        max_bytes: int|None = SettingsManager.app_settings.max_bytes
+        max_lines: int|None = SettingsManager.app_settings.max_lines
         lines = 0
         chunks = 0
         try:
             while raw_input := self._io.read(self._chunk_size):
                 self._debug_buffer.write(1, f'Read chunk #{chunks}: {printd(raw_input, 5)}', offset=self._offset)
+                self._debug_buffer.write(3, f'Current position: {fmt.bold(self._io.tell())}', offset=self._offset)
                 chunks += 1
                 if max_lines:
                     for line_break in re.finditer(b'\x0a', raw_input):
                         lines += 1
-                        if lines >= Settings.max_lines:
+                        if lines >= max_lines:
                             raw_input = raw_input[:line_break.end()-1]
-                            self._debug_buffer.write(1, 'Line limit exceeded: ' + fmt.bold(str(max_lines)), offset=self._offset)
+                            self._debug_buffer.write(2, 'Line limit exceeded: ' + fmt.bold(max_lines), offset=self._offset)
                             self._debug_buffer.write(3, f'Cropping input -> {printd(raw_input)}', offset=self._offset)
                             break
 
                 if max_bytes and self._offset + len(raw_input) > max_bytes:
                     raw_input = raw_input[:max_bytes - self._offset]
-                    self._debug_buffer.write(1, 'Byte limit exceeded: ' + fmt.bold(str(max_bytes)), offset=self._offset)
+                    self._debug_buffer.write(2, 'Byte limit exceeded: ' + fmt.bold(max_bytes), offset=self._offset)
                     self._debug_buffer.write(3, f'Cropping input -> {printd(raw_input)}', offset=self._offset)
                     break
 
                 self.read_callback(raw_input, self._offset, False)
                 self._offset += len(raw_input)
+                raw_input = b''
 
                 if (max_bytes and self._offset >= max_bytes) or \
                    (max_lines and lines >= max_lines):
@@ -80,9 +82,9 @@ class Reader(metaclass=abc.ABCMeta):
             self._debug_buffer.write(1, f'Opened file: {fmt.bold(self._filename)}')
 
     def _get_chunk_size(self) -> int:
-        if Settings.buffer:
-            return int(Settings.buffer)
-        if Settings.debug > 0:
+        if SettingsManager.app_settings.buffer:
+            return int(SettingsManager.app_settings.buffer)
+        if SettingsManager.app_settings.debug > 0:
             return self.READ_CHUNK_SIZE_DEBUG
         return self.READ_CHUNK_SIZE
 

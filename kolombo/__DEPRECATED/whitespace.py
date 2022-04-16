@@ -4,7 +4,7 @@ from pytermor import fmt, seq, autof
 from pytermor.fmt import Format
 
 from . import Marker
-from ..settings import Settings
+from ..settings import SettingsManager
 
 
 class MarkerWhitespace(Marker):
@@ -24,12 +24,12 @@ class MarkerWhitespace(Marker):
 
     @staticmethod
     def sget_fmt() -> Format:
-        if Settings.focus_space:
+        if SettingsManager.app_settings.focus_space:
             return MarkerWhitespace._fmt_focused
         return MarkerWhitespace._fmt
 
     @property
     def marker_char(self) -> str:
-        if Settings.focus_space:
+        if SettingsManager.app_settings.focus_space:
             return self._marker_char_focused
         return self._marker_char

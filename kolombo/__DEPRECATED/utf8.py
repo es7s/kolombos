@@ -2,7 +2,7 @@ from pytermor import autof, seq
 from pytermor.fmt import Format
 
 from . import Marker
-from ..settings import Settings
+from ..settings import SettingsManager
 
 
 class MarkerUTF8(Marker):
@@ -15,7 +15,7 @@ class MarkerUTF8(Marker):
         return self.get_fmt()(self._marker_char)
 
     def get_fmt(self) -> Format:
-        if Settings.focus_utf8:
+        if SettingsManager.app_settings.focus_utf8:
             return self._fmt_focused
         return self._fmt
 

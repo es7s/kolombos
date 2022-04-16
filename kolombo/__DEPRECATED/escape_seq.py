@@ -3,7 +3,7 @@ from pytermor.fmt import Format
 from pytermor.seq import SequenceSGR
 
 from . import Marker
-from ..settings import Settings
+from ..settings import SettingsManager
 
 
 class MarkerEscapeSeq(Marker):
@@ -16,6 +16,6 @@ class MarkerEscapeSeq(Marker):
         return seq.RESET.str + self.get_fmt()(self._marker_char + additional_info)
 
     def get_fmt(self) -> Format:
-        if Settings.focus_esc:
+        if SettingsManager.app_settings.focus_esc:
             return self._fmt_focused
         return self._fmt

@@ -10,7 +10,7 @@ from ..formatter import AbstractFormatter
 from ..segment.buffer import SegmentBuffer
 from ...console import Console, ConsoleDebugBuffer, ConsoleOutputBuffer
 from ...error import WaitRequest
-from ...settings import Settings
+from ...settings import SettingsManager
 from ...util import get_terminal_width
 
 
@@ -25,23 +25,23 @@ class BinaryFormatter(AbstractFormatter):
         self.PADDING_HEX_CHUNK = 2 * ' '
 
         self._offset = 0
-        self._cols = Settings.columns
+        self._cols: int|None = SettingsManager.app_settings.columns
 
         self._output_buffer = ConsoleOutputBuffer()
         self._debug_buffer = ConsoleDebugBuffer('binfmt', seq.YELLOW)
 
     def format(self):
-        cols = self._cols
-        if cols == 0:
+        cur_cols = self._cols
+        if cur_cols is None:
             prefix_example = Console.format_prefix_with_offset(self._offset, EmptyFormat())
-            cols = self._compute_cols_num(len(prefix_example))
+            cur_cols = self._compute_cols_num(len(prefix_example))
 
-        req_bytes = cols
+        req_bytes = cur_cols
         if self._parser_buffer.closed:
-            req_bytes = min(self._segment_buffer.data_len, cols)
+            req_bytes = min(self._segment_buffer.data_len, cur_cols)
 
         while True:
-            self._debug_buffer.write(1, 'Requested ' + fmt.bold(str(req_bytes)) + ' byte(s)')
+            self._debug_buffer.write(1, 'Requested ' + fmt.bold(req_bytes) + ' byte(s)')
             try:
                 force = self._parser_buffer.closed
                 result = self._segment_buffer.detach_bytes(req_bytes, force, [
@@ -61,14 +61,14 @@ class BinaryFormatter(AbstractFormatter):
 
             self._debug_buffer.write(3, debug_sgr_row, offset=self._offset)
             self._debug_buffer.write(1, debug_raw_row +
-                                     self._justify_raw(cols - data_len) +
+                                     self._justify_raw(cur_cols - data_len) +
                                      self.PADDING_SECTION +
                                      Console.get_separator() +
                                      debug_proc_row,
                                      offset=self._offset)
             self._output_buffer.write_with_offset(
                 final_raw_row +
-                self._justify_raw(cols - data_len) +
+                self._justify_raw(cur_cols - data_len) +
                 self.PADDING_SECTION +
                 Console.get_separator() +
                 final_proc_row, offset=self._offset, end='\n')
@@ -161,7 +161,7 @@ class BinaryFormatter(AbstractFormatter):
     #     self._add_marker_match(MarkerMatch(match, marker, overwrite=True))
     #     return marker.marker_char
 
-    def _compute_cols_num(self, offset_len: int):
+    def _compute_cols_num(self, offset_len: int):  # @TODO RECALCULATE
         width = get_terminal_width()
         # offset section
 
@@ -179,5 +179,5 @@ class BinaryFormatter(AbstractFormatter):
         chunk_fit = floor(available_total / chunk_len)
 
         result = chunk_fit * self.BYTE_CHUNK_LEN
-        self._debug_buffer.write(2, f'Columns amount set to: {fmt.bold(str(result))}')
+        self._debug_buffer.write(2, f'Columns amount set to: {fmt.bold(result)}')
         return result

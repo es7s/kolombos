@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pytermor.seq import SequenceSGR
 
-from kolombo.byteio.segment import Chainable
+from kolombo.byteio.segment.chainable import Chainable
 
 
 class SequenceRef(Chainable):

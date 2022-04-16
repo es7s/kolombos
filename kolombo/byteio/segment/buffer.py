@@ -6,13 +6,13 @@ from pytermor import autof, fmt
 from pytermor.seq import SequenceSGR
 from pytermor.util import ReplaceSGR
 
-from kolombo.byteio.segment import Chainable
+from kolombo.byteio.segment.chainable import Chainable
 from kolombo.byteio.segment.processor import SegmentProcessor
 from kolombo.byteio.segment.segment import Segment
 from kolombo.byteio.segment.sequence_ref import StartSequenceRef, StopSequenceRef, OneUseSequenceRef, SequenceRef
 from kolombo.console import ConsoleDebugBuffer
 from kolombo.error import WaitRequest
-from kolombo.settings import Settings
+from kolombo.settings import SettingsManager
 from kolombo.util import printd
 
 
@@ -34,7 +34,7 @@ class SegmentBuffer:
         return self._last_detached_data_len
 
     def attach(self, segment: Segment):
-        f = autof(segment.template.opening)
+        f = autof(segment.opening_seq)
         if len(f.opening_seq.params) == 0 or f.opening_seq.params == [0]:
             self._segment_chain.append(segment)
             return
@@ -51,11 +51,13 @@ class SegmentBuffer:
             detached = self._detach(req_bytes)
             if len(detached) == 0:
                 self._debug_buffer.write(1, 'Responsing with EOF')
+                self._debug_buffer.write(2, f'Buffer state: {printd(self)}')
                 raise EOFError
 
             return self._format_multiple(detached, formatters)
 
         self._debug_buffer.write(1, 'Responsing with WaitRequest')
+        self._debug_buffer.write(2, f'Buffer state: {printd(self)}')
         raise WaitRequest
 
     def detach_line(self, force: bool, formatters: List[SegmentProcessor, ...]) -> Tuple[str, ...]:
@@ -69,6 +71,7 @@ class SegmentBuffer:
 
         if avail_bytes == 0:
             self._debug_buffer.write(1, 'Responsing with EOF')
+            self._debug_buffer.write(2, f'Buffer state: {printd(self)}')
             raise EOFError
 
         if has_newline or force:
@@ -76,6 +79,7 @@ class SegmentBuffer:
             return self._format_multiple(detached, formatters)
 
         self._debug_buffer.write(1, 'Responsing with WaitRequest')
+        self._debug_buffer.write(2, f'Buffer state: {printd(self)}')
         raise WaitRequest
 
     def preview(self, max_input_len: int = 5) -> str:
@@ -83,10 +87,10 @@ class SegmentBuffer:
         raw_byte_len, sgr_byte_len, values, has_more = preview_data
 
         result = ('len ' +
-                  fmt.bold(str(raw_byte_len)) +
-                  fmt.italic('+' + str(sgr_byte_len)))
+                  fmt.bold(raw_byte_len) +
+                  fmt.italic(f'+{sgr_byte_len}'))
 
-        if Settings.debug_buffer_contents:
+        if SettingsManager.app_settings.debug_buffer_contents:
             values_str = []
             has_more_str = '..' if has_more else ''
             for value in values:
@@ -96,8 +100,8 @@ class SegmentBuffer:
                     values_str.append(fmt.italic(self._preview_sgr(value.ref.print())))
             result += ': ' + fmt.gray('[' + ' '.join(values_str) + has_more_str + ']')
 
-            if Settings.debug_buffer_contents_full:
-                result += '; Active SGR buffer state: '
+            if SettingsManager.app_settings.debug_buffer_contents_full:
+                result += '. Active SGR buffer state: '
                 sgrs_str = ' '.join([self._preview_sgr(sgr.print()) for sgr in self._active_sgrs])
                 result += fmt.gray(f'[{sgrs_str}]')
 
@@ -143,7 +147,7 @@ class SegmentBuffer:
 
             self._segment_chain.popleft()
 
-        self._debug_buffer.write(2, 'Detached ' + fmt.bold(str(sum([el.data_len for el in output]))) + ' data byte(s)')
+        self._debug_buffer.write(2, 'Detached ' + fmt.bold(sum([el.data_len for el in output])) + ' data byte(s)')
         self._debug_buffer.write(2, f'Buffer state: {printd(self)}')
         output.extend([OneUseSequenceRef(autof(sgr).closing_seq) for sgr in self._active_sgrs])
         return output

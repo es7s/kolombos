@@ -1,13 +1,15 @@
 from __future__ import annotations
 
-from kolombo.byteio.segment.template import SegmentTemplate
-from kolombo.byteio.segment import Chainable
+from pytermor.seq import SequenceSGR
+
+from kolombo.byteio.segment.chainable import Chainable
 from kolombo.error import SegmentError
 
 
 class Segment(Chainable):
-    def __init__(self, template: SegmentTemplate, raw: bytes, processed: str = None):
-        self._template = template
+    def __init__(self, opening_seq: SequenceSGR, type_label: str, raw: bytes, processed: str = None):
+        self._opening_seq = opening_seq
+        self._type_label = type_label
         self._raw = raw
         self._processed = processed
 
@@ -15,7 +17,7 @@ class Segment(Chainable):
         if not self.is_consistent:
             raise SegmentError('Unknown how to split inconsistent segment')
 
-        left = Segment(self._template, self._raw[:num_bytes], self._processed[:num_bytes])
+        left = Segment(self._opening_seq, self._type_label, self._raw[:num_bytes], self._processed[:num_bytes])
 
         self._raw = self._raw[num_bytes:]
         self._processed = self._processed[num_bytes:]
@@ -34,8 +36,12 @@ class Segment(Chainable):
         return len(self._raw) == len(self._processed)
 
     @property
-    def template(self) -> SegmentTemplate:
-        return self._template
+    def type_label(self) -> str:
+        return self._type_label
+
+    @property
+    def opening_seq(self) -> SequenceSGR:
+        return self._opening_seq
 
     @property
     def raw(self) -> bytes:
@@ -49,7 +55,8 @@ class Segment(Chainable):
         if not isinstance(other, Segment):
             return False
 
-        return self._template == other._template \
+        return self._opening_seq == other._opening_seq \
+               and self._type_label == other._type_label \
                and self._raw == other._raw \
                and self._processed == other._processed
 

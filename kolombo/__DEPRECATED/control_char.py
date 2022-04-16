@@ -3,7 +3,7 @@ from pytermor.fmt import AbstractFormat, Format
 from pytermor.seq import SequenceSGR
 
 from . import Marker
-from ..settings import Settings
+from ..settings import SettingsManager
 
 
 class MarkerControlChar(Marker):
@@ -20,6 +20,6 @@ class MarkerControlChar(Marker):
     def get_fmt(self) -> AbstractFormat:
         if self._no_focus:
             return self._fmt
-        if Settings.focus_control:
+        if SettingsManager.app_settings.focus_control:
             return self._fmt_focused
         return self._fmt

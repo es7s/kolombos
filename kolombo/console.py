@@ -9,9 +9,10 @@ from typing import List
 from pytermor import autof, seq, fmt
 from pytermor.fmt import AbstractFormat
 from pytermor.seq import SequenceSGR
+from pytermor.util import ReplaceSGR
 
 from .error import ArgumentError
-from .settings import Settings
+from .settings import SettingsManager
 from .util import get_terminal_width
 
 
@@ -34,9 +35,9 @@ class ConsoleOutputBuffer(AbstractConsoleBuffer):
 
     def write_with_line_num(self, s: str, line_num: int, end='', flush=True):
         fmt_ = fmt.green
-        if Settings.debug:
-            prefix = Console.format_prefix(str(line_num), fmt_)
-        elif Settings.no_line_numbers:
+        if SettingsManager.app_settings.debug:
+            prefix = Console.format_prefix(line_num, fmt_)
+        elif SettingsManager.app_settings.no_line_numbers:
             prefix = ''
         else:
             prefix = fmt_(f'{line_num:2d}') + Console.get_separator()
@@ -71,7 +72,7 @@ class ConsoleDebugBuffer(AbstractConsoleBuffer):
         Console.register_buffer(self)
 
     def write(self, level: int, s: str, offset: int = None, end='\n', no_default_prefix=False, flush=True):
-        if Settings.debug < level:
+        if SettingsManager.app_settings.debug < level:
             return
 
         prefix = ''
@@ -97,8 +98,10 @@ class Console:
     FMT_WARNING = autof(seq.HI_YELLOW)
     FMT_ERROR_TRACE = fmt.red
     FMT_ERROR = autof(seq.HI_RED)
+    MAIN_PREFIX_LEN = 8
 
     buffers: List[AbstractConsoleBuffer] = list()
+    settings_prefix_len: int = 0
 
     @staticmethod
     def register_buffer(buffer: AbstractConsoleBuffer):
@@ -117,7 +120,7 @@ class Console:
             Console.error(f'{e.__class__.__name__}: {e!s}')
             Console.info(e.USAGE_MSG)
 
-        elif Settings.debug > 0:
+        elif SettingsManager.app_settings.debug > 0:
             tb_lines = [line.rstrip('\n')
                         for line
                         in traceback.format_exception(e.__class__, e, e.__traceback__)]
@@ -127,7 +130,7 @@ class Console:
 
         else:
             Console.error(f'{e.__class__.__name__}: {e!s}')
-            Console.info("Run the app with '--debug' argument to see the details")
+            Console.info("Run the app with '"+fmt.bold('--debug')+"' argument to see the details")
 
     @staticmethod
     def debug(s: str = '', end='\n'):
@@ -150,19 +153,49 @@ class Console:
         return Console._format_separator('│')
 
     @staticmethod
-    def get_separator_line() -> str:
-        prefix = (autof(seq.BG_BLACK)('─'*8) + '┼')
-        width = get_terminal_width()
-        main_len = width - len(prefix)
-        return Console._format_separator(prefix + ('─' * main_len))
+    def get_separator_line(
+        settings_open: bool = False,
+        settings_mid: bool = False,
+        settings_close: bool = False,
+        main_open: bool = False,
+        main_close: bool = False,
+    ) -> str:
+        settings_cross = '─'
+        main_cross = '┼'
+        if settings_open:
+            settings_cross = '┬'
+            main_cross = '─'
+        if settings_mid:
+            settings_cross = '┼'
+            main_cross = '─'
+        if settings_close:
+            settings_cross = '┴'
+        if main_open:
+            main_cross = '┬'
+        if main_close:
+            main_cross = '┴'
+
+        main_raw = '─' * Console.MAIN_PREFIX_LEN
+        settings_part = ''
+        if Console.settings_prefix_len and (settings_open or settings_mid or settings_close):
+            main_part = autof(seq.BG_BLACK)(main_raw + main_cross)
+            settings_part = (autof(seq.BG_BLACK)('─' * (Console.settings_prefix_len - Console.MAIN_PREFIX_LEN - 1)) +
+                             settings_cross)
+        else:
+            main_part = autof(seq.BG_BLACK)(main_raw) + main_cross
+
+        max_width = get_terminal_width(exact=True)
+        filler_len = max_width - len(ReplaceSGR('').apply(main_part+settings_part))
+
+        return Console._format_separator(main_part + settings_part + ('─' * filler_len))
 
     @staticmethod
     def format_prefix(label: str, f: AbstractFormat) -> str:
-        return f(f'{label!s:>8.8s}') + Console.get_separator()
+        return f(f'{label!s:>{Console.MAIN_PREFIX_LEN}.{Console.MAIN_PREFIX_LEN}s}') + Console.get_separator()
 
     @staticmethod
     def format_prefix_with_offset(offset: int, f: AbstractFormat = fmt.green) -> str:
-        if Settings.decimal_offsets:
+        if SettingsManager.app_settings.decimal_offsets:
             offset_str = f'{offset:d}'
         else:
             offset_str = f'0x{offset:0{ceil(len(str(offset))/2)*2}x}'
@@ -174,4 +207,4 @@ class Console:
 
     @staticmethod
     def _format_separator(s: str) -> str:
-        return autof(seq.GRAY)(s) if Settings.debug > 0 else fmt.cyan(s)
+        return autof(seq.GRAY)(s) if SettingsManager.app_settings.debug > 0 else fmt.cyan(s)
