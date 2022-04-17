@@ -57,23 +57,27 @@ class BinaryFormatter(AbstractFormatter):
             data_len = self._segment_buffer.last_detached_data_len
             debug_sgr_row, debug_raw_row, debug_proc_row, final_raw_row, final_proc_row = result
 
+            separator = ' '
+            if SettingsManager.app_settings.effective_print_offsets:
+                separator = Console.get_separator()
+
             self._debug_buffer.write(3, debug_sgr_row, offset=self._offset)
             self._debug_buffer.write(1, debug_raw_row +
                                      self._justify_raw(cur_cols - data_len) +
                                      self.PADDING_SECTION +
-                                     Console.get_separator() +
+                                     separator +
                                      debug_proc_row,
                                      offset=self._offset)
             self._output_buffer.write_with_offset(
                 final_raw_row +
                 self._justify_raw(cur_cols - data_len) +
                 self.PADDING_SECTION +
-                Console.get_separator() +
+                separator +
                 final_proc_row, offset=self._offset, end='\n')
 
             self._offset += data_len
 
-        if self._parser_buffer.closed:
+        if self._parser_buffer.closed and SettingsManager.app_settings.effective_print_offsets:
             self._output_buffer.write(
                 Console.format_prefix_with_offset(self._offset, autof(seq.HI_GREEN))
             )
@@ -116,61 +120,19 @@ class BinaryFormatter(AbstractFormatter):
     #     self._add_marker_match(MarkerMatch(match, marker))
     #     return marker.marker_char + ''.join(match.groups())
     #
-    # def _format_control_char(self, match: Match) -> AnyStr:
-    #     if Settings.ignore_control:
-    #         self._add_marker_match(MarkerMatch(match, MarkerRegistry.marker_ignored, overwrite=True))
-    #         return MarkerRegistry.marker_ignored.marker_char
-    #
-    #     charcode = ord(match.group(1))
-    #     marker = self._control_char_map.require_or_die(charcode)
-    #     self._add_marker_match(MarkerMatch(match, marker, overwrite=True))
-    #     return match.group(1)
-    #
-    # def _format_utf8_seq_and_unicode_control(self, match: Match) -> AnyStr:
-    #     if match.group(1):
-    #         if Settings.ignore_control:
-    #             self._add_marker_match(MarkerMatch(match, MarkerRegistry.marker_ignored, overwrite=True))
-    #             return match.group(1)
-    #         return self._format_control_char(match)
-    #
-    #     if Settings.ignore_utf8:
-    #         self._add_marker_match(MarkerMatch(match, MarkerRegistry.marker_ignored, overwrite=True, autosize=True))
-    #         return match.group(0)
-    #     elif Settings.decode:
-    #         self._add_marker_match(MarkerMatch(match, MarkerUTF8(match.group(0).decode()), overwrite=True))
-    #         return match.group(0)
-    #     self._add_marker_match(MarkerMatch(match, MarkerRegistry.marker_utf8, overwrite=True, autosize=True))
-    #     return match.group(0)
-    #
-    # def _format_space(self, match: Match) -> str:
-    #     if Settings.ignore_space:
-    #         self._add_marker_match(MarkerMatch(match, MarkerRegistry.marker_ignored))
-    #         return MarkerRegistry.marker_ignored.marker_char * len(match.group(0))
-    #
-    #     self._add_marker_match(MarkerMatch(match, MarkerRegistry.marker_space))
-    #     return MarkerRegistry.marker_space.marker_char * len(match.group(0))
-    #
-    # def _format_whitespace(self, match: Match) -> str:
-    #     if Settings.ignore_space:
-    #         self._add_marker_match(MarkerMatch(match, MarkerRegistry.marker_ignored))
-    #         return MarkerRegistry.marker_ignored.marker_char * len(match.group(0))
-    #
-    #     marker = self._whitespace_map.get(match.group(1))
-    #     self._add_marker_match(MarkerMatch(match, marker, overwrite=True))
-    #     return marker.marker_char
 
     def _compute_cols_num(self, offset_len: int):  # @TODO RECALCULATE
         width = get_terminal_width()
-        # offset section
 
         # content: 3F # 2 chars hex
         #          @  # 1 char decoded
         # plus N-1 chars for hex padding
         # plus 2 chars for every N bytes (for chunk separators)
-
         # will operate with N-byte sequences
 
-        available_total = width - offset_len - 1  # [ 81 b0␣␣␣... ] 1st and 2nd spaces counted within chunk size calc, but not 3rd
+        # [ 81 b0␣␣␣... ] 1st and 2nd spaces counted within chunk size calc, but not 3rd:
+        available_total = width - offset_len - 1
+
         chunk_len = (3 * self.BYTE_CHUNK_LEN) + \
                     (self.BYTE_CHUNK_LEN - 1) + \
                     len(self.PADDING_HEX_CHUNK)

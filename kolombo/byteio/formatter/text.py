@@ -97,29 +97,3 @@ class TextFormatter(AbstractFormatter):
     #     marker = MarkerRegistry.get_esq_marker(charcode)
     #     return self._escape_escape_character(marker._print() + info)
     #
-    # def _format_control_char(self, match: Match) -> str:
-    #     if Settings.ignore_control:
-    #         return self.get_fallback_char()
-    #
-    #     charcode = ord(match.group(1))
-    #     marker = self._control_char_map.require_or_die(charcode)
-    #     return marker._print()
-    #
-    # def _format_space(self, match: Match) -> str:
-    #     if Settings.ignore_space:
-    #         return MarkerRegistry.marker_ignored.get_fmt()(
-    #             MarkerRegistry.marker_ignored.marker_char * len(match.group(0))
-    #         )
-    #
-    #     return MarkerRegistry.marker_space.get_fmt()(
-    #         MarkerRegistry.marker_space.marker_char * len(match.group(0))
-    #     )
-    #
-    # def _format_whitespace(self, match: Match) -> str:
-    #     if Settings.ignore_space:
-    #         if match.group(1) == '\n':
-    #             return f'\n'
-    #         return MarkerRegistry.marker_ignored._print()
-    #
-    #     marker = self._whitespace_map.get(match.group(1))
-    #     return marker._print()

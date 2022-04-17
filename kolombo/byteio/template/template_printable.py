@@ -13,7 +13,7 @@ class PrintableCharTemplate(Template):
     def _process_byte(self, b: int, display_mode: DisplayMode, read_mode: ReadMode) -> str:
         default_label = super()._process_byte(b, display_mode, read_mode)
 
-        if display_mode is DisplayMode.IGNORED:
+        if display_mode.is_ignored:
             return default_label
 
         return chr(b)

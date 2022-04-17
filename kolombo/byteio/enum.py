@@ -6,11 +6,23 @@ class ReadMode(Enum):
     TEXT = 'text'
     BINARY = 'binary'
 
+    @property
+    def is_text(self) -> bool: return self is self.TEXT
+    @property
+    def is_binary(self) -> bool: return self is self.BINARY
+
 
 class DisplayMode(Enum):
     DEFAULT = 'default'
     FOCUSED = 'focused'
     IGNORED = 'ignored'
+
+    @property
+    def is_default(self) -> bool: return self is self.DEFAULT
+    @property
+    def is_focused(self) -> bool: return self is self.FOCUSED
+    @property
+    def is_ignored(self) -> bool: return self is self.IGNORED
 
 
 class CharClass(Enum):

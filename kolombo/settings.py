@@ -30,6 +30,7 @@ class Settings(Namespace):
         self.ignore_utf8: bool = False
         self.ignore_binary: bool = False
         self.ignore_printable: bool = False
+        self.hide_ignored: bool = False  # TODO
         self.legend: bool = False
         self.marker: int = 1
         self.max_bytes: int|None = None  # no limit
@@ -38,6 +39,7 @@ class Settings(Namespace):
         self.no_color_markers: bool = False
         self.no_line_numbers: bool = False
         self.no_offsets: bool = False
+        self.squash_ignored: bool = False  # TODO
         self.text: bool = True
         self.version: bool = False
 
@@ -80,6 +82,12 @@ class Settings(Namespace):
         if self.marker == 1:
             return MarkerDetailsEnum.BRIEF_DETAILS
         return MarkerDetailsEnum.FULL_DETAILS
+
+    @property
+    def effective_print_offsets(self) -> bool:
+        if self.debug:
+            return True
+        return not self.no_offsets
 
     @property
     def debug_settings(self) -> int:

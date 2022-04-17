@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from re import Match
-from typing import cast
+from typing import cast, Dict
 
 from pytermor import seq
 from pytermor.util import StringFilter, apply_filters
@@ -16,9 +16,13 @@ from ..console import ConsoleDebugBuffer, Console
 # noinspection PyMethodMayBeStatic
 class Parser:
     def __init__(self, parser_buffer: ParserBuffer, segment_buffer: SegmentBuffer, template_registry: TemplateRegistry):
+        self._parser_buffer: ParserBuffer = parser_buffer
+        self._segment_buffer: SegmentBuffer = segment_buffer
+        self._template_registry: TemplateRegistry = template_registry
+
         self.F_SEPARATOR = StringFilter[bytes](
             lambda b: re.sub(
-                b'('                                   # UTF-8
+                b'('                                   # [0] UTF-8
                 b'[\xc2-\xdf][\x80-\xbf]|'             # - non-overlong 2-byte
                 b'\xe0[\xa0-\xbf][\x80-\xbf]|'         # - excluding overlongs
                 b'[\xe1-\xec\xee\xef][\x80-\xbf]{2}|'  # - straight 3-byte
@@ -28,26 +32,48 @@ class Parser:
                 b'\xf4[\x80-\x8f][\x80-\xbf]{2}'       # - plane 16
                 b')|'
                 +
-                b'([\x80-\xff]+)|'                     # BINARY DATA
+                b'([\x80-\xff]+)|'                     # [1] BINARY DATA
                 +                                                             # ESCAPE SEQUENCES
-                b'((\x1b)(\x5b)([\x30-\x3f]*)([\x20-\x2f]*)([\x40-\x7e]))|'   # - CSI sequences
-                b'((\x1b)([\x20-\x2f])([\x20-\x2f]*)([\x30-\x7e]))|'          # - nF escape sequences
-                b'((\x1b)([\x30-\x3f]))|'                                     # - Fp escape sequences
-                b'((\x1b)([\x40-\x5f]))|'                                     # - Fe escape sequences
-                b'((\x1b)([\x60-\x7e]))|'                                     # - Fs escape sequences
-                +                                                   # 7-BIT ASCII
-                b'([\x01-\x07\x0e-\x1a\x1c-\x1f]+)|'                # - generic control chars
-                b'(\x00+)|(\x08+)|(\x1b+)|(\x7f+)|'                 # - nulls | backspaces | escapes | deletes
-                b'(\x09+)|(\x0a)|(\x0b+)|(\x0c+)|(\x0d+)|(\x20+)|'  # - whitespace (\t | \n(x1) | \v | \f | \r | spaces)
-                b'([\x21-\x7e]+)',                                  # - printable chars (letters, digits, punctuation)
+                b'((\x1b)(\\x5b)([\x30-\x3f]*)([\x20-\x2f]*)([\x40-\x7e]))|'  # [ 2|  3-7] CSI sequences
+                b'((\x1b)([\x20-\x2f])([\x20-\x2f]*)([\x30-\x7e]))|'          # [ 8| 9-12] nF escape sequences
+                b'((\x1b)([\x30-\x3f]))|'                                     # [13|14-15] Fp escape sequences
+                b'((\x1b)([\x40-\x5f]))|'                                     # [16|17-18] Fe escape sequences
+                b'((\x1b)([\x60-\x7e]))|'                                     # [19|20-21] Fs escape sequences
+                +                                      # 7-BIT ASCII                         double slash in group 4 is essential
+                b'([\x01-\x07\x0e-\x1a\x1c-\x1f]+)|'   # [22] generic control chars          or whole algorithm breaks: '\x5b' -> '['
+                b'(\x00+)|'                            # [23] control chars/nulls
+                b'(\x08+)|'                            # [24] control chars/backspaces
+                b'(\x1b+)|'                            # [25] control chars/escapes (no sequence)
+                b'(\x7f+)|'                            # [26] control chars/deletes
+                b'(\x09+)|'                            # [27] whitespaces/tabs
+                b'(\x0a)|'                             # [28] whitespaces/newline (one)
+                b'(\x0b+)|'                            # [29] whitespaces/vertical tabs
+                b'(\x0c+)|'                            # [30] whitespaces/form feeds
+                b'(\x0d+)|'                            # [31] whitespaces/carriage returns
+                b'(\x20+)|'                            # [32] whitespace/spaces
+                b'([\x21-\x7e]+)',                     # [33] printable chars (letters, digits, punctuation)
                 self._substitute, b
             ))
 
-        self._parser_buffer: ParserBuffer = parser_buffer
-        self._segment_buffer: SegmentBuffer = segment_buffer
-        self._template_registry: TemplateRegistry = template_registry
-        self._offset = 0
+        self.MGROUP_TO_TPL_MAP: Dict[int, Template] = {
+            0: self._template_registry.UTF_8_SEQ,
+            1: self._template_registry.BINARY_DATA,
+            # ..
+            22: self._template_registry.CONTROL_CHAR,
+            23: self._template_registry.CONTROL_CHAR_NULL,
+            24: self._template_registry.CONTROL_CHAR_BACKSPACE,
+            25: self._template_registry.CONTROL_CHAR_ESCAPE,
+            26: self._template_registry.CONTROL_CHAR_DELETE,
+            27: self._template_registry.WHITESPACE_TAB,
+            28: self._template_registry.WHITESPACE_NEWLINE,
+            29: self._template_registry.WHITESPACE_VERT_TAB,
+            30: self._template_registry.WHITESPACE_FORM_FEED,
+            31: self._template_registry.WHITESPACE_CARR_RETURN,
+            32: self._template_registry.WHITESPACE_SPACE,
+            33: self._template_registry.PRINTABLE_CHAR,
+        }
 
+        self._offset = 0
         self._debug_buffer = ConsoleDebugBuffer('parser', seq.CYAN)
 
     def parse(self, offset: int):
@@ -72,48 +98,17 @@ class Parser:
         return b''
 
     def _handle(self, mgroup: int, raw: bytes, suboffset: int):
-        template = self._find_template(mgroup)
-        if not template:
-            raise RuntimeError(f'No template defined for mgroup {mgroup}: {raw.hex(" ")}')
-
+        template = self._find_template(mgroup, raw)
         segment = template.substitute(raw)
         self._debug_print_match_segment(mgroup, raw, segment, suboffset)
 
         self._segment_buffer.attach(segment)
 
-    def _find_template(self, mgroup: int) -> Template|None:
-        if mgroup == 0:
-            return self._template_registry.UTF_8_SEQ
-        if mgroup == 1:
-            return self._template_registry.BINARY_DATA
-        #if mgroup == 2:
-        #    return self._handle_csi_esq_bytes
-        if mgroup == 21:
-            return self._template_registry.CONTROL_CHAR
-        if mgroup == 22:
-            return self._template_registry.CONTROL_CHAR_NULL
-        if mgroup == 23:
-            return self._template_registry.CONTROL_CHAR_BACKSPACE
-        if mgroup == 24:
-            return self._template_registry.CONTROL_CHAR_ESCAPE
-        if mgroup == 25:
-            return self._template_registry.CONTROL_CHAR_DELETE
-        if mgroup == 26:
-            return self._template_registry.WHITESPACE_TAB
-        if mgroup == 27:
-            return self._template_registry.WHITESPACE_NEWLINE
-        if mgroup == 28:
-            return self._template_registry.WHITESPACE_VERT_TAB
-        if mgroup == 29:
-            return self._template_registry.WHITESPACE_FORM_FEED
-        if mgroup == 30:
-            return self._template_registry.WHITESPACE_CARR_RETURN
-        if mgroup == 31:
-            return self._template_registry.WHITESPACE_SPACE
-        if mgroup == 32:
-            return self._template_registry.PRINTABLE_CHAR
-        return None
-    
+    def _find_template(self, mgroup: int, raw: bytes) -> Template:
+        if mgroup in self.MGROUP_TO_TPL_MAP.keys():
+            return self.MGROUP_TO_TPL_MAP[mgroup]
+        raise RuntimeError(f'No template defined for mgroup {mgroup}: {raw.hex(" ")}')
+
     def _debug_print_match_segment(self, mgroup: int, raw: bytes, segment: Segment, suboffset: int):
         debug_msg = f'Match group #{mgroup:02d}'
         debug_msg += f'/{segment.type_label}: {Console.printd(raw)}'

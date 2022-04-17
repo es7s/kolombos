@@ -14,12 +14,12 @@ class Utf8SequenceTemplate(Template):
     def _process(self, raw: bytes, display_mode: DisplayMode, read_mode: ReadMode) -> str:
         default_processed = super()._process(raw, display_mode, read_mode)
 
-        if display_mode is DisplayMode.IGNORED:
+        if display_mode.is_ignored:
             return default_processed
 
-        if read_mode is ReadMode.TEXT or SettingsManager.app_settings.decode:
+        if read_mode.is_text or SettingsManager.app_settings.decode:
             decoded = raw.decode('utf8', errors='replace')
-            if read_mode is ReadMode.BINARY:
+            if read_mode.is_binary:
                 if len(decoded) < len(raw):
                     decoded = decoded.rjust(len(raw), '_')
                 elif len(decoded) > len(raw):

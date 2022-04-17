@@ -12,8 +12,8 @@ from ..settings import SettingsManager
 
 
 class Reader(metaclass=abc.ABCMeta):
-    READ_CHUNK_SIZE: int = 1024
-    READ_CHUNK_SIZE_DEBUG: int = 64
+    READ_CHUNK_SIZE: int = 4096
+    READ_CHUNK_SIZE_DEBUG: int = 128
 
     def __init__(self, filename: str|None, read_callback: Callable[[bytes, int, bool], None]):
         self._filename = filename

@@ -48,7 +48,10 @@ class ConsoleOutputBuffer(AbstractConsoleBuffer):
 
     def write_with_offset(self, s: str, offset: int, end='\n', flush=True):
         fmt_ = fmt.green
-        prefix = Console.format_prefix_with_offset(offset, fmt_)
+        if SettingsManager.app_settings.effective_print_offsets:
+            prefix = Console.format_prefix_with_offset(offset, fmt_)
+        else:
+            prefix = ''
 
         self._buf += f'{prefix}{s}{end}'
         if flush:
