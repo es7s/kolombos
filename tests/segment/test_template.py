@@ -1,6 +1,6 @@
 import unittest
 
-from pytermor import seq
+from pytermor import sgr
 
 from kolombo.byteio.segment.template import SegmentTemplate
 
@@ -10,7 +10,7 @@ class SegmentTemplateTestCase(unittest.TestCase):
         pass
 
     def test_substitution_auto_processing(self):
-        template = SegmentTemplate('@', 'A', seq.GREEN)
+        template = SegmentTemplate('@', 'A', sgr.GREEN)
 
         segment = template.substitute(b'123')
 
@@ -21,7 +21,7 @@ class SegmentTemplateTestCase(unittest.TestCase):
         self.assertEqual(segment.processed, '@@@')
 
     def test_substitution_explicit_processing(self):
-        template = SegmentTemplate('@', 'A', seq.GREEN)
+        template = SegmentTemplate('@', 'A', sgr.GREEN)
 
         segment = template.substitute(b'123', 'abc')
 
@@ -32,7 +32,7 @@ class SegmentTemplateTestCase(unittest.TestCase):
         self.assertEqual(segment.processed, 'abc')
 
     def test_substitution_with_different_processed_len(self):
-        template = SegmentTemplate('@', 'A', seq.GREEN)
+        template = SegmentTemplate('@', 'A', sgr.GREEN)
 
         segment = template.substitute(b'123', 'abcdef')
 
@@ -43,7 +43,7 @@ class SegmentTemplateTestCase(unittest.TestCase):
         self.assertEqual(segment.processed, 'abcdef')
 
     def test_substitution_with_newline(self):
-        template = SegmentTemplate('@', 'A', seq.GREEN)
+        template = SegmentTemplate('@', 'A', sgr.GREEN)
 
         segment = template.substitute(b'123', '123\n')
 

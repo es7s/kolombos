@@ -1,18 +1,17 @@
 from __future__ import annotations
 
-from . import AbstractModeProcessor, LegendModeProcessor, VersionModeProcessor, ByteIoProcessor
+from . import AbstractRunner, LegendRunner, VersionRunner, ByteIoRunner
 from .. import ArgumentError
 from ..settings import SettingsManager
 
 
-class ModeProcessorFactory:
+class RunnerFactory:
     @staticmethod
-    def create() -> AbstractModeProcessor:
+    def create() -> AbstractRunner:
         if SettingsManager.app_settings.legend:
-            return LegendModeProcessor()
+            return LegendRunner()
         elif SettingsManager.app_settings.version:
-            return VersionModeProcessor()
+            return VersionRunner()
         elif SettingsManager.app_settings.binary or SettingsManager.app_settings.text:
-            return ByteIoProcessor()
+            return ByteIoRunner()
         raise ArgumentError('No mode specified')
-

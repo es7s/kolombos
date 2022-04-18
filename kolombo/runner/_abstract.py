@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
 
 
-class AbstractModeProcessor(metaclass=ABCMeta):
+class AbstractRunner(metaclass=ABCMeta):
     @abstractmethod
-    def invoke(self):
+    def run(self):
         pass

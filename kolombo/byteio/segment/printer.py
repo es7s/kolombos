@@ -5,7 +5,7 @@ from typing import Callable
 from . import Segment
 
 
-class SegmentProcessor:
+class SegmentPrinter:
     def __init__(self, apply_sgr: bool, encode_sgr: bool, format_fn: Callable[[Segment], str]):
         self._apply_sgr = apply_sgr
         self._encode_sgr = encode_sgr
@@ -19,5 +19,5 @@ class SegmentProcessor:
     def encode_sgr(self):
         return self._encode_sgr
 
-    def format(self, segment: Segment) -> str:
+    def print(self, segment: Segment) -> str:
         return self._format_fn(segment)

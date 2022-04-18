@@ -1,6 +1,6 @@
 import unittest
 
-from pytermor import seq
+from pytermor import sgr
 
 from kolombo.byteio.segment.buffer import SegmentBuffer
 from kolombo.byteio.segment.segment import Segment
@@ -14,16 +14,16 @@ class SegmentBufferAttachingTestCase(unittest.TestCase):
         self.buffer = SegmentBuffer()
 
     def test_attach_segment(self):
-        segment = Segment(seq.GREEN, '@', b'123', '123')
+        segment = Segment(sgr.GREEN, '@', b'123', '123')
 
         self.buffer.attach(segment)
 
         self.assertEqual(self.buffer.data_len, 3)
         self.assertEqual(len(self.buffer._segment_chain), 4)
-        self.assertIn(StartSequenceRef(seq.GREEN), self.buffer._segment_chain)
-        self.assertIn(Segment(seq.GREEN, '@', b'123', '123'), self.buffer._segment_chain)
-        self.assertIn(StopSequenceRef(seq.GREEN), self.buffer._segment_chain)
-        self.assertIn(OneUseSequenceRef(seq.COLOR_OFF), self.buffer._segment_chain)
+        self.assertIn(StartSequenceRef(sgr.GREEN), self.buffer._segment_chain)
+        self.assertIn(Segment(sgr.GREEN, '@', b'123', '123'), self.buffer._segment_chain)
+        self.assertIn(StopSequenceRef(sgr.GREEN), self.buffer._segment_chain)
+        self.assertIn(OneUseSequenceRef(sgr.COLOR_OFF), self.buffer._segment_chain)
 
     def test_attach_segment_without_formatting(self):
         template = SegmentTemplate('-', 'E')
@@ -41,7 +41,7 @@ class SegmentBufferDetachingTestCase(unittest.TestCase):
         self.buffer = SegmentBuffer()
 
     def test_detach_whole_segment(self):
-        template = SegmentTemplate('@', 'A', seq.BG_CYAN)
+        template = SegmentTemplate('@', 'A', sgr.BG_CYAN)
         segment = template.substitute(b'123', '123')
         self.buffer.attach(segment)
 
@@ -49,12 +49,12 @@ class SegmentBufferDetachingTestCase(unittest.TestCase):
 
         self.assertEqual(self.buffer.data_len, 0)
         self.assertEqual(len(processed), 3)
-        self.assertIn(StartSequenceRef(seq.BG_CYAN), processed)
+        self.assertIn(StartSequenceRef(sgr.BG_CYAN), processed)
         self.assertIn(Segment(template, b'123', '123'), processed)
-        self.assertIn(OneUseSequenceRef(seq.BG_COLOR_OFF), processed)
+        self.assertIn(OneUseSequenceRef(sgr.BG_COLOR_OFF), processed)
 
     def test_detach_partial_segment(self):
-        template = SegmentTemplate('@', 'A', seq.BOLD)
+        template = SegmentTemplate('@', 'A', sgr.BOLD)
         segment = template.substitute(b'1234', '1234')
         self.buffer.attach(segment)
 
@@ -62,12 +62,12 @@ class SegmentBufferDetachingTestCase(unittest.TestCase):
 
         self.assertEqual(self.buffer.data_len, 2)
         self.assertEqual(len(processed), 3)
-        self.assertIn(StartSequenceRef(seq.BOLD), processed)
+        self.assertIn(StartSequenceRef(sgr.BOLD), processed)
         self.assertIn(Segment(template, b'12', '12'), processed)
-        self.assertIn(OneUseSequenceRef(seq.BOLD_DIM_OFF), processed)
+        self.assertIn(OneUseSequenceRef(sgr.BOLD_DIM_OFF), processed)
 
     def test_detach_zero_bytes(self):
-        template = SegmentTemplate('@', 'A', seq.BOLD)
+        template = SegmentTemplate('@', 'A', sgr.BOLD)
         segment = template.substitute(b'123', '123')
         self.buffer.attach(segment)
 
@@ -94,9 +94,9 @@ class SegmentBufferDetachingTestCase(unittest.TestCase):
         self.assertIn(Segment(template, b'123', '123'), processed)
 
     def test_detach_two_segments(self):
-        template1 = SegmentTemplate('@', 'A', seq.RED)
+        template1 = SegmentTemplate('@', 'A', sgr.RED)
         segment1 = template1.substitute(b'123', '123')
-        template2 = SegmentTemplate('@', 'B', seq.BG_RED)
+        template2 = SegmentTemplate('@', 'B', sgr.BG_RED)
         segment2 = template2.substitute(b'456', '456')
         self.buffer.attach(segment1)
         self.buffer.attach(segment2)
@@ -105,12 +105,12 @@ class SegmentBufferDetachingTestCase(unittest.TestCase):
 
         self.assertEqual(self.buffer.data_len, 0)
         self.assertEqual(len(processed), 6)
-        self.assertIn(StartSequenceRef(seq.RED), processed)
+        self.assertIn(StartSequenceRef(sgr.RED), processed)
         self.assertIn(Segment(template1, b'123', '123'), processed)
-        self.assertIn(OneUseSequenceRef(seq.COLOR_OFF), processed)
-        self.assertIn(StartSequenceRef(seq.BG_RED), processed)
+        self.assertIn(OneUseSequenceRef(sgr.COLOR_OFF), processed)
+        self.assertIn(StartSequenceRef(sgr.BG_RED), processed)
         self.assertIn(Segment(template2, b'456', '456'), processed)
-        self.assertIn(OneUseSequenceRef(seq.BG_COLOR_OFF), processed)
+        self.assertIn(OneUseSequenceRef(sgr.BG_COLOR_OFF), processed)
 
 
 if __name__ == '__main__':

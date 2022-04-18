@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Dict
 
-from pytermor.seq import SequenceSGR
+from pytermor import SequenceSGR
 
 from . import OpeningSeqPOV, LabelPOV, Template
 from .. import CharClass, DisplayMode, ReadMode, MarkerDetailsEnum

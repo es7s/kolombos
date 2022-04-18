@@ -42,7 +42,7 @@ build: ## Build module
 	sed -E -i "s/^VERSION.+/VERSION=$$VERSION/" .env.dist
 	python3 -m build
 
-## Making new release (test repo)
+## Test repository
 
 upload-dev: ## Upload module to test repository
 	python3 -m twine upload --repository testpypi dist/* -u ${PYPI_USERNAME} -p ${PYPI_PASSWORD}
@@ -50,7 +50,7 @@ upload-dev: ## Upload module to test repository
 install-dev: ## Install module from test repository
 	pip install -i https://test.pypi.org/simple/ kolombo-delameter==${VERSION}
 
-## Making new release
+## Primary repository
 
 upload: ## Upload module
 	echo "upload"

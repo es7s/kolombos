@@ -20,8 +20,7 @@ class Reader(metaclass=abc.ABCMeta):
         self._io: IO|None = None
         self._offset = 0
         self._chunk_size = self._get_chunk_size()
-        self.read_callback = read_callback
-
+        self._read_callback = read_callback
         self._debug_buffer = ConsoleDebugBuffer('reader', seq.MAGENTA)
 
     @property
@@ -56,7 +55,7 @@ class Reader(metaclass=abc.ABCMeta):
                     self._debug_buffer.write(3, f'Cropping input -> {Console.printd(raw_input)}', offset=self._offset)
                     break
 
-                self.read_callback(raw_input, self._offset, False)
+                self._read_callback(raw_input, self._offset, False)
                 self._offset += len(raw_input)
                 raw_input = b''
 
@@ -65,7 +64,7 @@ class Reader(metaclass=abc.ABCMeta):
                     break
 
             self._debug_buffer.write(1, f'Encountered EOF', offset=self._offset)
-            self.read_callback(raw_input, self._offset, True)
+            self._read_callback(raw_input, self._offset, True)
 
         except KeyboardInterrupt:
             pass

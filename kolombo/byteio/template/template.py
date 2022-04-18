@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from pytermor import seq
-from pytermor.seq import SequenceSGR
+from pytermor import seq, SequenceSGR
 
 from . import PartialOverride, OpeningSeqPOV, LabelPOV
 from .. import CharClass, DisplayMode, ReadMode
-from ..enum import TYPE_LABEL_MAP
+from ..const import TYPE_LABEL_MAP
 from ..segment import Segment
 from ...settings import SettingsManager
 

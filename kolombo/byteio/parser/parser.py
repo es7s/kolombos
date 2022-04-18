@@ -4,13 +4,12 @@ import re
 from re import Match
 from typing import cast, Dict
 
-from pytermor import seq
-from pytermor.util import StringFilter, apply_filters
+from pytermor import seq, apply_filters, StringFilter
 
 from . import ParserBuffer
-from .segment import SegmentBuffer, Segment
-from .template import Template, TemplateRegistry
-from ..console import ConsoleDebugBuffer, Console
+from ..segment import SegmentBuffer, Segment
+from ..template import Template, TemplateRegistry
+from ...console import ConsoleDebugBuffer, Console
 
 
 # noinspection PyMethodMayBeStatic
@@ -30,17 +29,17 @@ class Parser:
                 b'\xf0[\x90-\xbf][\x80-\xbf]{2}|'      # - planes 1-3
                 b'[\xf1-\xf3][\x80-\xbf]{3}|'          # - planes 4-15
                 b'\xf4[\x80-\x8f][\x80-\xbf]{2}'       # - plane 16
-                b')|'
-                +
-                b'([\x80-\xff]+)|'                     # [1] BINARY DATA
-                +                                                             # ESCAPE SEQUENCES
-                b'((\x1b)(\\x5b)([\x30-\x3f]*)([\x20-\x2f]*)([\x40-\x7e]))|'  # [ 2|  3-7] CSI sequences
+                b')|'                                                         # double slash in group 4 is essential or
+                +                                                             # algorithm goes batshit crazy (\x5b is [)
+                b'([\x80-\xff]+)|'                     # [1] BINARY DATA                                           |
+                +                                                             # ESCAPE SEQUENCES                   |
+                b'((\x1b)(\\x5b)([\x30-\x3f]*)([\x20-\x2f]*)([\x40-\x7e]))|'  # [ 2|  3-7] CSI sequences   < - - - +
                 b'((\x1b)([\x20-\x2f])([\x20-\x2f]*)([\x30-\x7e]))|'          # [ 8| 9-12] nF escape sequences
                 b'((\x1b)([\x30-\x3f]))|'                                     # [13|14-15] Fp escape sequences
                 b'((\x1b)([\x40-\x5f]))|'                                     # [16|17-18] Fe escape sequences
                 b'((\x1b)([\x60-\x7e]))|'                                     # [19|20-21] Fs escape sequences
-                +                                      # 7-BIT ASCII                         double slash in group 4 is essential
-                b'([\x01-\x07\x0e-\x1a\x1c-\x1f]+)|'   # [22] generic control chars          or whole algorithm breaks: '\x5b' -> '['
+                +                                      # 7-BIT ASCII
+                b'([\x01-\x07\x0e-\x1a\x1c-\x1f]+)|'   # [22] generic control chars
                 b'(\x00+)|'                            # [23] control chars/nulls
                 b'(\x08+)|'                            # [24] control chars/backspaces
                 b'(\x1b+)|'                            # [25] control chars/escapes (no sequence)
@@ -55,8 +54,8 @@ class Parser:
                 self._substitute, b
             ))
 
-        self.MGROUP_TO_TPL_MAP: Dict[int, Template] = {
-            0: self._template_registry.UTF_8_SEQ,
+        self.MGROUP_TO_TPL_MAP: Dict[int, Template] = {   # @TODO: map templates directly to regexp parts, join with '|':
+            0: self._template_registry.UTF_8_SEQ,         # { WHITESPACE_TAB: b'\x09+', ... }
             1: self._template_registry.BINARY_DATA,
             # ..
             22: self._template_registry.CONTROL_CHAR,

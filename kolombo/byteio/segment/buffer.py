@@ -2,11 +2,9 @@ from __future__ import annotations
 
 from typing import Deque, List, Tuple
 
-from pytermor import autof, fmt
-from pytermor.seq import SequenceSGR
-from pytermor.util import ReplaceSGR
+from pytermor import autof, fmt, SequenceSGR, ReplaceSGR
 
-from . import Chainable, SegmentProcessor, Segment, StartSequenceRef, StopSequenceRef, OneUseSequenceRef, SequenceRef
+from . import Chainable, SegmentPrinter, Segment, StartSequenceRef, StopSequenceRef, OneUseSequenceRef, SequenceRef
 from .. import WaitRequest
 from ...console import ConsoleDebugBuffer, Console
 from ...settings import SettingsManager
@@ -42,7 +40,7 @@ class SegmentBuffer:
             OneUseSequenceRef(f.closing_seq)
         ])
 
-    def detach_bytes(self, req_bytes: int, force: bool, formatters: List[SegmentProcessor, ...]) -> Tuple[str, ...]:
+    def detach_bytes(self, req_bytes: int, force: bool, printers: List[SegmentPrinter, ...]) -> Tuple[str, ...]:
         if self.data_len >= req_bytes or force:
             detached = self._detach(req_bytes)
             if len(detached) == 0:
@@ -50,13 +48,13 @@ class SegmentBuffer:
                 self._debug_buffer.write(2, f'Buffer state: {Console.printd(self)}')
                 raise EOFError
 
-            return self._format_multiple(detached, formatters)
+            return self._format_multiple(detached, printers)
 
         self._debug_buffer.write(1, 'Responsing with WaitRequest')
         self._debug_buffer.write(2, f'Buffer state: {Console.printd(self)}')
         raise WaitRequest
 
-    def detach_line(self, force: bool, formatters: List[SegmentProcessor, ...]) -> Tuple[str, ...]:
+    def detach_line(self, force: bool, printers: List[SegmentPrinter, ...]) -> Tuple[str, ...]:
         avail_bytes = 0
         has_newline = False
         for el in self._segment_chain:
@@ -72,7 +70,7 @@ class SegmentBuffer:
 
         if has_newline or force:
             detached = self._detach(avail_bytes)
-            return self._format_multiple(detached, formatters)
+            return self._format_multiple(detached, printers)
 
         self._debug_buffer.write(1, 'Responsing with WaitRequest')
         self._debug_buffer.write(2, f'Buffer state: {Console.printd(self)}')
@@ -148,30 +146,29 @@ class SegmentBuffer:
         output.extend([OneUseSequenceRef(autof(sgr).closing_seq) for sgr in self._active_sgrs])
         return output
 
-    def _format_multiple(self, detached: List[Chainable], formatters: List[SegmentProcessor, ...]) -> Tuple[str, ...]:
+    def _format_multiple(self, detached: List[Chainable], printers: List[SegmentPrinter, ...]) -> Tuple[str, ...]:
         self._last_detached_data_len = sum([el.data_len for el in detached])
 
         formatted = []
-        for formatter in formatters:
-            formatted.append(self._format(detached, formatter))
+        for printer in printers:
+            formatted.append(self._format(detached, printer))
         return tuple(formatted)
 
-    def _format(self, detached: List[Chainable], formatter: SegmentProcessor) -> str:
+    def _format(self, detached: List[Chainable], printer: SegmentPrinter) -> str:
         output = ''
         for cur_element in detached:
             if isinstance(cur_element, Segment):
-                output += formatter.format(cur_element)
+                output += printer.print(cur_element)
 
             elif isinstance(cur_element, SequenceRef):  # StartSequenceRef | OneUseSequenceRef
-                output += self._append_sgr_to_output(formatter, cur_element.ref.print())
+                output += self._append_sgr_to_output(printer, cur_element.ref.print())
 
-        #output += self._append_sgr_to_output(formatter, self._get_active_sgrs_closing())
         return output
 
-    def _append_sgr_to_output(self, formatter: SegmentProcessor, sgr_str: str) -> str:
-        if not formatter.apply_sgr:
+    def _append_sgr_to_output(self, printer: SegmentPrinter, sgr_str: str) -> str:
+        if not printer.apply_sgr:
             return ''
-        if formatter.encode_sgr:
+        if printer.encode_sgr:
             return self._preview_sgr(sgr_str)
         return sgr_str
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TypeVar, Generic, Dict, Any
 
-from pytermor.seq import SequenceSGR
+from pytermor import SequenceSGR
 
 T = TypeVar('T')
 

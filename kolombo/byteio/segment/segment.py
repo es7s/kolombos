@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pytermor.seq import SequenceSGR
+from pytermor import SequenceSGR
 
 from . import Chainable
 

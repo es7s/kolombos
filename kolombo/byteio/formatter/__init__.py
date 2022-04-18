@@ -1,4 +1,4 @@
-from .abstract import AbstractFormatter
+from ._abstract import AbstractFormatter
 
 from .binary import BinaryFormatter
 from .text import TextFormatter

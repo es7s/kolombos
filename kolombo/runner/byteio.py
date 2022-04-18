@@ -1,4 +1,4 @@
-from . import AbstractModeProcessor
+from . import AbstractRunner
 from ..byteio import ParserBuffer, Parser, Reader
 from ..byteio.formatter import FormatterFactory
 from ..byteio.segment import SegmentBuffer
@@ -8,8 +8,8 @@ from ..settings import SettingsManager
 
 
 # noinspection PyMethodMayBeStatic
-class ByteIoProcessor(AbstractModeProcessor):
-    def invoke(self):
+class ByteIoRunner(AbstractRunner):
+    def run(self):
         # try:
         self._reinit()
         self._reader.read()

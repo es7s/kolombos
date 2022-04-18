@@ -1,5 +1,4 @@
-from pytermor import seq
-from pytermor.seq import SequenceSGR
+from pytermor import seq, SequenceSGR
 
 from . import Template, OpeningSeqPOV, LabelPOV, ControlCharGenericTemplate, Utf8SequenceTemplate, \
     PrintableCharTemplate, NewlineTemplate
@@ -29,4 +28,4 @@ class TemplateRegistry:
         c_bin = CharClass.BINARY_DATA
         self.BINARY_DATA = Template(c_bin, seq.MAGENTA, LabelPOV('Ḇ', {ReadMode.BINARY: '▯'}))  # 0x80-0xff
 
-        self.PRINTABLE_CHAR = PrintableCharTemplate(SequenceSGR(), '')  # 0x21-0x7e
+        self.PRINTABLE_CHAR = PrintableCharTemplate(SequenceSGR(), '.')  # 0x21-0x7e

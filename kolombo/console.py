@@ -7,10 +7,7 @@ from abc import ABCMeta, abstractmethod
 from math import ceil
 from typing import List, Any
 
-from pytermor import autof, seq, fmt
-from pytermor.fmt import AbstractFormat
-from pytermor.seq import SequenceSGR
-from pytermor.util import ReplaceSGR
+from pytermor import autof, seq, fmt, SequenceSGR, ReplaceSGR, Format
 
 from . import ArgumentError, get_terminal_width
 from .byteio import CharClass
@@ -248,11 +245,11 @@ class Console:
         debug_buffer.write(3, Console.get_separator_line(settings_close=True, main_open=True))
 
     @staticmethod
-    def format_prefix(label: str, f: AbstractFormat) -> str:
+    def format_prefix(label: str, f: Format) -> str:
         return f(f'{label!s:>{Console.MAIN_PREFIX_LEN}.{Console.MAIN_PREFIX_LEN}s}') + Console.get_separator()
 
     @staticmethod
-    def format_prefix_with_offset(offset: int, f: AbstractFormat = fmt.green) -> str:
+    def format_prefix_with_offset(offset: int, f: Format = fmt.green) -> str:
         if SettingsManager.app_settings.decimal_offsets:
             offset_str = f'{offset:d}'
         else:

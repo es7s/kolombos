@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pytermor import fmt
 
-from ..console import ConsoleDebugBuffer, Console
+from ...console import ConsoleDebugBuffer, Console
 
 
 class ParserBuffer:

@@ -1,5 +1,4 @@
-from pytermor import seq
-from pytermor.util import ReplaceSGR
+from pytermor import seq, ReplaceSGR
 
 from . import AbstractFormatter
 from .. import ParserBuffer, WaitRequest
@@ -23,10 +22,10 @@ class TextFormatter(AbstractFormatter):
                 self._debug_buffer.write(1, 'Requested line')
                 force = self._parser_buffer.closed
                 result = self._segment_buffer.detach_line(force, [
-                    self._debug_sgr_seg_processor,
-                    self._debug_raw_seg_processor,
-                    self._debug_proc_seg_processor,
-                    self._proc_seg_processor,
+                    self._debug_sgr_seg_printer,
+                    self._debug_raw_seg_printer,
+                    self._debug_proc_seg_printer,
+                    self._proc_seg_printer,
                 ])
             except WaitRequest:
                 break

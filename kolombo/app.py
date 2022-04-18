@@ -2,17 +2,16 @@ from __future__ import annotations
 
 from . import AppArgumentParser
 from .console import Console
-from .mode import ModeProcessorFactory
+from .runner import RunnerFactory
 from .settings import SettingsManager
 
 
 # noinspection PyMethodMayBeStatic
-
 class App:
     def run(self):
         try:
             self._parse_args()  # help processing is handled by argparse
-            (ModeProcessorFactory.create()).invoke()
+            (RunnerFactory.create()).run()
         except Exception as e:
             Console.on_exception(e)
             self.exit(1)

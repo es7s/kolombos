@@ -1,6 +1,17 @@
 from enum import Enum
 from typing import Dict
 
+CONTROL_CHARCODES = list(range(0x00, 0x09)) + list(range(0x0e, 0x20)) + list(range(0x7f, 0x100))
+WHITESPACE_CHARCODES = list(range(0x09, 0x0e)) + [0x20]
+PRINTABLE_CHARCODES = list(range(0x21, 0x7f))
+BINARY_CHARCODES = list(range(0x80, 0x100))
+CHARCODE_TO_SAFE_CHAR_MAP = {   # @TODO впилить в отладчоный вывод AbstractFormatter._seg_raw_to_safe
+    **{b: chr(b) for b in range(0x00, 0x100)},
+    **{b: '·' for b in WHITESPACE_CHARCODES},
+    **{b: '▯' for b in CONTROL_CHARCODES},
+    **{b: '▯' for b in BINARY_CHARCODES},
+}
+
 
 class ReadMode(Enum):
     TEXT = 'text'

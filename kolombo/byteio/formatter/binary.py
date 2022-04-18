@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from math import floor
 
-from pytermor import fmt, autof, seq
-from pytermor.fmt import EmptyFormat
+from pytermor import fmt, autof, seq, Format
 
 from . import AbstractFormatter
 from .. import ParserBuffer, WaitRequest
@@ -31,7 +30,7 @@ class BinaryFormatter(AbstractFormatter):
     def format(self):
         cur_cols = self._cols
         if cur_cols is None:
-            prefix_example = Console.format_prefix_with_offset(self._offset, EmptyFormat())
+            prefix_example = Console.format_prefix_with_offset(self._offset, Format())
             cur_cols = self._compute_cols_num(len(prefix_example))
 
         req_bytes = cur_cols
@@ -43,11 +42,11 @@ class BinaryFormatter(AbstractFormatter):
             try:
                 force = self._parser_buffer.closed
                 result = self._segment_buffer.detach_bytes(req_bytes, force, [
-                    self._debug_sgr_seg_processor,
-                    self._debug_raw_seg_processor,
-                    self._debug_proc_seg_processor,
-                    self._raw_seg_processor,
-                    self._proc_seg_processor,
+                    self._debug_sgr_seg_printer,
+                    self._debug_raw_seg_printer,
+                    self._debug_proc_seg_printer,
+                    self._raw_seg_printer,
+                    self._proc_seg_printer,
                 ])
             except WaitRequest:
                 break
