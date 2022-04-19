@@ -27,18 +27,19 @@ class SegmentBuffer:
     def last_detached_data_len(self) -> int:
         return self._last_detached_data_len
 
-    def attach(self, segment: Segment):
-        f = autof(segment.opening_seq)
-        if len(f.opening_seq.params) == 0 or set(f.opening_seq.params) == {0}:
-            self._segment_chain.append(segment)
-            return
+    def attach(self, segments: List[Segment]):
+        for segment in segments:
+            f = autof(segment.opening_seq)
+            if len(f.opening_seq.params) == 0 or set(f.opening_seq.params) == {0}:
+                self._segment_chain.append(segment)
+                continue
 
-        self._segment_chain.extend([
-            StartSequenceRef(f.opening_seq),
-            segment,
-            StopSequenceRef(f.opening_seq),
-            OneUseSequenceRef(f.closing_seq)
-        ])
+            self._segment_chain.extend([
+                StartSequenceRef(f.opening_seq),
+                segment,
+                StopSequenceRef(f.opening_seq),
+                OneUseSequenceRef(f.closing_seq)
+            ])
 
     def detach_bytes(self, req_bytes: int, force: bool, printers: List[SegmentPrinter, ...]) -> Tuple[str, ...]:
         if self.data_len >= req_bytes or force:
@@ -141,18 +142,15 @@ class SegmentBuffer:
 
             self._segment_chain.popleft()
 
+        output.extend([OneUseSequenceRef(autof(sgr).closing_seq) for sgr in self._active_sgrs])
+        self._last_detached_data_len = sum([el.data_len for el in output])
+
         self._debug_buffer.write(2, 'Detached ' + fmt.bold(sum([el.data_len for el in output])) + ' data byte(s)')
         self._debug_buffer.write(2, f'Buffer state: {Console.printd(self)}')
-        output.extend([OneUseSequenceRef(autof(sgr).closing_seq) for sgr in self._active_sgrs])
         return output
 
     def _format_multiple(self, detached: List[Chainable], printers: List[SegmentPrinter, ...]) -> Tuple[str, ...]:
-        self._last_detached_data_len = sum([el.data_len for el in detached])
-
-        formatted = []
-        for printer in printers:
-            formatted.append(self._format(detached, printer))
-        return tuple(formatted)
+        return tuple(self._format(detached, printer) for printer in printers)
 
     def _format(self, detached: List[Chainable], printer: SegmentPrinter) -> str:
         output = ''
@@ -163,6 +161,7 @@ class SegmentBuffer:
             elif isinstance(cur_element, SequenceRef):  # StartSequenceRef | OneUseSequenceRef
                 output += self._append_sgr_to_output(printer, cur_element.ref.print())
 
+        # @TODO optimize sgrs: {RED}A{COLOR_OFF}{RED}A{COLOR_OFF}... -> {RED}AA{COLOR_OFF}
         return output
 
     def _append_sgr_to_output(self, printer: SegmentPrinter, sgr_str: str) -> str:

@@ -3,17 +3,17 @@ from __future__ import annotations
 from pytermor import SequenceSGR
 
 from . import OpeningSeqPOV, LabelPOV, Template
-from .. import CharClass, DisplayMode, ReadMode
+from .. import CharClass
 
 
 class PrintableCharTemplate(Template):
     def __init__(self, opening_seq: SequenceSGR | OpeningSeqPOV, label: str | LabelPOV = ''):
         super().__init__(CharClass.PRINTABLE_CHAR, opening_seq, label)
 
-    def _process_byte(self, b: int, display_mode: DisplayMode, read_mode: ReadMode) -> str:
-        default_label = super()._process_byte(b, display_mode, read_mode)
+    def _process_byte(self, b: int) -> str:
+        default = lambda: super(type(self), self)._process_byte(b)
 
-        if display_mode.is_ignored:
-            return default_label
+        if self._display_mode.is_ignored:
+            return default()
 
         return chr(b)

@@ -1,9 +1,12 @@
 from __future__ import annotations
 
-from pytermor import seq, SequenceSGR
+from re import Match
+from typing import List
+
+from pytermor import seq, SequenceSGR, Format, autof
 
 from . import PartialOverride, OpeningSeqPOV, LabelPOV
-from .. import CharClass, DisplayMode, ReadMode
+from .. import CharClass, DisplayMode
 from ..const import TYPE_LABEL_MAP
 from ..segment import Segment
 from ...settings import SettingsManager
@@ -12,6 +15,7 @@ from ...settings import SettingsManager
 class Template:
     IGNORED_OPENING_SEQ: SequenceSGR = seq.GRAY + seq.DIM
     IGNORED_LABEL: str = '×'
+    MARKER_DETAILS_SEQ: SequenceSGR = seq.BG_BLACK + seq.OVERLINED
 
     def __init__(self, char_class: CharClass, opening_seq: SequenceSGR | OpeningSeqPOV, label: str | LabelPOV = ''):
         if not isinstance(opening_seq, PartialOverride):
@@ -22,6 +26,7 @@ class Template:
         self._char_class: CharClass = char_class
         self._opening_seq_stack: OpeningSeqPOV = opening_seq
         self._label_stack: LabelPOV = label
+        self._substituted: List[Segment] = []
 
         if not self._opening_seq_stack.has_key(DisplayMode.FOCUSED):
             self._opening_seq_stack.set(DisplayMode.FOCUSED, self._opening_seq_stack.get() + seq.INVERSED)
@@ -31,29 +36,24 @@ class Template:
         if not self._label_stack.has_key(DisplayMode.IGNORED):
             self._label_stack.set(DisplayMode.IGNORED, self.IGNORED_LABEL)
 
-    def substitute(self, raw: bytes) -> Segment:
         app_settings = SettingsManager.app_settings
-        display_mode = app_settings.get_char_class_display_mode(self._char_class)
-        read_mode = app_settings.read_mode
+        self._display_mode = app_settings.get_char_class_display_mode(self._char_class)
+        self._read_mode = app_settings.read_mode
 
-        return Segment(
-            self._opening_seq_stack.get(display_mode, read_mode),  # display_mode has higher priority
+    def substitute(self, m: Match, raw: bytes) -> List[Segment]:
+        self._substituted.clear()
+
+        primary_seg = Segment(
+            self._opening_seq_stack.get(self._display_mode, self._read_mode),
             TYPE_LABEL_MAP[self._char_class],
             raw,
-            self._process(raw, display_mode, read_mode)
+            self._process(m, raw)
         )
+        self._substituted.insert(0, primary_seg)
+        return self._substituted
 
-    def _process(self, raw: bytes, display_mode: DisplayMode, read_mode: ReadMode) -> str:
-        processed = ''
-        for b in raw:
-            processed += self._process_byte(b, display_mode, read_mode)
-        return processed
+    def _process(self, m: Match, raw: bytes) -> str:
+        return ''.join(self._process_byte(b) for b in raw)
 
-    def _process_byte(self, b: int, display_mode: DisplayMode, read_mode: ReadMode) -> str:
-        return self._label_stack.get(display_mode, read_mode)  # display_mode has higher priority
-
-# CharClass.ESCAPE_SEQ     'E' ! GN|Y|WH|vari  marker:byte-dep: 'ϴǝϽꟻƎ' | +seq.INVERSED marker:byte-dep:content-dep:'ϴǝϽꟻƎ' | const.IGNORED | binary invisible
-# content-dep:: ^^^^^^^^^^
-#
-# opening <-- raw, display_mode
-# label <-- read_mode, raw, marker, decode, display_mode
+    def _process_byte(self, b: int,) -> str:
+        return self._label_stack.get(self._display_mode, self._read_mode)

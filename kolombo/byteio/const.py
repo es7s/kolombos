@@ -59,4 +59,4 @@ class MarkerDetailsEnum(Enum):
     NO_DETAILS = 'no_details'
     BRIEF_DETAILS = 'brief_details'
     FULL_DETAILS = 'full_details'
-    BINARY_STRICT = 'binary_strict'
+    BINARY_STRICT = 'binary_strict'  # require len(raw) = len(processed)

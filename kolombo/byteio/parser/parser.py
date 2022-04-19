@@ -2,14 +2,16 @@ from __future__ import annotations
 
 import re
 from re import Match
-from typing import cast, Dict
+from typing import cast, Dict, Callable, List
 
-from pytermor import seq, apply_filters, StringFilter
+from pytermor import seq, apply_filters, StringFilter, fmt
 
 from . import ParserBuffer
 from ..segment import SegmentBuffer, Segment
 from ..template import Template, TemplateRegistry
 from ...console import ConsoleDebugBuffer, Console
+
+MatchResolver = Callable[[Match], Template]
 
 
 # noinspection PyMethodMayBeStatic
@@ -27,13 +29,13 @@ class Parser:
                 b'[\xe1-\xec\xee\xef][\x80-\xbf]{2}|'  # - straight 3-byte
                 b'\xed[\x80-\x9f][\x80-\xbf]|'         # - excluding surrogates
                 b'\xf0[\x90-\xbf][\x80-\xbf]{2}|'      # - planes 1-3
-                b'[\xf1-\xf3][\x80-\xbf]{3}|'          # - planes 4-15
-                b'\xf4[\x80-\x8f][\x80-\xbf]{2}'       # - plane 16
-                b')|'                                                         # double slash in group 4 is essential or
-                +                                                             # algorithm goes batshit crazy (\x5b is [)
-                b'([\x80-\xff]+)|'                     # [1] BINARY DATA                                           |
-                +                                                             # ESCAPE SEQUENCES                   |
-                b'((\x1b)(\\x5b)([\x30-\x3f]*)([\x20-\x2f]*)([\x40-\x7e]))|'  # [ 2|  3-7] CSI sequences   < - - - +
+                b'[\xf1-\xf3][\x80-\xbf]{3}|'          # - planes 4-15        # # # # # # # # # # # # # # # # # # # # #
+                b'\xf4[\x80-\x8f][\x80-\xbf]{2}'       # - plane 16           # double slash in grp 4 is essential or #
+                b')|'                                                         # regex goes batshit crazy: \x5b is '[' #
+                +                                                             # # # # # # # # # # # # # # # # # # # # #
+                b'([\x80-\xff]+)|'                     # [1] BINARY DATA                                              |
+                +                                                             # ESCAPE SEQUENCES                      |
+                b'((\x1b)(\\x5b)([\x30-\x3f]*)([\x20-\x2f]*)([\x40-\x7e]))|'  # [ 2|  3-7] CSI/SGR sequences   <- - - +
                 b'((\x1b)([\x20-\x2f])([\x20-\x2f]*)([\x30-\x7e]))|'          # [ 8| 9-12] nF escape sequences
                 b'((\x1b)([\x30-\x3f]))|'                                     # [13|14-15] Fp escape sequences
                 b'((\x1b)([\x40-\x5f]))|'                                     # [16|17-18] Fe escape sequences
@@ -42,7 +44,7 @@ class Parser:
                 b'([\x01-\x07\x0e-\x1a\x1c-\x1f]+)|'   # [22] generic control chars
                 b'(\x00+)|'                            # [23] control chars/nulls
                 b'(\x08+)|'                            # [24] control chars/backspaces
-                b'(\x1b+)|'                            # [25] control chars/escapes (no sequence)
+                b'(\x1b)|'                             # [25] control chars/escape (one, outside of sequences)
                 b'(\x7f+)|'                            # [26] control chars/deletes
                 b'(\x09+)|'                            # [27] whitespaces/tabs
                 b'(\x0a)|'                             # [28] whitespaces/newline (one)
@@ -54,10 +56,14 @@ class Parser:
                 self._substitute, b
             ))
 
-        self.MGROUP_TO_TPL_MAP: Dict[int, Template] = {   # @TODO: map templates directly to regexp parts, join with '|':
-            0: self._template_registry.UTF_8_SEQ,         # { WHITESPACE_TAB: b'\x09+', ... }
+        self.MGROUP_TO_TPL_MAP: Dict[int, Template|MatchResolver] = {
+            0: self._template_registry.UTF_8_SEQ,
             1: self._template_registry.BINARY_DATA,
-            # ..
+            2: self._resolve_escape_seq_csi,
+            8: self._template_registry.ESCAPE_SEQ_NF,
+            13: self._template_registry.ESCAPE_SEQ_FP,
+            16: self._template_registry.ESCAPE_SEQ_FE,
+            19: self._template_registry.ESCAPE_SEQ_FS,
             22: self._template_registry.CONTROL_CHAR,
             23: self._template_registry.CONTROL_CHAR_NULL,
             24: self._template_registry.CONTROL_CHAR_BACKSPACE,
@@ -93,25 +99,47 @@ class Parser:
         primary_mgroup = min(mgroups.keys())
         raw = cast(bytes, m.group(primary_mgroup+1))
 
-        self._handle(primary_mgroup, raw, m.start(primary_mgroup + 1))
+        self._handle(m, primary_mgroup, raw)
         return b''
 
-    def _handle(self, mgroup: int, raw: bytes, suboffset: int):
-        template = self._find_template(mgroup, raw)
-        segment = template.substitute(raw)
-        self._debug_print_match_segment(mgroup, raw, segment, suboffset)
+    def _handle(self, m: Match, mgroup: int, raw: bytes):
+        template = self._resolve_match(m, mgroup)
+        segments = template.substitute(m, raw)
+        suboffset = m.start(mgroup + 1)
 
-        self._segment_buffer.attach(segment)
+        self._debug_print_match_segments(mgroup, raw, segments, suboffset)
+        self._segment_buffer.attach(segments)
 
-    def _find_template(self, mgroup: int, raw: bytes) -> Template:
-        if mgroup in self.MGROUP_TO_TPL_MAP.keys():
-            return self.MGROUP_TO_TPL_MAP[mgroup]
-        raise RuntimeError(f'No template defined for mgroup {mgroup}: {raw.hex(" ")}')
+    def _resolve_match(self, m: Match, mgroup: int) -> Template:
+        if not mgroup in self.MGROUP_TO_TPL_MAP.keys():
+            raise RuntimeError(f'No template or resolver defined for mgroup {mgroup}: {m.groups()}')
 
-    def _debug_print_match_segment(self, mgroup: int, raw: bytes, segment: Segment, suboffset: int):
-        debug_msg = f'Match group #{mgroup:02d}'
-        debug_msg += f'/{segment.type_label}: {Console.printd(raw)}'
-        debug_processed_bytes = segment.processed.encode('ascii', errors="replace")
-        if raw != debug_processed_bytes:
-            debug_msg += f' -> {Console.printd(debug_processed_bytes)}'
+        tpl = self.MGROUP_TO_TPL_MAP[mgroup]
+        if isinstance(tpl, Template):
+            return tpl
+        elif isinstance(tpl, Callable):
+            return tpl(m)
+        raise TypeError(f'Match must resolve to template or resolver, got {tpl!r}')
+
+    def _resolve_escape_seq_csi(self, m: Match) -> Template:
+        is_sgr = (m.group(8) == b'm')
+        if is_sgr:
+            sgr_params = m.group(6)
+            if sgr_params == b'' or sgr_params == b'0':
+                return self._template_registry.ESCAPE_SEQ_SGR_0
+            return self._template_registry.ESCAPE_SEQ_SGR
+        return self._template_registry.ESCAPE_SEQ_CSI
+
+    def _debug_print_match_segments(self, mgroup: int, raw: bytes, segments: List[Segment], suboffset: int):
+        debug_msg = f'Match group #{mgroup:02d}/'
+
+        for idx, segment in enumerate(segments):
+            if idx > 0:
+                debug_msg += '; '
+
+            debug_msg += f'{fmt.inversed(segment.type_label)}: {Console.printd(raw)}'
+            debug_processed_bytes = segment.processed.encode('ascii', errors="replace")
+            if raw != debug_processed_bytes:
+                debug_msg += f' -> {Console.printd(debug_processed_bytes)}'
+
         self._debug_buffer.write(2, debug_msg, offset=(self._offset + suboffset))
