@@ -11,9 +11,7 @@ class PrintableCharTemplate(Template):
         super().__init__(CharClass.PRINTABLE_CHAR, opening_seq, label)
 
     def _process_byte(self, b: int) -> str:
-        default = lambda: super(type(self), self)._process_byte(b)
-
         if self._display_mode.is_ignored:
-            return default()
+            return super()._process_byte(b)
 
         return chr(b)

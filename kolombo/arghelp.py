@@ -144,14 +144,13 @@ class AppArgumentParser(CustomArgumentParser):
         generic_group.add_argument('-B', '--max-bytes', metavar='<num>', action='store', type=int, default=0, help='stop after reading <num> bytes '+fmt_default('[default: no limit]'))
         generic_group.add_argument('-f', '--buffer', metavar='<size>', type=int, default=None, help='read buffer size in bytes '+fmt_default(f'[default: {Reader.READ_CHUNK_SIZE}]'))
         generic_group.add_argument('-d', '--debug', action='count', default=0, help='enable debug mode; can be used from 1 to 4 times, each level increases verbosity (-d|dd|ddd|dddd)')
-        generic_group.add_argument('--no-color-content', action='store_true', default=False, help='disable applying input file formatting to the content output')
+        generic_group.add_argument('--no-color-markers', action='store_true', default=False, help='disable applying input formatting to SGR marker details')
 
         text_mode_group = self.add_argument_group('text mode only options')
         text_mode_group.add_argument('-m', '--marker', metavar='<level>', action='store', type=int, default=1, help='control and escape marker verbosity (0-2) '+fmt_default('[default: %(default)s]'))
         text_mode_group.add_argument('-Q', '--squash-ignored', action='store_true', default=False, help=autof(seq.HI_YELLOW)('TODO')+'replace sequences of ignored characters with one character')
         text_mode_group.add_argument('-H', '--hide-ignored', action='store_true', default=False, help=autof(seq.HI_YELLOW)('TODO')+'completely hide ignored character classes')
         text_mode_group.add_argument('--no-line-numbers', action='store_true', default=False, help='do not print line numbers')
-        text_mode_group.add_argument('--no-color-markers', action='store_true', default=False, help='disable applying input file formatting to SGR marker details')
 
         bin_mode_group = self.add_argument_group('binary mode only options')
         bin_mode_group.add_argument('-D', '--decode', action='store_true', default=False, help='decode valid utf-8 sequences, print as unicode chars')

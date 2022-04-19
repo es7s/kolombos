@@ -84,42 +84,6 @@ class BinaryFormatter(AbstractFormatter):
     def _justify_raw(self, num_bytes: int) -> str:
         return '   '*num_bytes
 
-    # def _format_csi_sequence(self, match: Match) -> str:
-    #     if Settings.ignore_esc:
-    #         self._add_marker_match(MarkerMatch(match, MarkerRegistry.marker_ignored))
-    #         return MarkerRegistry.marker_ignored.marker_char * len(match.group(0))
-    #
-    #     params_splitted = re.split(r'[^0-9]+', match.group(2))
-    #     params_values = list(filter(self._filter_sgr_param, params_splitted))
-    #
-    #     mmatch = MarkerMatch(match)
-    #     if match.group(3) == SequenceSGR.TERMINATOR:
-    #         if len(params_values) == 0:
-    #             marker = MarkerRegistry.marker_sgr_reset
-    #         else:
-    #             marker = MarkerRegistry.marker_sgr
-    #         mmatch.sgr_seq = (SequenceSGR(*params_values))
-    #     else:
-    #         marker = MarkerRegistry.marker_esq_csi
-    #
-    #     mmatch.set_marker(marker)
-    #     self._add_marker_match(mmatch)
-    #     return marker.marker_char + ''.join(match.groups())
-    #
-    # def _format_generic_escape_sequence(self, match: Match) -> str:
-    #     if Settings.ignore_esc:
-    #         self._add_marker_match(MarkerMatch(match, MarkerRegistry.marker_ignored))
-    #         return MarkerRegistry.marker_ignored.marker_char * len(match.group(0))
-    #
-    #     introducer = match.group(1)
-    #     if introducer == ' ':
-    #         introducer = MarkerRegistry.marker_space.marker_char
-    #     charcode = ord(introducer)
-    #     marker = MarkerRegistry.get_esq_marker(charcode)
-    #     self._add_marker_match(MarkerMatch(match, marker))
-    #     return marker.marker_char + ''.join(match.groups())
-    #
-
     def _compute_cols_num(self, offset_len: int):  # @TODO RECALCULATE
         width = get_terminal_width()
 

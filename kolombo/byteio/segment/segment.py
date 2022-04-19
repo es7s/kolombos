@@ -14,7 +14,9 @@ class Segment(Chainable):
 
     def split(self, num_bytes: int) -> Segment:
         if not self.is_consistent:
-            raise BufferError('Unknown how to split inconsistent segment')
+            raise BufferError('Unknown how to split inconsistent segment. Usually this error means that app is operating'
+                              'in binary mode, but for some reason template processing resulted in output with '
+                              'different length (which is allowed for text mode only).')
 
         left = Segment(self._opening_seq, self._type_label, self._raw[:num_bytes], self._processed[:num_bytes])
 

@@ -1,20 +1,19 @@
 from __future__ import annotations
 
-from typing import Dict
+from re import Match
+from typing import Dict, List
 
 from pytermor import SequenceSGR
 
 from . import OpeningSeqPOV, LabelPOV, Template
 from .. import CharClass, MarkerDetailsEnum
 from ..segment import Segment
-from ...settings import SettingsManager
 
 
 class ControlCharGenericTemplate(Template):
     def __init__(self, opening_seq: SequenceSGR | OpeningSeqPOV, label: str | LabelPOV = ''):
         super().__init__(CharClass.CONTROL_CHAR, opening_seq, label)
 
-        self._marker_details: MarkerDetailsEnum = SettingsManager.app_settings.effective_marker_details
         self._brief_label_map: Dict[int, str] = {
             0x01: 'A', 0x02: 'B', 0x03: 'C',  0x04: 'D', 0x05: 'E', 0x06: 'F',
             0x07: 'G', 0x0e: 'N', 0x0f: 'O',  0x10: 'P', 0x11: 'Q', 0x12: 'R',
@@ -22,11 +21,30 @@ class ControlCharGenericTemplate(Template):
             0x19: 'Y', 0x1a: 'Z', 0x1c: '\\', 0x1d: ']', 0x1e: '^', 0x1f: '_',
         }
 
-    def _process_byte(self, b: int) -> str:
-        self._create_additional_segments(b)
-        return super()._process_byte(b)
+    def substitute(self, m: Match, raw: bytes) -> List[Segment]:
+        self._substituted.clear()
 
-    def _create_additional_segments(self, b: int):  # @FIXME substitute one by one OR refactor segmentation mechanish
+        if self._marker_details is MarkerDetailsEnum.BINARY_STRICT or \
+           self._marker_details is MarkerDetailsEnum.NO_DETAILS:
+            self._substituted.append(self._create_primary_segment(
+                self._opening_seq_stack.get(self._display_mode, self._read_mode),
+                bytes(raw),
+                self._process(m, raw),
+            ))
+            return self._substituted
+
+        for label_raw in raw:
+            label_processed = self._process_byte(label_raw)
+            self._substituted.append(self._create_primary_segment(
+                self._opening_seq_stack.get(self._display_mode, self._read_mode),
+                bytes(label_raw),
+                label_processed,
+            ))
+            self._fill_additional_segments(label_raw)
+
+        return self._substituted
+
+    def _fill_additional_segments(self, b: int):
         if self._display_mode.is_ignored:
             return
 
@@ -34,14 +52,16 @@ class ControlCharGenericTemplate(Template):
            self._marker_details is MarkerDetailsEnum.NO_DETAILS:
             return
 
-        elif self._marker_details is MarkerDetailsEnum.BRIEF_DETAILS:  # ⱯZ
+        elif self._marker_details is MarkerDetailsEnum.BRIEF_DETAILS:
             if b not in self._brief_label_map.keys():
                 raise KeyError(f'No brief label defined for byte 0x{b:02x}')
-            self._substituted.append(Segment(self.MARKER_DETAILS_SEQ, '*', b'', self._brief_label_map[b]))
-            return
+            self._substituted.append(self._create_details_segment(b'', self._brief_label_map[b]))
 
-        elif self._marker_details is MarkerDetailsEnum.FULL_DETAILS:  # Ɐ1a
-            self._substituted.append(Segment(self.MARKER_DETAILS_SEQ, '*', b'', '{:02x}'.format(b)))
+        elif self._marker_details is MarkerDetailsEnum.FULL_DETAILS:
+            self._substituted.append(self._create_details_segment(b'', '{:02x}'.format(b)))
 
         else:
             raise RuntimeError(f'Invalid marker details level: {self._marker_details.value}')
+
+    def _get_details_opening_seq(self, m: Match) -> SequenceSGR:
+        return self._opening_seq_stack.get() + self.DETAILS_OPENING_SEQ

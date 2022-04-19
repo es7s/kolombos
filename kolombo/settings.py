@@ -35,7 +35,6 @@ class Settings(Namespace):
         self.marker: int = 1
         self.max_bytes: int|None = None  # no limit
         self.max_lines: int|None = None  # no limit
-        self.no_color_content: bool = False
         self.no_color_markers: bool = False
         self.no_line_numbers: bool = False
         self.no_offsets: bool = False
@@ -65,12 +64,6 @@ class Settings(Namespace):
         if getattr(self, attr_focused):
             return DisplayMode.FOCUSED
         return DisplayMode.DEFAULT
-
-    @property
-    def effective_color_content(self) -> bool:
-        if self.binary:
-            return False
-        return not self.no_color_content
 
     @property
     def effective_marker_details(self) -> MarkerDetailsEnum:

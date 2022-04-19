@@ -53,6 +53,7 @@ TYPE_LABEL_MAP: Dict[CharClass, str] = {
     CharClass.BINARY_DATA: 'B',
     CharClass.PRINTABLE_CHAR: 'P',
 }
+TYPE_LABEL_DETAILS = '*'
 
 
 class MarkerDetailsEnum(Enum):

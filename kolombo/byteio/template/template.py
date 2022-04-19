@@ -3,19 +3,19 @@ from __future__ import annotations
 from re import Match
 from typing import List
 
-from pytermor import seq, SequenceSGR, Format, autof
+from pytermor import seq, SequenceSGR
 
 from . import PartialOverride, OpeningSeqPOV, LabelPOV
-from .. import CharClass, DisplayMode
-from ..const import TYPE_LABEL_MAP
+from .. import CharClass, DisplayMode, MarkerDetailsEnum
+from ..const import TYPE_LABEL_MAP, TYPE_LABEL_DETAILS
 from ..segment import Segment
 from ...settings import SettingsManager
 
 
 class Template:
-    IGNORED_OPENING_SEQ: SequenceSGR = seq.GRAY + seq.DIM
     IGNORED_LABEL: str = '×'
-    MARKER_DETAILS_SEQ: SequenceSGR = seq.BG_BLACK + seq.OVERLINED
+    IGNORED_OPENING_SEQ: SequenceSGR = seq.GRAY + seq.DIM
+    DETAILS_OPENING_SEQ: SequenceSGR = seq.BG_BLACK + seq.UNDERLINED
 
     def __init__(self, char_class: CharClass, opening_seq: SequenceSGR | OpeningSeqPOV, label: str | LabelPOV = ''):
         if not isinstance(opening_seq, PartialOverride):
@@ -39,15 +39,15 @@ class Template:
         app_settings = SettingsManager.app_settings
         self._display_mode = app_settings.get_char_class_display_mode(self._char_class)
         self._read_mode = app_settings.read_mode
+        self._marker_details: MarkerDetailsEnum = SettingsManager.app_settings.effective_marker_details
 
     def substitute(self, m: Match, raw: bytes) -> List[Segment]:
         self._substituted.clear()
 
-        primary_seg = Segment(
+        primary_seg = self._create_primary_segment(
             self._opening_seq_stack.get(self._display_mode, self._read_mode),
-            TYPE_LABEL_MAP[self._char_class],
             raw,
-            self._process(m, raw)
+            self._process(m, raw)  # <-- self._substituted can be changed here
         )
         self._substituted.insert(0, primary_seg)
         return self._substituted
@@ -57,3 +57,15 @@ class Template:
 
     def _process_byte(self, b: int,) -> str:
         return self._label_stack.get(self._display_mode, self._read_mode)
+
+    def _create_primary_segment(self, opening_seq: SequenceSGR, raw: bytes, processed: str) -> Segment:
+        return Segment(opening_seq, self._get_type_label(), raw, processed)
+
+    def _create_details_segment(self, raw: bytes, processed: str, m: Match = None) -> Segment:
+        return Segment(self._get_details_opening_seq(m), TYPE_LABEL_DETAILS, raw, processed)
+
+    def _get_type_label(self) -> str:
+        return TYPE_LABEL_MAP[self._char_class]
+
+    def _get_details_opening_seq(self, m: Match) -> SequenceSGR:
+        raise NotImplemented

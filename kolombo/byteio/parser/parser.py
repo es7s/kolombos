@@ -121,7 +121,7 @@ class Parser:
             return tpl(m)
         raise TypeError(f'Match must resolve to template or resolver, got {tpl!r}')
 
-    def _resolve_escape_seq_csi(self, m: Match) -> Template:
+    def _resolve_escape_seq_csi(self, m: Match) -> Template:  # @FIXME transform resolver to regexp composite
         is_sgr = (m.group(8) == b'm')
         if is_sgr:
             sgr_params = m.group(6)
@@ -131,15 +131,17 @@ class Parser:
         return self._template_registry.ESCAPE_SEQ_CSI
 
     def _debug_print_match_segments(self, mgroup: int, raw: bytes, segments: List[Segment], suboffset: int):
-        debug_msg = f'Match group #{mgroup:02d}/'
+        debug_msg = f'Match group #{mgroup:02d}: '
 
         for idx, segment in enumerate(segments):
+            cur_raw = raw
             if idx > 0:
+                cur_raw = b''
                 debug_msg += '; '
 
-            debug_msg += f'{fmt.inversed(segment.type_label)}: {Console.printd(raw)}'
+            debug_msg += f'Seg {fmt.inversed("<"+segment.type_label+">")}: {Console.printd(cur_raw)}'
             debug_processed_bytes = segment.processed.encode('ascii', errors="replace")
-            if raw != debug_processed_bytes:
+            if cur_raw != debug_processed_bytes:
                 debug_msg += f' -> {Console.printd(debug_processed_bytes)}'
 
         self._debug_buffer.write(2, debug_msg, offset=(self._offset + suboffset))
