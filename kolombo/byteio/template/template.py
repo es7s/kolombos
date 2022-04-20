@@ -1,3 +1,7 @@
+# -----------------------------------------------------------------------------
+# es7s/kolombo [Escape sequences and control characters visualiser]
+# (C) 2022 A. Shavykin <0.delameter@gmail.com>
+# -----------------------------------------------------------------------------
 from __future__ import annotations
 
 from re import Match
@@ -6,7 +10,7 @@ from typing import List
 from pytermor import seq, SequenceSGR
 
 from . import PartialOverride, OpeningSeqPOV, LabelPOV
-from .. import CharClass, DisplayMode, MarkerDetailsEnum
+from .. import CharClass, DisplayMode, MarkerDetailsEnum, ReadMode
 from ..const import TYPE_LABEL_MAP, TYPE_LABEL_DETAILS
 from ..segment import Segment
 from ...settings import SettingsManager
@@ -28,6 +32,10 @@ class Template:
         self._label_stack: LabelPOV = label
         self._substituted: List[Segment] = []
 
+        self._display_mode: DisplayMode = DisplayMode.DEFAULT
+        self._read_mode: ReadMode = ReadMode.TEXT
+        self._marker_details: MarkerDetailsEnum = MarkerDetailsEnum.NO_DETAILS
+
         if not self._opening_seq_stack.has_key(DisplayMode.FOCUSED):
             self._opening_seq_stack.set(DisplayMode.FOCUSED, self._opening_seq_stack.get() + seq.INVERSED)
         if not self._opening_seq_stack.has_key(DisplayMode.IGNORED):
@@ -36,11 +44,15 @@ class Template:
         if not self._label_stack.has_key(DisplayMode.IGNORED):
             self._label_stack.set(DisplayMode.IGNORED, self.IGNORED_LABEL)
 
+        self.update_settings()
+
+    def update_settings(self):
         app_settings = SettingsManager.app_settings
         self._display_mode = app_settings.get_char_class_display_mode(self._char_class)
         self._read_mode = app_settings.read_mode
         self._marker_details: MarkerDetailsEnum = SettingsManager.app_settings.effective_marker_details
 
+    # @FIXME get rid of ugly m: Match
     def substitute(self, m: Match, raw: bytes) -> List[Segment]:
         self._substituted.clear()
 
@@ -55,7 +67,7 @@ class Template:
     def _process(self, m: Match, raw: bytes) -> str:
         return ''.join(self._process_byte(b) for b in raw)
 
-    def _process_byte(self, b: int,) -> str:
+    def _process_byte(self, b: int) -> str:
         return self._label_stack.get(self._display_mode, self._read_mode)
 
     def _create_primary_segment(self, opening_seq: SequenceSGR, raw: bytes, processed: str) -> Segment:

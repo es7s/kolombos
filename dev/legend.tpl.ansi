@@ -1,0 +1,53 @@
+:{fmt_logo11}    __         :{fmt_logo12}:{fmt_logo13}__                __^{}
+:{fmt_logo21}   / /:{fmt_logo22}__:{fmt_logo23}____  / /___  ____ ___  / /_  ____^{}
+:{fmt_logo31}  / //_/:{fmt_logo32} __ \/ / __ \:{fmt_logo33}/ __ '__ \/ __ \/ __ \^{}
+:{fmt_logo41} / ,< :{fmt_logo42}/ /_/ / / /_/ :{fmt_logo43}/ / / / / / /_/ / /_/ /^{}
+:{fmt_logo51}/_/|_|:{fmt_logo52}\____/_/\____:{fmt_logo53}/_/ /_/ /_/\.___/\____/^{}
+                                   :{fmt_ver1}v:{fmt_ver2}:{ver}^{}
+#{} 1234 {}# #{} 456 {}#
+:{fmt_header}CHARACTER CLASSES^{}
+ [S]   ASCII whitespace chars   09-0d, 20
+ [C]   ASCII control chars      01-08, 0e-1f
+ [P]   ASCII printable chars    21-7e
+ [E]   ANSI escape sequences    1b[..]
+ [U]   UTF-8 sequences          various
+ [I]   binary data bytes        80-ff
+
+:{fmt_header}SIGILS^{}
+ :{fmt_thead}char^{}  :{fmt_thead}binary/text/focused mode^{}    :{fmt_thead}[class]/description^{}
+#{}
+  C   00 00 00 00 00    c c c c    [C] cccccccccccccccccccc {}#
+:{ex_s_tab  }[S] horizontal tab  :{fmt_comment}(\t)^{}
+:{ex_s_lf   }[S] line feed       :{fmt_comment}(\n)^{}
+:{ex_s_vtab }[S] vertical tab    :{fmt_comment}(\v)^{}
+:{ex_s_ff   }[S] form feed       :{fmt_comment}(\f)^{}
+:{ex_s_cr   }[S] carriage return :{fmt_comment}(\r)^{}
+:{ex_s_space}[S] space
+
+:{ex_c_misc }[C] misc control char :{fmt_comment}(brief details, ^{bold}-m1^{bold_dim_off})^{}
+:{ex_c_misc2}    full details :{fmt_comment}(^{bold}-m2^{bold_dim_off})^{}
+:{ex_c_null }[C] null byte
+:{ex_c_bskpc}[C] backspace
+:{ex_c_del  }[C] delete
+:{ex_c_esc  }[C] escape
+
+:{ex_p_print}[P] printable char
+
+:{ex_e_reset}[E] SGR reset sequence
+:{ex_e_sgr  }[E] SGR sequence :{fmt_comment}(brief/full details)^{}
+:{ex_e_sgr2 }    :{fmt_comment}format/color of marker details is same^{}
+:{ex_e_sgr3 }    :{fmt_comment}as format of represented SGR sequence^{}
+:{ex_e_csi  }[E] CSI sequence
+:{ex_e_nf   }[E] nF escape sequence
+:{ex_e_fp   }[E] Fp escape sequence
+:{ex_e_fe   }[E] Fe escape sequence
+:{ex_e_fs   }[E] Fs escape sequence
+
+:{ex_u_1    }[U] UTF-8 sequence
+:{ex_u_2    }    :{fmt_comment}use ^{bold}--decode^{bold_dim_off} to display Unicode chars in binary mode^{}
+:{ex_u_3    }    :{fmt_comment}decoding is done automatically in text mode^{}
+
+:{ex_i_1    }[I] binary data
+
+Is a part of ^{bold}es7s^{} pack
+(c) 2022 A. Shavykin <0.delameter@gmail.com>

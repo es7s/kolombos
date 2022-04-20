@@ -1,3 +1,7 @@
+# -----------------------------------------------------------------------------
+# es7s/kolombo [Escape sequences and control characters visualiser]
+# (C) 2022 A. Shavykin <0.delameter@gmail.com>
+# -----------------------------------------------------------------------------
 from .common import WaitRequest
 from .const import ReadMode, DisplayMode, CharClass, MarkerDetailsEnum, CONTROL_CHARCODES, BINARY_CHARCODES, \
     PRINTABLE_CHARCODES, WHITESPACE_CHARCODES, CHARCODE_TO_SAFE_CHAR_MAP

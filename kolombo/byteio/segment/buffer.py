@@ -1,3 +1,7 @@
+# -----------------------------------------------------------------------------
+# es7s/kolombo [Escape sequences and control characters visualiser]
+# (C) 2022 A. Shavykin <0.delameter@gmail.com>
+# -----------------------------------------------------------------------------
 from __future__ import annotations
 
 from typing import Deque, List, Tuple
@@ -27,7 +31,7 @@ class SegmentBuffer:
     def last_detached_data_len(self) -> int:
         return self._last_detached_data_len
 
-    def attach(self, segments: List[Segment]):
+    def attach(self, *segments: Segment):
         for segment in segments:
             f = autof(segment.opening_seq)
             if len(f.opening_seq.params) == 0 or set(f.opening_seq.params) == {0}:

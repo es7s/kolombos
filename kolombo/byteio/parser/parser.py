@@ -1,3 +1,7 @@
+# -----------------------------------------------------------------------------
+# es7s/kolombo [Escape sequences and control characters visualiser]
+# (C) 2022 A. Shavykin <0.delameter@gmail.com>
+# -----------------------------------------------------------------------------
 from __future__ import annotations
 
 import re
@@ -56,8 +60,8 @@ class Parser:
                 self._substitute, b
             ))
 
-        self.MGROUP_TO_TPL_MAP: Dict[int, Template|MatchResolver] = {
-            0: self._template_registry.UTF_8_SEQ,
+        self.MGROUP_TO_TPL_MAP: Dict[int, Template|MatchResolver] = {  # @FIXME map templates to regexps
+            0: self._template_registry.UTF_8_SEQ,                      #        and build F_SEPARATOR automatically?
             1: self._template_registry.BINARY_DATA,
             2: self._resolve_escape_seq_csi,
             8: self._template_registry.ESCAPE_SEQ_NF,
@@ -108,10 +112,10 @@ class Parser:
         suboffset = m.start(mgroup + 1)
 
         self._debug_print_match_segments(mgroup, raw, segments, suboffset)
-        self._segment_buffer.attach(segments)
+        self._segment_buffer.attach(*segments)
 
     def _resolve_match(self, m: Match, mgroup: int) -> Template:
-        if not mgroup in self.MGROUP_TO_TPL_MAP.keys():
+        if mgroup not in self.MGROUP_TO_TPL_MAP.keys():
             raise RuntimeError(f'No template or resolver defined for mgroup {mgroup}: {m.groups()}')
 
         tpl = self.MGROUP_TO_TPL_MAP[mgroup]

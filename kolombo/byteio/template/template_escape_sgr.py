@@ -1,3 +1,7 @@
+# -----------------------------------------------------------------------------
+# es7s/kolombo [Escape sequences and control characters visualiser]
+# (C) 2022 A. Shavykin <0.delameter@gmail.com>
+# -----------------------------------------------------------------------------
 from __future__ import annotations
 
 from typing import Match
@@ -31,7 +35,7 @@ class EscapeSequenceSGRTemplate(EscapeSequenceTemplate):
     def _get_details_opening_seq(self, m: Match) -> SequenceSGR:
         if SettingsManager.app_settings.no_color_markers:
             return self.DETAILS_OPENING_SEQ
-        
+
         params = self._get_sgr_params(m).split(';')
         pcodes = [int(p) for p in params if p]
         pcodes_allowed = []

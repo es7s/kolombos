@@ -1,3 +1,7 @@
+# -----------------------------------------------------------------------------
+# es7s/kolombo [Escape sequences and control characters visualiser]
+# (C) 2022 A. Shavykin <0.delameter@gmail.com>
+# -----------------------------------------------------------------------------
 from pytermor import seq, SequenceSGR, build_c256
 
 from . import Template, OpeningSeqPOV as O, LabelPOV as L, ControlCharGenericTemplate, Utf8SequenceTemplate, \
@@ -31,10 +35,10 @@ class TemplateRegistry:
         self.ESCAPE_SEQ_FE = EscapeSequenceTemplate(seq.YELLOW, 'Ǝ')      # \e (0x40-5f)
         self.ESCAPE_SEQ_FS = EscapeSequenceTemplate(seq.YELLOW, 'Ꙅ')      # \e (0x60-7e)
 
-        self.UTF_8_SEQ = Utf8SequenceTemplate(seq.HI_BLUE, L('ṳ', {ReadMode.BINARY: '▯'}))
+        self.UTF_8_SEQ = Utf8SequenceTemplate(seq.HI_BLUE, L('', {ReadMode.BINARY: '▯'}))
 
         c_bin = CharClass.BINARY_DATA
         self.BINARY_DATA = Template(c_bin, seq.MAGENTA, L('Ḇ', {ReadMode.BINARY: '▯'}))  # 0x80-0xff
 
         op_pr = O(SequenceSGR(), {DisplayMode.FOCUSED: seq.BG_WHITE + seq.BLACK})
-        self.PRINTABLE_CHAR = PrintableCharTemplate(op_pr, '.')  # 0x21-0x7e
+        self.PRINTABLE_CHAR = PrintableCharTemplate(op_pr, '')  # 0x21-0x7e

@@ -1,37 +1,52 @@
-[1;32m    __         [39m[34m__                __[m
-[1;92m   / /[32m__[94m____  / /___  ____ ___  / /_  ____[m
-[1;92m  / //_/[96m __ \/ / __ \[95m/ __ '__ \/ __ \/ __ \[m
-[1;92m / ,< [36m/ /_/ / / /_/ [35m/ / / / / / /_/ / /_/ /[m
-[1;92m/_/|_|[34m\____/_/\____[34m/_/ /_/ /_/\.___/\____/[m
-                                   [34mv[1m0.9.3[m
-[1mESCAPE SEQUENCES[m:
- ϴ   [38;5;231mϴ[m[m     [38;5;231m1b[m [38;5;231m5b[m [38;5;231m6d[m         SGR reset sequence
- ǝ   [37;40;53mǝ[34;25m[34m[m   [37;40;53m1b[m [37;40;53m5b[m [37;40;53m33[m [37;40;53m34[m [37;40;53m6d[m   SGR sequence [2m(params' color is same as content color)[22m
- Ͻ   [32;53mϽ?1[m     [32;53m1b[m [32;53m5b[m [32;53m3f[m [32;53m31[m [32;53m68[m   CSI escape sequence (excluding SGR)
- ꟻ   [7;32;53mꟻ␣1[m     [7;32;53m1b[m [7;32;53m5b[m [7;32;53m20[m [7;32;53m31[m      nF escape sequence (introducer char can be space) [2m(focused mode)[22m
- Ǝ   [33;53mƎ~[m      [33;53m1b[m [33;53m5b[m [33;53m7e[m         other escape sequences (Fe, Fs, Fp)
+[32;1m    __         [39m[34m__                __[m
+[92;1m   / /[32m__[94m____  / /___  ____ ___  / /_  ____[m
+[92;1m  / //_/[96m __ \/ / __ \[95m/ __ '__ \/ __ \/ __ \[m
+[92;1m / ,< [36m/ /_/ / / /_/ [35m/ / / / / / /_/ / /_/ /[m
+[92;1m/_/|_|[34m\____/_/\____[34m/_/ /_/ /_/\.___/\____/[m
+                                   [34mv[1m0.9.5[m
+ 
+[97;1mCHARACTER CLASSES[m
+ [S]   ASCII whitespace chars   09-0d, 20
+ [C]   ASCII control chars      01-08, 0e-1f
+ [P]   ASCII printable chars    21-7e
+ [E]   ANSI escape sequences    1b[..]
+ [U]   UTF-8 sequences          various
+ [I]   binary data bytes        80-ff
 
-[1mWHITESPACE CHARACTERS[m:
- ␣   [2m␣[m    [2m20[m   space
- ␣   [1;46;30m·[m    [1;46;30m20[m   space [2m(focused)[22m
- ↵   [1;46;30m↵[m    [1;46;30m0a[m   line feed (\n) [2m(focused)[22m
- ⇤   [2m⇤[m    [2m0d[m   carriage return (\r)
- ⇥   [2m⇥[m    [2m09[m   horizontal tab (\t)
- ⤓   [2m⤓[m    [2m0b[m   vertical tab (\v)
- ↡   [2m↡[m    [2m0c[m   form feed (\f)
+[97;1mSIGILS[m
+ [2;4mchar[m  [2;4mbinary/text/focused mode[m    [2;4m[class]/description[m
 
-[1mCONTROL CHARACTERS[m:
- ←   [31;40m←[m    [31;40m08[m   backspace
- →   [31;40m→[m    [31;40m7f[m   delete
- Ɐ   [31;7;40mⱯ1[m   [31;7;40m01[m   other ASCII control chars (01-07, 0e-1f) [2m(focused)[22m
- Ø   [91;7;40mØ[m    [91;7;40m00[m   null byte [2m(focused)[22m
-[2m[chr output  input][22m
+  ⇥     [90m 09[39m[46;30m 09[49;39m[90m 09[39m[46;30m 09[49;39m    [90m⇥[39m [46;30m⇥[49;39m [90m⇥[39m [46;30m⇥[49;39m    [S] horizontal tab  [90m(\t)[m
+  ↵     [90m 0a[39m[46;30m 0a[49;39m[90m 0a[39m[46;30m 0a[49;39m    [90m↵[39m [46;30m↵[49;39m [90m↵[m[39m [46;30m↵[m[49;39m    [S] line feed       [90m(\n)[m
+  ⤓     [90m 0b[39m[46;30m 0b[49;39m[90m 0b[39m[46;30m 0b[49;39m    [90m⤓[39m [46;30m⤓[49;39m [90m⤓[39m [46;30m⤓[49;39m    [S] vertical tab    [90m(\v)[m
+  ↡     [90m 0c[39m[46;30m 0c[49;39m[90m 0c[39m[46;30m 0c[49;39m    [90m↡[39m [46;30m↡[49;39m [90m↡[39m [46;30m↡[49;39m    [S] form feed       [90m(\f)[m
+  ⇤     [90m 0d[39m[46;30m 0d[49;39m[90m 0d[39m[46;30m 0d[49;39m    [90m⇤[39m [46;30m⇤[49;39m [90m⇤[39m [46;30m⇤[49;39m    [S] carriage return [90m(\r)[m
+ ␣ ·    [90m 20[39m[46;30m 20[49;39m[90m 20[39m[46;30m 20[49;39m    [90m␣[39m [46;30m·[49;39m [90m␣[39m [46;30m·[49;39m    [S] space
 
-[1mHEX OUTPUT FORMATS[m (binary mode):
- [31;40m01[m [31;40m08[m [31;7;40m1f[m      ASCII controls (01-08, 0e-1f) [2m(last one is focused)[22m
- [2m20 0a[m [1;30;46m09[m      ASCII whitespaces (09-0d, 20) [2m(last one is focused)[22m
- [m57 54 46[m      ASCII pritables (21-7e)
- [35m80 90 a0 ff[m   binary data / Unicode control chars (80-ff)
- [34me2 94 80[m      valid UTF-8 character sequence (bytes>1)
- [37;40;53m1b[m [37;40;53m5b[m [37;40;53m34[m [37;40;53m6d[m   SGR sequence
-           CSI sequence
+  Ɐ        [31;7m 01[39;27m[31m 02[39m[31m 03[39m    [31;7mⱯ[39;27m [31mⱯ[39m[31;40;4mB[39;49;24m [31mⱯ[39m[31;40;4mC[39;49;24m    [C] misc control char [90m(brief details, [1m-m1[22m)[m
+              [31m 1e[39m[31m 1f[39m    [31mⱯ[39m[31;40;4m1e[39;49;24m [31mⱯ[39m[31;40;4m1f[39;49;24m        full details [90m([1m-m2[22m)[m
+  Ø     [91m 00[39m[91;7m 00[39;27m[91m 00[39m[91;7m 00[39;27m    [91mØ[39m [91;7mØ[39;27m [91mØ[39m [91;7mØ[39;27m    [C] null byte
+  ←     [31m 08[39m[31;7m 08[39;27m[31m 08[39m[31;7m 08[39;27m    [31m←[39m [31;7m←[39;27m [31m←[39m [31;7m←[39;27m    [C] backspace
+  →     [31m 7f[39m[31;7m 7f[39;27m[31m 7f[39m[31;7m 7f[39;27m    [31m→[39m [31;7m→[39;27m [31m→[39m [31;7m→[39;27m    [C] delete
+  ∌     [93m 1b[39m[93;7m 1b[39;27m[93m 1b[39m[93;7m 1b[39;27m    [93m∌[39m [93;7m∌[39;27m [93m∌[39m [93;7m∌[39;27m    [C] escape
+
+         61[47;30m 62[49;39m 63[47;30m 64[49;39m    a [47;30mb[49;39m c [47;30md[49;39m    [P] printable char
+
+:{ex_e_reset}[E] SGR reset sequence
+:{ex_e_sgr  }[E] SGR sequence [90m(brief/full details)[m
+:{ex_e_sgr2 }    [90mformat/color of marker details is same[m
+:{ex_e_sgr3 }    [90mas format of represented SGR sequence[m
+:{ex_e_csi  }[E] CSI sequence
+:{ex_e_nf   }[E] nF escape sequence
+:{ex_e_fp   }[E] Fp escape sequence
+:{ex_e_fe   }[E] Fe escape sequence
+:{ex_e_fs   }[E] Fs escape sequence
+
+:{ex_u_1    }[U] UTF-8 sequence
+:{ex_u_2    }    [90muse [1m--decode[22m to display Unicode chars in binary mode[m
+:{ex_u_3    }    [90mdecoding is done automatically in text mode[m
+
+ ▯ Ḇ    [35m ee[39m[35;7m b0[39;27m[35m c0[39m[35;7m cc[39;27m    [35m▯[39m [35;7m▯[39;27m [35mḆ[39m [35;7mḆ[39;27m    [I] binary data
+
+Is a part of [1mes7s[m pack
+(c) 2022 A. Shavykin <0.delameter@gmail.com>

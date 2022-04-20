@@ -1,16 +1,15 @@
+# -----------------------------------------------------------------------------
+# es7s/kolombo [Escape sequences and control characters visualiser]
+# (C) 2022 A. Shavykin <0.delameter@gmail.com>
+# -----------------------------------------------------------------------------
 import re
 from os.path import join, dirname, realpath, abspath
 
 from . import AbstractRunner
-from ..console import Console, ConsoleDebugBuffer
+from ..version import __version__
+from ..console import Console
 
 
 class VersionRunner(AbstractRunner):
     def run(self):
-        with open(join(dirname(realpath(__file__)), '..', '..', '.env.dist'), 'rt') as f:
-            ConsoleDebugBuffer().write(1, f"Reading '{abspath(f.name)}'")
-            for line in f.readlines():
-                if version := re.match(r'^VERSION\s*=\s*(.+)$', line):
-                    Console.info(version.group(1))
-                    return
-            raise RuntimeError('Could not find version in .env file')
+        Console.info(f'es7s/kolombo version {__version__}')

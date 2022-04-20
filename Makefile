@@ -4,10 +4,7 @@
 .ONESHELL:
 .PHONY: help
 
-BOLD   := $(shell tput -Txterm bold)
-GREEN  := $(shell tput -Txterm setaf 2)
-YELLOW := $(shell tput -Txterm setaf 3)
-RESET  := $(shell tput -Txterm sgr0)
+PROJECT_NAME = kolombo
 
 include .env.dist
 -include .env
@@ -15,6 +12,11 @@ export
 VERSION ?= 0.0.0
 
 ## Common commands
+
+BOLD   := $(shell tput -Txterm bold)
+GREEN  := $(shell tput -Txterm setaf 2)
+YELLOW := $(shell tput -Txterm setaf 3)
+RESET  := $(shell tput -Txterm sgr0)
 
 help:
 	@fgrep -h "##" $(MAKEFILE_LIST) | fgrep -v @fgrep | sed -Ee 's/^##\s*([^#]+)#*\s*(.*)/${YELLOW}\1${RESET}#\2/' -e 's/(.+):(#|\s)+(.+)/##   ${GREEN}\1${RESET}#\3/' | column -t -s '#'
@@ -27,7 +29,7 @@ prepare:
 
 test: ## Run tests
 	. venv/bin/activate
-	python3 -m unittest
+	python3 -s -m unittest -v
 
 set-version: ## Set new package version
 	@echo "Current version: ${YELLOW}${VERSION}${RESET}"
@@ -36,7 +38,12 @@ set-version: ## Set new package version
 	if [ ! -f .env ] ; then cp -u .env.dist .env ; fi
 	sed -E -i "s/^VERSION.+/VERSION=$$VERSION/" .env
 	sed -E -i "s/^version.+/version = $$VERSION/" setup.cfg
+	sed -E -i "s/^__version__.+/__version__ = '$$VERSION'/" ${PROJECT_NAME}/__init__.py
 	echo "Updated version: ${GREEN}$$VERSION${RESET}"
+
+generate-legend: ## Generate legend.ansi from template
+	. venv/bin/activate
+	PYTHONPATH=${PWD} python3 dev/generate_legend.py
 
 build: ## Build module
 	sed -E -i "s/^VERSION.+/VERSION=$$VERSION/" .env.dist
@@ -48,7 +55,7 @@ upload-dev: ## Upload module to test repository
 	python3 -m twine upload --repository testpypi dist/* -u ${PYPI_USERNAME} -p ${PYPI_PASSWORD}
 
 install-dev: ## Install module from test repository
-	pip install -i https://test.pypi.org/simple/ kolombo-delameter==${VERSION}
+	pip install -i https://test.pypi.org/simple/ ${PROJECT_NAME}-delameter==${VERSION}
 
 ## Primary repository
 
