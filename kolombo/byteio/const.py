@@ -18,13 +18,13 @@ CHARCODE_TO_SAFE_CHAR_MAP = {   # @TODO впилить в отладчоный �
 
 
 class ReadMode(Enum):
-    TEXT = 'text'
     BINARY = 'binary'
+    TEXT = 'text'
 
     @property
-    def is_text(self) -> bool: return self is self.TEXT
-    @property
     def is_binary(self) -> bool: return self is self.BINARY
+    @property
+    def is_text(self) -> bool: return self is self.TEXT
 
 
 class DisplayMode(Enum):

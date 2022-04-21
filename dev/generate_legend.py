@@ -7,7 +7,7 @@ from __future__ import annotations
 from os.path import dirname, abspath, join
 from typing import List
 
-from pytermor import seq, autof, ReplaceSGR, SequenceSGR, sgr
+from pytermor import seq, autof, ReplaceSGR, SequenceSGR, sgr, ljust_fmtd, rjust_fmtd, center_fmtd
 
 from es7s_tpl_processor import Es7sTemplateProcessor
 from kolombo.byteio import ReadMode, DisplayMode, MarkerDetailsEnum
@@ -31,67 +31,46 @@ def sanitize(s: str) -> str:
     return s.replace('\t', '').replace('\n', '')
 
 
-def invoke_default(t: Template, raw: bytes) -> str:
-    labels = []
-    hex = ''
-    processed = []
+def invoke_default(t: Template, *raws: bytes, read_mode: ReadMode = ReadMode.BINARY,
+                   marker: MarkerDetailsEnum = MarkerDetailsEnum.DEFAULT) -> str:
+    result = ['']*5
 
-    for idx, (rm, dm) in enumerate([
-        (ReadMode.BINARY, DisplayMode.DEFAULT),
-        (ReadMode.BINARY, DisplayMode.FOCUSED),
-        (ReadMode.TEXT, DisplayMode.DEFAULT),
-        (ReadMode.TEXT, DisplayMode.FOCUSED),
-    ]):
-        cur_raw = (raw if len(raw) == 1 else raw[idx:idx + 1])
-        segs = substitute_with(t, cur_raw, dm, rm)
+    labels = [sanitize(t._label_stack.get(DisplayMode.DEFAULT, ReadMode.BINARY))]
+    label_text = sanitize(t._label_stack.get(DisplayMode.DEFAULT, ReadMode.TEXT))
+    label_focused = sanitize(t._label_stack.get(DisplayMode.FOCUSED, ReadMode.BINARY))
+    if label_text and label_text not in labels:
+        labels.append(label_text)
+    if label_focused and label_focused not in labels:
+        labels.append(label_focused)
+    result[COL_LABEL] = ' '.join(labels)
 
-        label = sanitize(t._label_stack.get(dm, rm))
-        if label not in labels:
-            labels.append(label)
+    if len(raws) == 1:
+        raw = [raws[0], None, raws[0], None]
+    elif len(raws) == 2:
+        raw = [raws[0], None, raws[1], None]
+    elif len(raws) == 3:
+        raw = [raws[0], raws[1], raws[2], None]
+    else:
+        raw = list(raws)
 
-        hex += segs_to_hex(segs)
-        processed.append(segs_to_processed(segs))
+    display_mode = DisplayMode.DEFAULT
+    col_hex = COL_HEX_DEFAULT
+    col_chr = COL_CHR_DEFAULT
+    for idx, cur_raw in enumerate(raw):
+        if idx == len(raw) // 2:
+            display_mode = DisplayMode.FOCUSED
+            col_hex = COL_HEX_FOCUSED
+            col_chr = COL_CHR_FOCUSED
 
-    return format_example(' '.join(labels), hex, ' '.join(processed))
+        if cur_raw:
+            result[col_hex] += segs_to_hex(substitute_with(t, cur_raw, display_mode, ReadMode.BINARY, marker))
+            result[col_chr] += segs_to_processed(substitute_with(t, cur_raw, display_mode, read_mode, marker))
 
-
-def invoke_on_control_chars() -> str:
-    t = reg.CONTROL_CHAR
-    label = t._label_stack.get()
-    hex = ''
-    processed = []
-
-    segs = substitute_with(t, b'\x01', DisplayMode.FOCUSED, ReadMode.BINARY)
-    hex += segs_to_hex(segs)
-    processed.append(segs_to_processed(segs))
-
-    hex += segs_to_hex(substitute_with(t, b'\x02', DisplayMode.DEFAULT, ReadMode.BINARY))
-    processed.append(segs_to_processed(substitute_with(t, b'\x02', DisplayMode.DEFAULT, ReadMode.TEXT)))
-
-    hex += segs_to_hex(substitute_with(t, b'\x03', DisplayMode.DEFAULT, ReadMode.BINARY))
-    processed.append(segs_to_processed(substitute_with(t, b'\x03', DisplayMode.DEFAULT, ReadMode.TEXT)))
-
-    return format_example(label, hex, ' '.join(processed))
+    return format_example(result)
 
 
-def invoke_on_control_chars2() -> str:
-    t = reg.CONTROL_CHAR
-    hex = ''
-    processed = []
-
-    hex += segs_to_hex(substitute_with(t, b'\x1e', DisplayMode.DEFAULT, ReadMode.BINARY))
-    processed.append(segs_to_processed(
-        substitute_with(t, b'\x1e', DisplayMode.DEFAULT, ReadMode.TEXT, MarkerDetailsEnum.FULL_DETAILS)))
-
-    hex += segs_to_hex(substitute_with(t, b'\x1f', DisplayMode.DEFAULT, ReadMode.BINARY))
-    processed.append(segs_to_processed(
-        substitute_with(t, b'\x1f', DisplayMode.DEFAULT, ReadMode.TEXT, MarkerDetailsEnum.FULL_DETAILS)))
-
-    return format_example('', hex, ' '.join(processed))
-
-
-def invoke_on_escape_sequences(t: Template, seq: SequenceSGR | bytes, brief_full: bool = False,
-                               focus: bool = False) -> str:
+def invoke_on_escape_sequences(t: Template, seq: SequenceSGR | bytes, no_details: bool = False,
+                               brief_details: bool = False, full_details: bool = False, focus: bool = False) -> str:
     if isinstance(seq, SequenceSGR):
         raw = seq.print().encode()
         sgr_params_str = ReplaceSGR('\\3').apply(seq.print())
@@ -104,29 +83,45 @@ def invoke_on_escape_sequences(t: Template, seq: SequenceSGR | bytes, brief_full
     hex = segs_to_hex(substitute_with(t, raw, dm, ReadMode.BINARY, details_fmt_str=sgr_params_str))
 
     processed = []
-    if brief_full:
-        processed.append(segs_to_processed(substitute_with(t, raw, dm, ReadMode.TEXT, MarkerDetailsEnum.BRIEF_DETAILS,
+    if no_details:
+        processed.append(segs_to_processed(substitute_with(t, raw, dm, ReadMode.TEXT, MarkerDetailsEnum.NO_DETAILS,
                                                            details_fmt_str=sgr_params_str)))
-    processed.append(segs_to_processed(
-        substitute_with(t, raw, dm, ReadMode.TEXT, MarkerDetailsEnum.FULL_DETAILS, details_fmt_str=sgr_params_str)))
+    elif brief_details:
+        processed.append(segs_to_processed(
+            substitute_with(t, raw, dm, ReadMode.TEXT, MarkerDetailsEnum.BRIEF_DETAILS,
+                            details_fmt_str=sgr_params_str)))
+    elif full_details:
+        processed.append(segs_to_processed(
+            substitute_with(t, raw, dm, ReadMode.TEXT, MarkerDetailsEnum.FULL_DETAILS, details_fmt_str=sgr_params_str)))
 
-    return format_example(label, hex, ' '.join(processed))
+    hex = rjust_fmtd(hex, 12, ' ')
+    processed_cols = center_fmtd('  '.join(processed), 10, '.'), None
+
+    return format_example([label, hex, None, *processed_cols])
 
 
 def invoke_on_utf8(t: Template, raw: bytes, read_mode: ReadMode, print_label: bool = False, print_hex: bool = False,
-                   decode: bool = False, processed_shift: int = 0) -> str:
+                   decode: bool = False, focus: bool = False, processed_shift: int = 0) -> str:
     label = ''
     if print_label:
         label = t._label_stack.get(ReadMode.BINARY)
 
+    raws = [raw]
+    if focus:
+        raws = [raw[:2], raw[2:]]
+
     hex = ''
-    if print_hex:
-        hex = segs_to_hex(substitute_with(t, raw, DisplayMode.DEFAULT, read_mode, decode=decode))
+    processed = ''
+    for idx, cur_raw in enumerate(raws):
+        dm = DisplayMode.FOCUSED if idx > 0 else DisplayMode.DEFAULT
+        if print_hex:
+            hex += segs_to_hex(substitute_with(t, cur_raw, dm, read_mode, decode=decode))
+        processed += segs_to_processed(substitute_with(t, cur_raw, dm, read_mode, decode=decode))
 
-    processed = []
-    processed.append(segs_to_processed(substitute_with(t, raw, DisplayMode.DEFAULT, read_mode, decode=decode)))
+    hex = ljust_fmtd(hex, 12)
+    processed = center_fmtd(processed, 8, '.')
 
-    return format_example(label, hex, ''.join(processed), processed_shift=processed_shift)
+    return format_example([label, hex, None, processed, None])
 
 
 def substitute_with(t: Template, raw: bytes, display_mode: DisplayMode, read_mode: ReadMode,
@@ -146,13 +141,13 @@ def substitute_with(t: Template, raw: bytes, display_mode: DisplayMode, read_mod
 
 
 def segs_to_hex(segs: List[Segment]) -> str:
-    max_b = 5
+    max_b = 4
     cur_b = 0
     excessive = False
     hex = ''
     for seg in segs:
         cur_raw = seg.raw[:max_b - cur_b]
-        cur_hex = cur_raw.hex(" ")
+        cur_hex = cur_raw.hex(' ')
         if len(cur_raw) > 0 and len(seg.raw) > cur_b + max_b:
             cur_hex = cur_hex[:-1]
             excessive = True
@@ -169,15 +164,36 @@ def segs_to_processed(segs: List[Segment]) -> str:
     return ''.join([autof(seg.opening_seq)(sanitize(seg.processed)) for seg in segs])
 
 
-def format_example(label: str, hex: str, processed: str, processed_shift: int = 0) -> str:
-    result = f'{label:^6s}'
-    if processed_shift:
-        result += ' '*max(0, 15 - processed_shift) + ' '
-    else:
-        result += ' ' * max(0, 15 - len(ReplaceSGR().apply(hex))) + hex + ' '
-    result += ' ' * max(0, 10 - len(ReplaceSGR().apply(processed))) + processed + ' ' * 4
+def format_example(col_values: list) -> str:
+    result = ''
+    for col in COLS:
+        if col_values[col] is not None:
+            result += COL_FORMATTERS[col](col_values[col])
+
+    result += ' '
     return result
 
+
+COL_LABEL = 0
+COL_HEX_DEFAULT = 1
+COL_HEX_FOCUSED = 2
+COL_CHR_DEFAULT = 3
+COL_CHR_FOCUSED = 4
+
+COLS = [
+    COL_LABEL,
+    COL_HEX_DEFAULT,
+    COL_HEX_FOCUSED,
+    COL_CHR_DEFAULT,
+    COL_CHR_FOCUSED,
+]
+COL_FORMATTERS = {
+    COL_LABEL: lambda s: center_fmtd(s, 5),
+    COL_HEX_DEFAULT: lambda s: rjust_fmtd(s, 6),
+    COL_HEX_FOCUSED: lambda s: rjust_fmtd(s, 6),
+    COL_CHR_DEFAULT: lambda s: rjust_fmtd(s, 5) + ' ',
+    COL_CHR_FOCUSED: lambda s: ljust_fmtd(s, 5)
+}
 
 VARIABLES = {
     'ver': __version__,
@@ -188,29 +204,30 @@ VARIABLES = {
     'ex_s_cr': invoke_default(reg.WHITESPACE_CARR_RETURN, b'\x0d'),
     'ex_s_space': invoke_default(reg.WHITESPACE_SPACE, b'\x20'),
 
-    'ex_c_misc': invoke_on_control_chars(),
-    'ex_c_misc2': invoke_on_control_chars2(),
+    'ex_c_misc0': invoke_default(reg.CONTROL_CHAR, b'\x01', b'\x02'),
+    'ex_c_misc1': invoke_default(reg.CONTROL_CHAR, b'\x05', b'\x10', read_mode=ReadMode.TEXT, marker=MarkerDetailsEnum.BRIEF_DETAILS),
+    'ex_c_misc2': invoke_default(reg.CONTROL_CHAR, b'\x1e', b'\x1f', read_mode=ReadMode.TEXT, marker=MarkerDetailsEnum.FULL_DETAILS),
     'ex_c_null': invoke_default(reg.CONTROL_CHAR_NULL, b'\x00'),
     'ex_c_bskpc': invoke_default(reg.CONTROL_CHAR_BACKSPACE, b'\x08'),
     'ex_c_del': invoke_default(reg.CONTROL_CHAR_DELETE, b'\x7f'),
     'ex_c_esc': invoke_default(reg.CONTROL_CHAR_ESCAPE, b'\x1b'),
 
-    'ex_p_print': invoke_default(reg.PRINTABLE_CHAR, b'abcd'),
+    'ex_p_print': invoke_default(reg.PRINTABLE_CHAR, b'a', b'b', b'c', b'd'),
 
-    'ex_e_reset': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR_0, seq.RESET),
-    'ex_e_sgr': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR(sgr.HI_BLUE), brief_full=True),
-    'ex_e_sgr2': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR(sgr.HI_YELLOW, sgr.BG_RED)),
-    'ex_e_csi': invoke_on_escape_sequences(reg.ESCAPE_SEQ_CSI, b'\x1b\x5b\x32\x34\x64'),
-    'ex_e_nf': invoke_on_escape_sequences(reg.ESCAPE_SEQ_NF, b'\x1b\x28\x42'),
-    'ex_e_fp': invoke_on_escape_sequences(reg.ESCAPE_SEQ_FP, b'\x1b\x32'),
-    'ex_e_fe': invoke_on_escape_sequences(reg.ESCAPE_SEQ_FE, b'\x1b\x47'),
-    'ex_e_fs': invoke_on_escape_sequences(reg.ESCAPE_SEQ_FS, b'\x1b\x73', focus=True),
+    'ex_e_reset': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR_0, seq.RESET, no_details=True),
+    'ex_e_sgr': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR(sgr.HI_BLUE), brief_details=True),
+    'ex_e_sgr2': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR(sgr.HI_YELLOW, sgr.BG_RED), brief_details=True),
+    'ex_e_csi': invoke_on_escape_sequences(reg.ESCAPE_SEQ_CSI, b'\x1b\x5b\x32\x34\x64', full_details=True),
+    'ex_e_nf': invoke_on_escape_sequences(reg.ESCAPE_SEQ_NF, b'\x1b\x28\x42', full_details=True),
+    'ex_e_fp': invoke_on_escape_sequences(reg.ESCAPE_SEQ_FP, b'\x1b\x32', full_details=True),
+    'ex_e_fe': invoke_on_escape_sequences(reg.ESCAPE_SEQ_FE, b'\x1b\x47', full_details=True),
+    'ex_e_fs': invoke_on_escape_sequences(reg.ESCAPE_SEQ_FS, b'\x1b\x73', full_details=True, focus=True),
 
-    'ex_u_1': invoke_on_utf8(reg.UTF_8_SEQ, b'\xd1\x85\xd0\xb9', read_mode=ReadMode.BINARY, print_label=True),
-    'ex_u_2': invoke_on_utf8(reg.UTF_8_SEQ, '🐍'.encode('utf-8'), read_mode=ReadMode.BINARY, decode=True, processed_shift=1),
+    'ex_u_1': invoke_default(reg.UTF_8_SEQ, b'\xd1', b'\x85', b'\xd0', b'\xb9'),
+    'ex_u_2': invoke_on_utf8(reg.UTF_8_SEQ, '🐍'.encode('utf-8'), read_mode=ReadMode.BINARY, decode=True, print_hex=True, processed_shift=1),
     'ex_u_3': invoke_on_utf8(reg.UTF_8_SEQ, 'я ⅖ 世界'.encode('utf-8'), read_mode=ReadMode.TEXT, processed_shift=2),
 
-    'ex_i_1': invoke_default(reg.BINARY_DATA, b'\xee\xb0\xc0\xcc'),
+    'ex_i_1': invoke_default(reg.BINARY_DATA, b'\xee', b'\xb0', b'\xc0', b'\xcc'),
 
     'fmt_logo11': seq.GREEN + seq.BOLD,
     'fmt_logo12': seq.COLOR_OFF,
