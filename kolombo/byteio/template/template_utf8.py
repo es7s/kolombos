@@ -6,9 +6,8 @@ from __future__ import annotations
 
 from pytermor import SequenceSGR
 
-from . import OpeningSeqPOV, LabelPOV, Template
-from .. import CharClass
-from ...settings import SettingsManager
+from . import Template
+from .. import CharClass, OpeningSeqPOV, LabelPOV
 
 
 class Utf8SequenceTemplate(Template):

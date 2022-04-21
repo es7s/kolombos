@@ -1,20 +1,20 @@
-:{fmt_logo11}    __         :{fmt_logo12}:{fmt_logo13}__                __^{}
-:{fmt_logo21}   / /:{fmt_logo22}__:{fmt_logo23}____  / /___  ____ ___  / /_  ____^{}
-:{fmt_logo31}  / //_/:{fmt_logo32} __ \/ / __ \:{fmt_logo33}/ __ '__ \/ __ \/ __ \^{}
-:{fmt_logo41} / ,< :{fmt_logo42}/ /_/ / / /_/ :{fmt_logo43}/ / / / / / /_/ / /_/ /^{}
-:{fmt_logo51}/_/|_|:{fmt_logo52}\____/_/\____:{fmt_logo53}/_/ /_/ /_/\.___/\____/^{}
-                                   :{fmt_ver1}v:{fmt_ver2}:{ver}^{}
-#{} 1234 {}# #{} 456 {}#
+^{green;bold   }    __         ^{blue           }__                __^{}
+^{hi_green;bold}   / /^{green}__^{hi_blue}____  / /___  ____ ___  / /_  ____^{}
+^{hi_green;bold}  / //_/^{cyan} __ \/ / __ \^{magenta }/ __ '__ \/ __ \/ __ \^{}
+^{hi_green;bold} / ,< ^{cyan}/ /_/ / / /_/ ^{magenta }/ / / / / / /_/ / /_/ /^{}
+^{hi_green;bold}/_/|_|^{blue}\____/_/\____#{}     {}#/_/ /_/ /_/\.___/\____/^{}
+                                   ^{blue}v^{bold}:{ver}^{}
+
 :{fmt_header}CHARACTER CLASSES^{}
  [S]   ASCII whitespace chars   09-0d, 20
  [C]   ASCII control chars      01-08, 0e-1f
  [P]   ASCII printable chars    21-7e
- [E]   ANSI escape sequences    1b[..]
+ [I]   binary data              80-ff
  [U]   UTF-8 sequences          various
- [I]   binary data bytes        80-ff
+ [E]   ANSI escape sequences    1b[..]
 
 :{fmt_header}SIGILS^{}
- :{fmt_thead}chr^{}  :{fmt_thead}result (default/focus)^{} :{fmt_thead}[class]/description^{}
+ :{fmt_thead}chr^{}   :{fmt_thead}bin mode (hex/char) out^{}  :{fmt_thead}[class]/description^{}
 :{ex_s_tab  }[S] horizontal tab  :{fmt_comment}\t^{}
 :{ex_s_lf   }[S] line feed       :{fmt_comment}\n^{}
 :{ex_s_vtab }[S] vertical tab    :{fmt_comment}\v^{}
@@ -22,9 +22,10 @@
 :{ex_s_cr   }[S] carriage return :{fmt_comment}\r^{}
 :{ex_s_space}[S] space
 
-:{ex_c_misc0}[C] misc control char :{fmt_comment}no details (^{bold}-m0^{bold_dim_off})^{}
+:{ex_c_misc0}[C] misc control char :{fmt_comment}text mode, no details (^{bold}-m0^{bold_dim_off})^{}
 :{ex_c_misc1}    :{fmt_comment}text mode, brief details (^{bold}-m1^{bold_dim_off})^{}
 :{ex_c_misc2}    :{fmt_comment}text mode, full details (^{bold}-m2^{bold_dim_off})^{}
+
 :{ex_c_null }[C] null byte
 :{ex_c_bskpc}[C] backspace
 :{ex_c_del  }[C] delete
@@ -32,20 +33,23 @@
 
 :{ex_p_print}[P] printable char
 
-:{ex_e_reset}[E] SGR reset sequence :{fmt_comment}no details^{}
-:{ex_e_sgr  }[E] SGR sequence :{fmt_comment}brief details^{}
-:{ex_e_sgr2 }    :{fmt_comment}details color = color of represented SGR^{}
-:{ex_e_csi  }[E] CSI sequence :{fmt_comment}this and following: full details^{}
-:{ex_e_nf   }[E] nF escape sequence
-:{ex_e_fp   }[E] Fp escape sequence
-:{ex_e_fe   }[E] Fe escape sequence
-:{ex_e_fs   }[E] Fs escape sequence :{fmt_comment}focused^{}
+:{ex_i_1    }[I] binary data
+:{ex_i_2    }    :{fmt_comment}char output in text mode^{}
 
 :{ex_u_1    }[U] UTF-8 sequence
 :{ex_u_2    }    :{fmt_comment}use ^{bold}--decode^{bold_dim_off} to display Unicode in binary mode^{}
-:{ex_u_3    }    :{fmt_comment}decoding is done automatically in text mode^{}
+:{ex_u_3    }    :{fmt_comment}text mode: decoding is done automatically^{}
 
-:{ex_i_1    }[I] binary data
+:{ex_e_reset}[E] SGR reset sequence :{fmt_comment}this and following: text mode^{}
+:{ex_e_sgr1 }[E] SGR sequence :{fmt_comment}no details^{}
+:{ex_e_sgr2 }    :{fmt_comment}brief details; color is the color of represented SGR^{}
+:{ex_e_sgr3 }    :{fmt_comment}full details; bg color and some text attrs are also applied^{}
+
+:{ex_e_csi  }[E] CSI sequence :{fmt_comment}this and following: full details^{}
+:{ex_e_nf   }[E] nF escape sequence :{fmt_comment}focused^{}
+:{ex_e_fp   }[E] Fp escape sequence
+:{ex_e_fe   }[E] Fe escape sequence
+:{ex_e_fs   }[E] Fs escape sequence :{fmt_comment}focused^{}
 
 Is a part of ^{bold}es7s^{} pack
 (c) 2022 A. Shavykin <0.delameter@gmail.com>

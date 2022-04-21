@@ -6,8 +6,8 @@ from __future__ import annotations
 
 from pytermor import SequenceSGR, seq
 
-from . import OpeningSeqPOV, LabelPOV, Template
-from .. import CharClass
+from . import Template
+from .. import CharClass, OpeningSeqPOV, LabelPOV
 
 
 class NewlineTemplate(Template):

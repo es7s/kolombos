@@ -20,7 +20,7 @@ class Settings(Namespace):
         self.columns: int|None = None  # auto
         self.decimal_offsets: bool = False
         self.debug: int = 0
-        self.decode: bool = False
+        self.decode: bool = False  # @TODO get rid of; will be useless after breakdown mode impl
         self.filename: str|None = None
         self.focus_control: bool = False
         self.focus_esc: bool = False

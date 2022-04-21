@@ -8,8 +8,8 @@ from typing import Dict, List
 
 from pytermor import SequenceSGR
 
-from . import OpeningSeqPOV, LabelPOV, Template
-from .. import CharClass, MarkerDetailsEnum
+from . import Template
+from .. import CharClass, MarkerDetailsEnum, OpeningSeqPOV, LabelPOV
 from ..segment import Segment
 
 

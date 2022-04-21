@@ -40,7 +40,11 @@ class Es7sTemplateProcessor:
         if len(params_str) == 0:
             return seq.RESET.print()
         params = [self._try_int(p) for p in params_str.split(';')]
-        return build(*params).print()
+        try:
+            return build(*params).print()
+        except KeyError:
+            Console.warn(f'Unable to substitute format from "{params_str}"')
+            return m.group(0)
 
     def _resolve_var_match(self, m: Match) -> str:
         var = m.group(1)

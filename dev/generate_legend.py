@@ -4,10 +4,11 @@
 # -----------------------------------------------------------------------------
 from __future__ import annotations
 
+from datetime import datetime
 from os.path import dirname, abspath, join
 from typing import List
 
-from pytermor import seq, autof, ReplaceSGR, SequenceSGR, sgr, ljust_fmtd, rjust_fmtd, center_fmtd
+from pytermor import seq, autof, ReplaceSGR, SequenceSGR, sgr, ljust_fmtd, rjust_fmtd, center_fmtd, fmt
 
 from es7s_tpl_processor import Es7sTemplateProcessor
 from kolombo.byteio import ReadMode, DisplayMode, MarkerDetailsEnum
@@ -32,17 +33,21 @@ def sanitize(s: str) -> str:
 
 
 def invoke_default(t: Template, *raws: bytes, read_mode: ReadMode = ReadMode.BINARY,
+                   print_label: bool = True, print_hex: bool = True,
                    marker: MarkerDetailsEnum = MarkerDetailsEnum.DEFAULT) -> str:
-    result = ['']*5
+    result = [''] * 5
 
-    labels = [sanitize(t._label_stack.get(DisplayMode.DEFAULT, ReadMode.BINARY))]
-    label_text = sanitize(t._label_stack.get(DisplayMode.DEFAULT, ReadMode.TEXT))
-    label_focused = sanitize(t._label_stack.get(DisplayMode.FOCUSED, ReadMode.BINARY))
-    if label_text and label_text not in labels:
-        labels.append(label_text)
-    if label_focused and label_focused not in labels:
-        labels.append(label_focused)
-    result[COL_LABEL] = ' '.join(labels)
+    if print_label:
+        labels = []
+        label_default = sanitize(t.label_stack.get(DisplayMode.DEFAULT, read_mode))
+        if not label_default:
+            label_default = autof(seq.GRAY)('*')
+        labels.append(label_default)
+
+        label_focused = sanitize(t.label_stack.get(DisplayMode.FOCUSED, read_mode))
+        if label_focused and label_focused not in labels:
+            labels.append(label_focused)
+        result[COL_LABEL] = ' '.join(labels)
 
     if len(raws) == 1:
         raw = [raws[0], None, raws[0], None]
@@ -63,65 +68,68 @@ def invoke_default(t: Template, *raws: bytes, read_mode: ReadMode = ReadMode.BIN
             col_chr = COL_CHR_FOCUSED
 
         if cur_raw:
-            result[col_hex] += segs_to_hex(substitute_with(t, cur_raw, display_mode, ReadMode.BINARY, marker))
+            if print_hex:
+                result[col_hex] += segs_to_hex(substitute_with(t, cur_raw, display_mode, ReadMode.BINARY, marker))
             result[col_chr] += segs_to_processed(substitute_with(t, cur_raw, display_mode, read_mode, marker))
 
     return format_example(result)
 
 
-def invoke_on_escape_sequences(t: Template, seq: SequenceSGR | bytes, no_details: bool = False,
-                               brief_details: bool = False, full_details: bool = False, focus: bool = False) -> str:
-    if isinstance(seq, SequenceSGR):
-        raw = seq.print().encode()
-        sgr_params_str = ReplaceSGR('\\3').apply(seq.print())
+def invoke_on_escape_sequences(t: Template, raw_or_seq: SequenceSGR | bytes, no_details: bool = False,
+                               brief_details: bool = False, full_details: bool = False, print_label=True, focus: bool = False) -> str:
+    if isinstance(raw_or_seq, SequenceSGR):
+        raw = raw_or_seq.print().encode()
+        sgr_params_str = ReplaceSGR('\\3').apply(raw_or_seq.print())
     else:
-        raw = seq
+        raw = raw_or_seq
         sgr_params_str = None
     dm = DisplayMode.FOCUSED if focus else DisplayMode.DEFAULT
 
-    label = t._label_stack.get()
-    hex = segs_to_hex(substitute_with(t, raw, dm, ReadMode.BINARY, details_fmt_str=sgr_params_str))
+    label = ''
+    if print_label:
+        label = t.label_stack.get()
 
-    processed = []
+    result_hex = segs_to_hex(substitute_with(t, raw, dm, ReadMode.BINARY, details_fmt_str=sgr_params_str))
+    result_chr = []
+
+    if not any([no_details, brief_details, full_details]):
+        brief_details = True
     if no_details:
-        processed.append(segs_to_processed(substitute_with(t, raw, dm, ReadMode.TEXT, MarkerDetailsEnum.NO_DETAILS,
-                                                           details_fmt_str=sgr_params_str)))
+        result_chr.append(segs_to_processed(substitute_with(t, raw, dm, ReadMode.TEXT, MarkerDetailsEnum.NO_DETAILS,
+                                                            details_fmt_str=sgr_params_str)))
     elif brief_details:
-        processed.append(segs_to_processed(
+        result_chr.append(segs_to_processed(
             substitute_with(t, raw, dm, ReadMode.TEXT, MarkerDetailsEnum.BRIEF_DETAILS,
                             details_fmt_str=sgr_params_str)))
     elif full_details:
-        processed.append(segs_to_processed(
+        result_chr.append(segs_to_processed(
             substitute_with(t, raw, dm, ReadMode.TEXT, MarkerDetailsEnum.FULL_DETAILS, details_fmt_str=sgr_params_str)))
 
-    hex = rjust_fmtd(hex, 12, ' ')
-    processed_cols = center_fmtd('  '.join(processed), 10, '.'), None
+    result_hex = rjust_fmtd(result_hex, 12) + ' '
+    result_chr_cols = center_fmtd('  '.join(result_chr), 10, ' '), None
 
-    return format_example([label, hex, None, *processed_cols])
+    return format_example([label, result_hex, None, *result_chr_cols])
 
 
-def invoke_on_utf8(t: Template, raw: bytes, read_mode: ReadMode, print_label: bool = False, print_hex: bool = False,
-                   decode: bool = False, focus: bool = False, processed_shift: int = 0) -> str:
+def invoke_on_utf8(t: Template, *raws: bytes, read_mode: ReadMode, print_label: bool = False, print_hex: bool = False,
+                   decode: bool = False, processed_shift: int = 0) -> str:
     label = ''
     if print_label:
-        label = t._label_stack.get(ReadMode.BINARY)
+        label = t.label_stack.get(ReadMode.BINARY)
 
-    raws = [raw]
-    if focus:
-        raws = [raw[:2], raw[2:]]
-
-    hex = ''
-    processed = ''
-    for idx, cur_raw in enumerate(raws):
+    raw = list(raws)
+    hex_segs = []
+    result_chr = []
+    for idx, cur_raw in enumerate(raw):
         dm = DisplayMode.FOCUSED if idx > 0 else DisplayMode.DEFAULT
         if print_hex:
-            hex += segs_to_hex(substitute_with(t, cur_raw, dm, read_mode, decode=decode))
-        processed += segs_to_processed(substitute_with(t, cur_raw, dm, read_mode, decode=decode))
+            hex_segs += substitute_with(t, cur_raw, dm, read_mode, decode=decode)
+        result_chr += [segs_to_processed(substitute_with(t, cur_raw, dm, read_mode, decode=decode))]
 
-    hex = ljust_fmtd(hex, 12)
-    processed = center_fmtd(processed, 8, '.')
+    result_hex = ljust_fmtd(segs_to_hex(hex_segs), 13)
+    result_chr = ' '*processed_shift + center_fmtd(' '.join(result_chr), 8)
 
-    return format_example([label, hex, None, processed, None])
+    return format_example([label, result_hex, None, result_chr, None])
 
 
 def substitute_with(t: Template, raw: bytes, display_mode: DisplayMode, read_mode: ReadMode,
@@ -129,7 +137,7 @@ def substitute_with(t: Template, raw: bytes, display_mode: DisplayMode, read_mod
                     decode: bool = False, details_fmt_str: str = None) -> List[Segment]:
     app_settings.text = read_mode.is_text
     app_settings.binary = not app_settings.text
-    setattr(app_settings, f'focus_{t._char_class.value}', display_mode.is_focused)
+    setattr(app_settings, f'focus_{t.char_class.value}', display_mode.is_focused)
     app_settings.marker = marker_details.value
     app_settings.decode = decode
 
@@ -144,20 +152,20 @@ def segs_to_hex(segs: List[Segment]) -> str:
     max_b = 4
     cur_b = 0
     excessive = False
-    hex = ''
+    result = ''
     for seg in segs:
         cur_raw = seg.raw[:max_b - cur_b]
         cur_hex = cur_raw.hex(' ')
-        if len(cur_raw) > 0 and len(seg.raw) > cur_b + max_b:
+        if len(cur_raw) > 0 and len(seg.raw) + cur_b > max_b:
             cur_hex = cur_hex[:-1]
             excessive = True
-        hex += autof(seg.opening_seq)(' ' + cur_hex)
+        result += autof(seg.opening_seq)(' ' + cur_hex)
         cur_b += len(cur_raw)
         if cur_b >= max_b:
             break
     if excessive:
-        hex += '‥'
-    return hex
+        result += '‥'
+    return result
 
 
 def segs_to_processed(segs: List[Segment]) -> str:
@@ -188,9 +196,9 @@ COLS = [
     COL_CHR_FOCUSED,
 ]
 COL_FORMATTERS = {
-    COL_LABEL: lambda s: center_fmtd(s, 5),
+    COL_LABEL: lambda s: center_fmtd(s, 5) + ' ' * 2,
     COL_HEX_DEFAULT: lambda s: rjust_fmtd(s, 6),
-    COL_HEX_FOCUSED: lambda s: rjust_fmtd(s, 6),
+    COL_HEX_FOCUSED: lambda s: rjust_fmtd(s, 6) + ' ',
     COL_CHR_DEFAULT: lambda s: rjust_fmtd(s, 5) + ' ',
     COL_CHR_FOCUSED: lambda s: ljust_fmtd(s, 5)
 }
@@ -205,8 +213,10 @@ VARIABLES = {
     'ex_s_space': invoke_default(reg.WHITESPACE_SPACE, b'\x20'),
 
     'ex_c_misc0': invoke_default(reg.CONTROL_CHAR, b'\x01', b'\x02'),
-    'ex_c_misc1': invoke_default(reg.CONTROL_CHAR, b'\x05', b'\x10', read_mode=ReadMode.TEXT, marker=MarkerDetailsEnum.BRIEF_DETAILS),
-    'ex_c_misc2': invoke_default(reg.CONTROL_CHAR, b'\x1e', b'\x1f', read_mode=ReadMode.TEXT, marker=MarkerDetailsEnum.FULL_DETAILS),
+    'ex_c_misc1': invoke_default(reg.CONTROL_CHAR, b'\x05', b'\x10', print_label=False, print_hex=False,
+                                 read_mode=ReadMode.TEXT, marker=MarkerDetailsEnum.BRIEF_DETAILS),
+    'ex_c_misc2': invoke_default(reg.CONTROL_CHAR, b'\x1e', b'\x1f', print_label=False, print_hex=False,
+                                 read_mode=ReadMode.TEXT, marker=MarkerDetailsEnum.FULL_DETAILS),
     'ex_c_null': invoke_default(reg.CONTROL_CHAR_NULL, b'\x00'),
     'ex_c_bskpc': invoke_default(reg.CONTROL_CHAR_BACKSPACE, b'\x08'),
     'ex_c_del': invoke_default(reg.CONTROL_CHAR_DELETE, b'\x7f'),
@@ -214,38 +224,26 @@ VARIABLES = {
 
     'ex_p_print': invoke_default(reg.PRINTABLE_CHAR, b'a', b'b', b'c', b'd'),
 
-    'ex_e_reset': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR_0, seq.RESET, no_details=True),
-    'ex_e_sgr': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR(sgr.HI_BLUE), brief_details=True),
-    'ex_e_sgr2': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR(sgr.HI_YELLOW, sgr.BG_RED), brief_details=True),
+    'ex_e_reset': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR_0, seq.RESET),
+    'ex_e_sgr1': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR(sgr.INVERSED), no_details=True),
+    'ex_e_sgr2': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR(sgr.HI_BLUE), brief_details=True, print_label=False),
+    'ex_e_sgr3': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR(sgr.BLACK, sgr.BG_CYAN), full_details=True, print_label=False),
     'ex_e_csi': invoke_on_escape_sequences(reg.ESCAPE_SEQ_CSI, b'\x1b\x5b\x32\x34\x64', full_details=True),
-    'ex_e_nf': invoke_on_escape_sequences(reg.ESCAPE_SEQ_NF, b'\x1b\x28\x42', full_details=True),
+    'ex_e_nf': invoke_on_escape_sequences(reg.ESCAPE_SEQ_NF, b'\x1b\x28\x42', full_details=True, focus=True),
     'ex_e_fp': invoke_on_escape_sequences(reg.ESCAPE_SEQ_FP, b'\x1b\x32', full_details=True),
     'ex_e_fe': invoke_on_escape_sequences(reg.ESCAPE_SEQ_FE, b'\x1b\x47', full_details=True),
     'ex_e_fs': invoke_on_escape_sequences(reg.ESCAPE_SEQ_FS, b'\x1b\x73', full_details=True, focus=True),
 
     'ex_u_1': invoke_default(reg.UTF_8_SEQ, b'\xd1', b'\x85', b'\xd0', b'\xb9'),
-    'ex_u_2': invoke_on_utf8(reg.UTF_8_SEQ, '🐍'.encode('utf-8'), read_mode=ReadMode.BINARY, decode=True, print_hex=True, processed_shift=1),
-    'ex_u_3': invoke_on_utf8(reg.UTF_8_SEQ, 'я ⅖ 世界'.encode('utf-8'), read_mode=ReadMode.TEXT, processed_shift=2),
+    'ex_u_2': invoke_on_utf8(reg.UTF_8_SEQ, 'ы'.encode('utf-8'), '世'.encode('utf-8'), read_mode=ReadMode.BINARY,
+                             print_hex=True, decode=True, processed_shift=1),
+    'ex_u_3': invoke_on_utf8(reg.UTF_8_SEQ, '🐍'.encode('utf-8'), read_mode=ReadMode.TEXT, print_hex=True,
+                             processed_shift=1),
 
     'ex_i_1': invoke_default(reg.BINARY_DATA, b'\xee', b'\xb0', b'\xc0', b'\xcc'),
+    'ex_i_2': invoke_default(reg.BINARY_DATA, b'\xc0', b'\xff', b'\xee', b'\xda', read_mode=ReadMode.TEXT,
+                             print_label=True),
 
-    'fmt_logo11': seq.GREEN + seq.BOLD,
-    'fmt_logo12': seq.COLOR_OFF,
-    'fmt_logo13': seq.BLUE,
-    'fmt_logo21': seq.HI_GREEN + seq.BOLD,
-    'fmt_logo22': seq.GREEN,
-    'fmt_logo23': seq.HI_BLUE,
-    'fmt_logo31': seq.HI_GREEN + seq.BOLD,
-    'fmt_logo32': seq.HI_CYAN,
-    'fmt_logo33': seq.HI_MAGENTA,
-    'fmt_logo41': seq.HI_GREEN + seq.BOLD,
-    'fmt_logo42': seq.CYAN,
-    'fmt_logo43': seq.MAGENTA,
-    'fmt_logo51': seq.HI_GREEN + seq.BOLD,
-    'fmt_logo52': seq.BLUE,
-    'fmt_logo53': seq.BLUE,
-    'fmt_ver1': seq.BLUE,
-    'fmt_ver2': seq.BOLD,
     'fmt_header': seq.HI_WHITE + seq.BOLD,
     'fmt_thead': seq.DIM + seq.UNDERLINED,
     'fmt_comment': seq.GRAY,
@@ -255,6 +253,9 @@ with open(TPL_PATH, 'rt', encoding='utf8') as f:
     tpl = f.read()
 
 out = processor.substitute(tpl, VARIABLES)
+if not out.endswith('\n'):
+    out += '\n'
+out += f'# Generated at {datetime.now():%e-%b-%y %R}'
 
 with open(OUTPUT_PATH, 'wt', encoding='utf8') as f:
     length = f.write(out)

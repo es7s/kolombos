@@ -8,8 +8,7 @@ from typing import List
 
 from pytermor import seq, SequenceSGR
 
-from . import PartialOverride, OpeningSeqPOV, LabelPOV
-from .. import CharClass, DisplayMode, MarkerDetailsEnum, ReadMode
+from .. import CharClass, DisplayMode, MarkerDetailsEnum, ReadMode, PartialOverride, OpeningSeqPOV, LabelPOV
 from ..const import TYPE_LABEL_MAP, TYPE_LABEL_DETAILS
 from ..segment import Segment
 from ...settings import SettingsManager
@@ -63,6 +62,14 @@ class Template:
         )
         self._substituted.insert(0, primary_seg)
         return self._substituted
+
+    @property
+    def char_class(self) -> CharClass:
+        return self._char_class
+
+    @property
+    def label_stack(self) -> LabelPOV:
+        return self._label_stack
 
     def _process(self, raw: bytes) -> str:
         return ''.join(self._process_byte(b) for b in raw)

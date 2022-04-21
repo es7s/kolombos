@@ -59,7 +59,7 @@ class BinaryFormatter(AbstractFormatter):
 
             data_len = self._segment_buffer.last_detached_data_len
             debug_sgr_row, debug_raw_row, debug_proc_row, final_raw_row, final_proc_row = result
-            # @FIXME wtf is 'final_raw_row'? should be 'final_hex' and 'final_chr'
+            # @FIXME wtf is 'final_raw_row'? should be 'final_hex' and 'final_char'
 
             separator = ' '
             if SettingsManager.app_settings.effective_print_offsets:

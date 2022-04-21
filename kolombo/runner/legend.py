@@ -13,4 +13,7 @@ class LegendRunner(AbstractRunner):
 
     def run(self):
         with open(join(dirname(realpath(__file__)), '..', '..', 'legend.ansi'), 'rt') as f:
-            Console.info(f.read())
+            while line := f.readline():
+                if line.startswith('#'):
+                    continue
+                Console.info(line, end='')

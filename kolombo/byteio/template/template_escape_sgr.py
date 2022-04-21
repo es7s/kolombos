@@ -7,17 +7,16 @@ from __future__ import annotations
 from pytermor import SequenceSGR, sgr
 from pytermor.sgr import *
 
-from . import EscapeSequenceTemplate, OpeningSeqPOV, LabelPOV
-
-
+from . import EscapeSequenceTemplate
+from .. import OpeningSeqPOV, LabelPOV
 from ...settings import SettingsManager
 
 
 # noinspection PyMethodMayBeStatic
 class EscapeSequenceSGRTemplate(EscapeSequenceTemplate):
-    ALLOWED_SGRS_FOR_MARKER_FORMAT = [  # INVERSED, UNDERLINED, OVERLINED are reserved for markers themself
-        BOLD, DIM, ITALIC,
-        CROSSLINED,
+    ALLOWED_SGRS_FOR_MARKER_FORMAT = [  # INVERSED, BOLD, OVERLINED are reserved for markers themself
+        DIM, ITALIC,
+        UNDERLINED, CROSSLINED,
         *LIST_ALL_COLORS,
     ]
 

@@ -3,7 +3,7 @@
 # (C) 2022 A. Shavykin <0.delameter@gmail.com>
 # -----------------------------------------------------------------------------
 from enum import Enum
-from typing import Dict
+from typing import Dict, Union
 
 CONTROL_CHARCODES = list(range(0x00, 0x09)) + list(range(0x0e, 0x20)) + list(range(0x7f, 0x100))
 WHITESPACE_CHARCODES = list(range(0x09, 0x0e)) + [0x20]
@@ -38,6 +38,9 @@ class DisplayMode(Enum):
     def is_focused(self) -> bool: return self is self.FOCUSED
     @property
     def is_ignored(self) -> bool: return self is self.IGNORED
+
+
+ByteIOMode = Union[DisplayMode, ReadMode]
 
 
 class CharClass(Enum):

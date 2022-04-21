@@ -4,9 +4,9 @@
 # -----------------------------------------------------------------------------
 from pytermor import seq, SequenceSGR, build_c256
 
-from . import Template, OpeningSeqPOV as O, LabelPOV as L, ControlCharGenericTemplate, Utf8SequenceTemplate, \
+from . import Template, ControlCharGenericTemplate, Utf8SequenceTemplate, \
     PrintableCharTemplate, NewlineTemplate, EscapeSequenceTemplate, EscapeSequenceSGRTemplate
-from .. import CharClass, DisplayMode, ReadMode
+from .. import CharClass, DisplayMode, ReadMode, LabelPOV, OpeningSeqPOV
 
 
 class TemplateRegistry:
@@ -19,13 +19,13 @@ class TemplateRegistry:
         self.CONTROL_CHAR_ESCAPE = Template(c_cc, seq.HI_YELLOW, '∌')  # 0x1b
 
         c_ws = CharClass.WHITESPACE
-        op_ws = O(seq.GRAY, {DisplayMode.FOCUSED: seq.BG_CYAN + seq.BLACK})
-        self.WHITESPACE_TAB = Template(c_ws, op_ws, L('⇥', {ReadMode.TEXT: '⇥\t'}))        # 0x09
+        op_ws: OpeningSeqPOV = OpeningSeqPOV(seq.GRAY, {DisplayMode.FOCUSED: seq.BG_CYAN + seq.BLACK})
+        self.WHITESPACE_TAB = Template(c_ws, op_ws, LabelPOV('⇥', {ReadMode.TEXT: '⇥\t'}))        # 0x09
         self.WHITESPACE_NEWLINE = NewlineTemplate(op_ws, '↵')                                     # 0x0a
         self.WHITESPACE_VERT_TAB = Template(c_ws, op_ws, '⤓')                                     # 0x0b
         self.WHITESPACE_FORM_FEED = Template(c_ws, op_ws, '↡')                                    # 0x0c
         self.WHITESPACE_CARR_RETURN = Template(c_ws, op_ws, '⇤')                                  # 0x0d
-        self.WHITESPACE_SPACE = Template(c_ws, op_ws, L('␣', {DisplayMode.FOCUSED: '·'}))  # 0x20
+        self.WHITESPACE_SPACE = Template(c_ws, op_ws, LabelPOV('␣', {DisplayMode.FOCUSED: '·'}))  # 0x20
 
         self.ESCAPE_SEQ_SGR_0 = EscapeSequenceTemplate(build_c256(231), 'θ')  # \e[m
         self.ESCAPE_SEQ_SGR = EscapeSequenceSGRTemplate(SequenceSGR(), 'ǝ')  # \e[ (0x30-3f) (0x20-2f) m
@@ -35,10 +35,10 @@ class TemplateRegistry:
         self.ESCAPE_SEQ_FE = EscapeSequenceTemplate(seq.YELLOW, 'Ǝ')      # \e (0x40-5f)
         self.ESCAPE_SEQ_FS = EscapeSequenceTemplate(seq.YELLOW, 'Ꙅ')      # \e (0x60-7e)
 
-        self.UTF_8_SEQ = Utf8SequenceTemplate(seq.HI_BLUE, L('', {ReadMode.BINARY: '▯'}))
+        self.UTF_8_SEQ = Utf8SequenceTemplate(seq.HI_BLUE, LabelPOV('', {ReadMode.BINARY: '▯'}))
 
         c_bin = CharClass.BINARY_DATA
-        self.BINARY_DATA = Template(c_bin, seq.MAGENTA, L('Ḇ', {ReadMode.BINARY: '▯'}))  # 0x80-0xff
+        self.BINARY_DATA = Template(c_bin, seq.MAGENTA, LabelPOV('Ḇ', {ReadMode.BINARY: '▯'}))  # 0x80-0xff
 
-        op_pr = O(SequenceSGR(), {DisplayMode.FOCUSED: seq.BG_WHITE + seq.BLACK})
+        op_pr: OpeningSeqPOV = OpeningSeqPOV(SequenceSGR(), {DisplayMode.FOCUSED: seq.BG_WHITE + seq.BLACK})
         self.PRINTABLE_CHAR = PrintableCharTemplate(op_pr, '')  # 0x21-0x7e

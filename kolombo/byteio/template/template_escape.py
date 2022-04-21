@@ -8,13 +8,13 @@ from typing import List
 
 from pytermor import SequenceSGR, seq
 
-from . import OpeningSeqPOV, LabelPOV, Template
-from .. import CharClass, MarkerDetailsEnum
+from . import Template
+from .. import CharClass, MarkerDetailsEnum, OpeningSeqPOV, LabelPOV
 from ..segment import Segment
 
 
 class EscapeSequenceTemplate(Template):
-    ESQ_MARKER_LABEL_SEQ: SequenceSGR = seq.OVERLINED
+    ESQ_MARKER_LABEL_SEQ: SequenceSGR = seq.BOLD
 
     def __init__(self, opening_seq: SequenceSGR | OpeningSeqPOV, label: str | LabelPOV = ''):
         super().__init__(CharClass.ESCAPE_SEQ, opening_seq, label)

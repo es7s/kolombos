@@ -16,6 +16,7 @@ class AbstractFormatter(metaclass=abc.ABCMeta):
 
         self._raw_seg_printer = SegmentPrinter(True, False, self._seg_raw_to_hex)
         self._proc_seg_printer = SegmentPrinter(True, False, self._seg_processed_noop)
+        self._origin_seg_printer = SegmentPrinter(False, False, self._seg_origin_noop)
         self._debug_raw_seg_printer = SegmentPrinter(False, False, self._seg_raw_to_hex)
         self._debug_proc_seg_printer = SegmentPrinter(False, False, self._seg_raw_to_safe)
         self._debug_sgr_seg_printer = SegmentPrinter(True, True, self._seg_raw_to_safe)
@@ -39,3 +40,9 @@ class AbstractFormatter(metaclass=abc.ABCMeta):
 
     def _seg_processed_noop(self, seg: Segment) -> str:
         return seg.processed
+
+    def _seg_origin_noop(self, seg: Segment) -> str:
+        # @TODO shape into binary mode third column
+        #   rename modes: text -> preview, binary -> breakdown
+        #   breakdown columns: hex, chars, decoded
+        return seg.raw.decode('utf-8', errors='replace').replace('\n', '.')
