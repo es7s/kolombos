@@ -36,7 +36,7 @@ class Settings(Namespace):
         self.ignore_printable: bool = False
         self.hide_ignored: bool = False  # TODO
         self.legend: bool = False
-        self.marker: int = 1
+        self.marker: int = MarkerDetailsEnum.DEFAULT.value
         self.max_bytes: int|None = None  # no limit
         self.max_lines: int|None = None  # no limit
         self.no_color_markers: bool = False

@@ -4,18 +4,16 @@
 # -----------------------------------------------------------------------------
 from __future__ import annotations
 
-from typing import Match
-
 from pytermor import SequenceSGR, sgr
 from pytermor.sgr import *
 
 from . import EscapeSequenceTemplate, OpeningSeqPOV, LabelPOV
 
 
-# noinspection PyMethodMayBeStatic
 from ...settings import SettingsManager
 
 
+# noinspection PyMethodMayBeStatic
 class EscapeSequenceSGRTemplate(EscapeSequenceTemplate):
     ALLOWED_SGRS_FOR_MARKER_FORMAT = [  # INVERSED, UNDERLINED, OVERLINED are reserved for markers themself
         BOLD, DIM, ITALIC,
@@ -25,21 +23,27 @@ class EscapeSequenceSGRTemplate(EscapeSequenceTemplate):
 
     def __init__(self, opening_seq: SequenceSGR | OpeningSeqPOV, label: str | LabelPOV = ''):
         super().__init__(opening_seq, label)
+        self._details_fmt_str: str | None = None
 
-    def _get_sgr_params(self, m: Match):
-        return m.group(6).decode('ascii')
+    def get_details_fmt_str(self) -> str:
+        if self._details_fmt_str is None:
+            raise ValueError('Details format not initialzied')
+        return self._details_fmt_str
 
-    def _get_brief_details_processed(self, m: Match) -> str:
-        return self._get_sgr_params(m)
+    def set_details_fmt_str(self, s: str):
+        self._details_fmt_str = s
 
-    def _get_details_opening_seq(self, m: Match) -> SequenceSGR:
+    def _get_brief_details_processed(self) -> str:
+        return self.get_details_fmt_str()
+
+    def _get_details_opening_seq(self) -> SequenceSGR:
         if SettingsManager.app_settings.no_color_markers:
             return self.DETAILS_OPENING_SEQ
 
-        params = self._get_sgr_params(m).split(';')
+        params = self.get_details_fmt_str().split(';')
         pcodes = [int(p) for p in params if p]
         pcodes_allowed = []
-        while len(pcodes):
+        while len(pcodes):  # @TODO automatically set black/white text if only bg color is defined, and vice versa
             pcode = pcodes.pop(0)
             if pcode == sgr.COLOR_EXTENDED or pcode == sgr.BG_COLOR_EXTENDED:
                 if len(pcodes) >= 2 and pcodes[0] == sgr.EXTENDED_MODE_256:

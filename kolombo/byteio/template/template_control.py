@@ -4,7 +4,6 @@
 # -----------------------------------------------------------------------------
 from __future__ import annotations
 
-from re import Match
 from typing import Dict, List
 
 from pytermor import SequenceSGR
@@ -25,7 +24,7 @@ class ControlCharGenericTemplate(Template):
             0x19: 'Y', 0x1a: 'Z', 0x1c: '\\', 0x1d: ']', 0x1e: '^', 0x1f: '_',
         }
 
-    def substitute(self, m: Match, raw: bytes) -> List[Segment]:
+    def substitute(self, raw: bytes) -> List[Segment]:
         self._substituted.clear()
 
         if self._marker_details is MarkerDetailsEnum.BINARY_STRICT or \
@@ -33,7 +32,7 @@ class ControlCharGenericTemplate(Template):
             self._substituted.append(self._create_primary_segment(
                 self._opening_seq_stack.get(self._display_mode, self._read_mode),
                 bytes(raw),
-                self._process(m, raw),
+                self._process(raw),
             ))
             return self._substituted
 
@@ -67,5 +66,5 @@ class ControlCharGenericTemplate(Template):
         else:
             raise RuntimeError(f'Invalid marker details level: {self._marker_details.value}')
 
-    def _get_details_opening_seq(self, m: Match) -> SequenceSGR:
+    def _get_details_opening_seq(self) -> SequenceSGR:
         return self._opening_seq_stack.get() + self.DETAILS_OPENING_SEQ

@@ -61,7 +61,8 @@ TYPE_LABEL_DETAILS = '*'
 
 
 class MarkerDetailsEnum(Enum):
-    NO_DETAILS = 'no_details'
-    BRIEF_DETAILS = 'brief_details'
-    FULL_DETAILS = 'full_details'
-    BINARY_STRICT = 'binary_strict'  # require len(raw) = len(processed)
+    NO_DETAILS = 0
+    BRIEF_DETAILS = 1
+    FULL_DETAILS = 2
+    BINARY_STRICT = 3  # require len(raw) = len(processed)
+    DEFAULT = BRIEF_DETAILS

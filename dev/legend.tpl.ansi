@@ -14,7 +14,7 @@
  [I]   binary data bytes        80-ff
 
 :{fmt_header}SIGILS^{}
- :{fmt_thead}char^{}  :{fmt_thead}binary/text/focused mode^{}    :{fmt_thead}[class]/description^{}
+ :{fmt_thead}char^{}   :{fmt_thead}binary/text/focused mode^{}    :{fmt_thead}[class]/description^{}
 #{}
   C   00 00 00 00 00    c c c c    [C] cccccccccccccccccccc {}#
 :{ex_s_tab  }[S] horizontal tab  :{fmt_comment}(\t)^{}
@@ -35,13 +35,12 @@
 
 :{ex_e_reset}[E] SGR reset sequence
 :{ex_e_sgr  }[E] SGR sequence :{fmt_comment}(brief/full details)^{}
-:{ex_e_sgr2 }    :{fmt_comment}format/color of marker details is same^{}
-:{ex_e_sgr3 }    :{fmt_comment}as format of represented SGR sequence^{}
+:{ex_e_sgr2 }    :{fmt_comment}details color = color of represented SGR^{}
 :{ex_e_csi  }[E] CSI sequence
 :{ex_e_nf   }[E] nF escape sequence
 :{ex_e_fp   }[E] Fp escape sequence
 :{ex_e_fe   }[E] Fe escape sequence
-:{ex_e_fs   }[E] Fs escape sequence
+:{ex_e_fs   }[E] Fs escape sequence :{fmt_comment}(focused)^{}
 
 :{ex_u_1    }[U] UTF-8 sequence
 :{ex_u_2    }    :{fmt_comment}use ^{bold}--decode^{bold_dim_off} to display Unicode chars in binary mode^{}

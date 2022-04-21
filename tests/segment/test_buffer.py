@@ -31,7 +31,7 @@ class SegmentBufferAttachingTestCase(unittest.TestCase):
 
     def test_attach_segment_without_formatting(self):
         template = Template(CharClass.PRINTABLE_CHAR, SequenceSGR(), 'E')
-        segments = template.substitute(None, b'123')
+        segments = template.substitute(b'123')
 
         self.buffer.attach(*segments)
 
@@ -47,7 +47,7 @@ class SegmentBufferDetachingTestCase(unittest.TestCase):
 
     def test_detach_whole_segment(self):
         template = Template(CharClass.PRINTABLE_CHAR, seq.BG_CYAN, '@')
-        segments = template.substitute(None, b'213')
+        segments = template.substitute(b'213')
         self.buffer.attach(*segments)
 
         processed = self.buffer._detach(3)
@@ -60,7 +60,7 @@ class SegmentBufferDetachingTestCase(unittest.TestCase):
 
     def test_detach_partial_segment(self):
         template = Template(CharClass.PRINTABLE_CHAR, seq.BOLD, '#')
-        segments = template.substitute(None, b'1234')
+        segments = template.substitute(b'1234')
         self.buffer.attach(*segments)
 
         processed = self.buffer._detach(2)
@@ -73,7 +73,7 @@ class SegmentBufferDetachingTestCase(unittest.TestCase):
 
     def test_detach_zero_bytes(self):
         template = Template(CharClass.PRINTABLE_CHAR, seq.BOLD, '#')
-        segments = template.substitute(None, b'123')
+        segments = template.substitute(b'123')
         self.buffer.attach(*segments)
 
         processed = self.buffer._detach(0)
@@ -89,7 +89,7 @@ class SegmentBufferDetachingTestCase(unittest.TestCase):
 
     def test_detach_segment_without_formatting(self):
         template = Template(CharClass.PRINTABLE_CHAR, SequenceSGR(), '.')
-        segments = template.substitute(None, b'123')
+        segments = template.substitute(b'123')
         self.buffer.attach(*segments)
 
         processed = self.buffer._detach(3)
@@ -100,9 +100,9 @@ class SegmentBufferDetachingTestCase(unittest.TestCase):
 
     def test_detach_two_segments(self):
         template1 = Template(CharClass.PRINTABLE_CHAR, seq.RED, 'A')
-        segments1 = template1.substitute(None, b'123')
+        segments1 = template1.substitute(b'123')
         template2 = Template(CharClass.PRINTABLE_CHAR, seq.BG_RED, 'B')
-        segments2 = template2.substitute(None, b'456')
+        segments2 = template2.substitute(b'456')
         self.buffer.attach(*segments1)
         self.buffer.attach(*segments2)
 

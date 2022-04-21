@@ -108,7 +108,7 @@ class Parser:
 
     def _handle(self, m: Match, mgroup: int, raw: bytes):
         template = self._resolve_match(m, mgroup)
-        segments = template.substitute(m, raw)
+        segments = template.substitute(raw)
         suboffset = m.start(mgroup + 1)
 
         self._debug_print_match_segments(mgroup, raw, segments, suboffset)
@@ -128,10 +128,12 @@ class Parser:
     def _resolve_escape_seq_csi(self, m: Match) -> Template:  # @FIXME transform resolver to regexp composite
         is_sgr = (m.group(8) == b'm')
         if is_sgr:
-            sgr_params = m.group(6)
-            if sgr_params == b'' or sgr_params == b'0':
+            sgr_params = m.group(6)                             # ↕ overload substitute() for EscapeSequenceSGRTemplate
+            if sgr_params == b'' or sgr_params == b'0':         # allow passing in marker details format
                 return self._template_registry.ESCAPE_SEQ_SGR_0
-            return self._template_registry.ESCAPE_SEQ_SGR
+            tpl = self._template_registry.ESCAPE_SEQ_SGR
+            tpl.set_details_fmt_str(sgr_params.decode('ascii'))  # @FIXME ugly state, eaugh
+            return tpl
         return self._template_registry.ESCAPE_SEQ_CSI
 
     def _debug_print_match_segments(self, mgroup: int, raw: bytes, segments: List[Segment], suboffset: int):
