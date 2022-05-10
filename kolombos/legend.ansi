@@ -1,0 +1,56 @@
+[1;92m    __         [34m__                __[m
+[1;92m   / /[92m__[94m____  / /___  ____ ___  / /_  ____ [93m _____[m
+[1;32m  / //_/[36m __ \/ / __ \[35m/ __ '__ \/ __ \/ __ \[33m/ ___/[m
+[1;94m / ,< [36m/ /_/ / / /_/ [35m/ / / / / / /_/ / /_/ [33m(__  )[m
+[1;34m/_/|_|[34m\____/_/\____/_/ /_/ /_/\.___/\____[33m/____/[m
+                                        [93mv1.0.1[m
+
+[97;1mCHARACTER CLASSES[m
+ [S]   ASCII whitespace chars   09-0d, 20
+ [C]   ASCII control chars      01-08, 0e-1f
+ [P]   ASCII printable chars    21-7e
+ [I]   binary data              80-ff
+ [U]   UTF-8 sequences          various
+ [E]   ANSI escape sequences    1b[..]
+
+[97;1mSIGILS[m
+ [2;4mchr[m   [2;4mbin mode (hex/char) out[m  [2;4m[class]/description[m
+  ⇥       [90m 09[39m   [46;30m 09[49;39m     [90m⇥[39m [46;30m⇥[49;39m     [S] horizontal tab  [90m\t[m
+  ↵       [90m 0a[39m   [46;30m 0a[49;39m     [90m↵[39m [46;30m↵[49;39m     [S] line feed       [90m\n[m
+  ⤓       [90m 0b[39m   [46;30m 0b[49;39m     [90m⤓[39m [46;30m⤓[49;39m     [S] vertical tab    [90m\v[m
+  ↡       [90m 0c[39m   [46;30m 0c[49;39m     [90m↡[39m [46;30m↡[49;39m     [S] form feed       [90m\f[m
+  ⇤       [90m 0d[39m   [46;30m 0d[49;39m     [90m⇤[39m [46;30m⇤[49;39m     [S] carriage return [90m\r[m
+ ␣ ·      [90m 20[39m   [46;30m 20[49;39m     [90m␣[39m [46;30m·[49;39m     [S] space
+
+  Ɐ       [31m 01[39m   [31;7m 02[39;27m     [31mⱯ[39m [31;7mⱯ[39;27m     [C] misc control char [90mtext mode, no details ([1m-m0[22m)[m
+                       [31mⱯ[39m[31;40;4mE[39;49;24m [31;7mⱯ[39;27m[31;40;4mP[39;49;24m        [90mtext mode, brief details ([1m-m1[22m)[m
+                      [31mⱯ[39m[31;40;4m1e[39;49;24m [31;7mⱯ[39;27m[31;40;4m1f[39;49;24m       [90mtext mode, full details ([1m-m2[22m)[m
+
+  Ø       [91m 00[39m   [91;7m 00[39;27m     [91mØ[39m [91;7mØ[39;27m     [C] null byte
+  ←       [31m 08[39m   [31;7m 08[39;27m     [31m←[39m [31;7m←[39;27m     [C] backspace
+  →       [31m 7f[39m   [31;7m 7f[39;27m     [31m→[39m [31;7m→[39;27m     [C] delete
+  ∌       [93m 1b[39m   [93;7m 1b[39;27m     [93m∌[39m [93;7m∌[39;27m     [C] escape
+
+  [90m*[39m     61 62[47;30m 63[49;39m[47;30m 64[49;39m    ab [47;30mc[49;39m[47;30md[49;39m    [P] printable char
+
+  ▯    [35m ee[39m[35m b0[39m[35;7m c0[39;27m[35;7m cc[39;27m    [35m▯[39m[35m▯[39m [35;7m▯[39;27m[35;7m▯[39;27m    [I] binary data
+  Ḇ    [35m c0[39m[35m ff[39m[35;7m ee[39;27m[35;7m da[39;27m    [35mḆ[39m[35mḆ[39m [35;7mḆ[39;27m[35;7mḆ[39;27m        [90mchar output in text mode[m
+
+  ▯    [94m d1[39m[94m 85[39m[94;7m d0[39;27m[94;7m b9[39;27m    [94m▯[39m[94m▯[39m [94;7m▯[39;27m[94;7m▯[39;27m    [U] UTF-8 sequence
+       [94m d1 8b[39m[94;7m e4 b[39;27m‥   [94m_ы[39m [94;7m__世[39;27m       [90muse [1m--decode[22m to display Unicode in binary mode[m
+       [94m f0 9f 90 8d[39m      [94m🐍[39m         [90mtext mode: decoding is done automatically[m
+
+  θ       [38;5;231;1m 1b[39;22m[38;5;231;40;4m 5b 6d[39;49;24m      [38;5;231;1mθ[39;22m[38;5;231;40;4m[39;49;24m      [E] SGR reset sequence [90mthis and following: text mode[m
+  ǝ    [1m 1b[22m[40;4m 5b 37 6d[49;24m      [1mǝ[22m      [E] SGR sequence [90mno details[m
+       [1m 1b[22m[40;4;94m 5b 39 3[49;24;39m‥     [1mǝ[22m[40;4;94m94[49;24;39m         [90mbrief details; color is the color of represented SGR[m
+       [1m 1b[22m[40;4;30;46m 5b 33 3[49;24;39;49m‥  [1mǝ[22m[40;4;30;46m[30;46m[49;24;39;49m       [90mfull details; bg color and some text attrs are also applied[m
+
+  Ͻ    [92;1m 1b[39;22m[92;40;4m 5b 32 3[39;49;24m‥    [92;1mϽ[39;22m[92;40;4m[24d[39;49;24m    [E] CSI sequence [90mthis and following: full details[m
+  ꟻ       [32;7;1m 1b[39;27;22m[32;40;4m 28 42[39;49;24m     [32;7;1mꟻ[39;27;22m[32;40;4m(B[39;49;24m     [E] nF escape sequence [90mfocused[m
+  ꟼ          [33;1m 1b[39;22m[33;40;4m 32[39;49;24m     [33;1mꟼ[39;22m[33;40;4m2[39;49;24m      [E] Fp escape sequence
+  Ǝ          [33;1m 1b[39;22m[33;40;4m 47[39;49;24m     [33;1mƎ[39;22m[33;40;4mG[39;49;24m      [E] Fe escape sequence
+  Ꙅ          [33;7;1m 1b[39;27;22m[33;40;4m 73[39;49;24m     [33;7;1mꙄ[39;27;22m[33;40;4ms[39;49;24m      [E] Fs escape sequence [90mfocused[m
+
+Is a part of [1mes7s[m pack
+(c) 2022 A. Shavykin <0.delameter@gmail.com>
+# Generated at 10-May-22 14:47

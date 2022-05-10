@@ -1,9 +1,9 @@
-^{   green;bold}    __         ^{blue           }__                __^{}
-^{hi_green;bold}   / /^{green}__^{hi_blue}____  / /___  ____ ___  / /_  ____^{}
-^{hi_green;bold}  / //_/^{cyan} __ \/ / __ \^{magenta }/ __ '__ \/ __ \/ __ \^{}
-^{hi_green;bold} / ,< ^{cyan}/ /_/ / / /_/ ^{magenta }/ / / / / / /_/ / /_/ /^{}
-^{hi_green;bold}/_/|_|^{blue}\____/_/\____#{}     {}#/_/ /_/ /_/\.___/\____/^{}
-                                   ^{blue}v^{bold}:{ver}^{}
+^{bold;hi_green}    __         ^{blue              }__                __^{}
+^{bold;hi_green}   / /^{hi_green}__^{hi_blue}____  / /___  ____ ___  / /_  ____ ^{hi_yellow} _____^{}
+^{bold;green   }  / //_/^{cyan} __ \/ / __ \^{magenta    }/ __ '__ \/ __ \/ __ \^{yellow   }/ ___/^{}
+^{bold;hi_blue } / ,< ^{cyan}/ /_/ / / /_/ ^{magenta    }/ / / / / / /_/ / /_/ ^{yellow   }(__  )^{}
+^{bold;blue    }/_/|_|^{blue}\____/_/\____#{}        {}#/_/ /_/ /_/\.___/\____^{yellow   }/____/^{}
+#{}                               {}#                                        ^{hi_yellow}v:{ver}^{}
 
 :{fmt_header}CHARACTER CLASSES^{}
  [S]   ASCII whitespace chars   09-0d, 20

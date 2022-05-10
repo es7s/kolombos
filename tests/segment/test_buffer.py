@@ -1,15 +1,15 @@
 # -----------------------------------------------------------------------------
-# es7s/kolombo [Escape sequences and control characters visualiser]
+# es7s/kolombos [Escape sequences and control characters visualiser]
 # (C) 2022 A. Shavykin <0.delameter@gmail.com>
 # -----------------------------------------------------------------------------
 import unittest
 
 from pytermor import sgr, SequenceSGR, seq
 
-from kolombo.byteio import CharClass
-from kolombo.byteio.segment import SegmentBuffer, Segment, StartSequenceRef, StopSequenceRef, OneUseSequenceRef
-from kolombo.byteio.template import Template
-from kolombo.settings import SettingsManager
+from kolombos.byteio import CharClass
+from kolombos.byteio.segment import SegmentBuffer, Segment, StartSequenceRef, StopSequenceRef, OneUseSequenceRef
+from kolombos.byteio.template import Template
+from kolombos.settings import SettingsManager
 
 
 class SegmentBufferAttachingTestCase(unittest.TestCase):

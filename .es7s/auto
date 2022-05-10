@@ -1,0 +1,53 @@
+#!/usr/bin/bash
+# -----------------------------------------------------------------------------
+# es7s/kolombos [Escape sequences and control characters visualiser]
+# (C) 2022 A. Shavykin <0.delameter@gmail.com>
+# -----------------------------------------------------------------------------
+# shellcheck disable=SC1090,SC2016
+## SELF_DIR="$(dirname "$(readlink -f "$0")")"
+## export PYTHONPATH="$SELF_DIR"
+## "$SELF_DIR"/venv/bin/python -m kolombos "$@"
+
+SELF_PATH="$(readlink -f "$0")"
+ES7S_BIN_PATH="$HOME/bin/es7s"
+VENV_PATH="$ES7S_BIN_PATH/venv"
+
+LAUNCHER_PATH="$ES7S_BIN_PATH/kolombos"
+UNINST_HOOKS_PATH="$ES7S_BIN_PATH/uninstall"
+UNINSTALLER_PATH="$UNINST_HOOKS_PATH/kolombos"
+
+function __es7s_install_hook {
+    mkdir -p "$ES7S_BIN_PATH"
+    pushd "$ES7S_BIN_PATH" >/dev/null || exit 127
+    python3 -m venv "$VENV_PATH"
+    source "$VENV_PATH/bin/activate"
+    pip3 install -i https://test.pypi.org/simple/ kolombos-delameter --upgrade
+    # pip3 install kolombos --upgrade
+
+    grep -E '^#(#|!)' "$SELF_PATH" | sed -E "s/^##\s*//" > "$LAUNCHER_PATH"
+    chmod +x "$LAUNCHER_PATH"
+
+    mkdir -p "$UNINST_HOOKS_PATH"
+    sed -E "s/^__es7s_install/__es7s_uninstall/" "$SELF_PATH" > "$UNINSTALLER_PATH"
+    chmod +x "$UNINSTALLER_PATH"
+
+    popd >/dev/null || exit 127
+}
+
+function __es7s_uninstall_hook {
+    pushd "$ES7S_BIN_PATH" >/dev/null || exit 127
+    source "$VENV_PATH/bin/activate"
+    pip3 uninstall kolombos-delameter --yes
+    # pip3 uninstall kolombos --yes
+
+    LAUNCHER_PATH="$ES7S_BIN_PATH/kolombos"
+    [[ -f "$LAUNCHER_PATH" ]] && rm "$LAUNCHER_PATH"
+
+    UNINST_HOOKS_PATH="$ES7S_BIN_PATH/uninstall"
+    UNINSTALLER_PATH="$UNINST_HOOKS_PATH/kolombos"
+    [[ -f "$UNINSTALLER_PATH" ]] && rm "$UNINSTALLER_PATH"
+
+    popd >/dev/null || exit 127
+}
+
+__es7s_install_hook

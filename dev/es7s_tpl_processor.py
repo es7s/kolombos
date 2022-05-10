@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# es7s/kolombo [Escape sequences and control characters visualiser]
+# es7s/kolombos [Escape sequences and control characters visualiser]
 # (C) 2022 A. Shavykin <0.delameter@gmail.com>
 # -----------------------------------------------------------------------------
 # @TODO make common and transfer to pytermor?
@@ -11,7 +11,7 @@ from typing import Dict, Any, List
 
 from pytermor import build, seq, StringFilter, apply_filters
 
-from kolombo.console import Console
+from kolombos.console import Console
 
 
 # noinspection PyMethodMayBeStatic

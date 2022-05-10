@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# es7s/kolombo [Escape sequences and control characters visualiser]
+# es7s/kolombos [Escape sequences and control characters visualiser]
 # (C) 2022 A. Shavykin <0.delameter@gmail.com>
 # -----------------------------------------------------------------------------
 from __future__ import annotations
@@ -11,16 +11,16 @@ from typing import List
 from pytermor import seq, autof, ReplaceSGR, SequenceSGR, sgr, ljust_fmtd, rjust_fmtd, center_fmtd, fmt
 
 from es7s_tpl_processor import Es7sTemplateProcessor
-from kolombo.byteio import ReadMode, DisplayMode, MarkerDetailsEnum
-from kolombo.byteio.segment import Segment
-from kolombo.byteio.template import TemplateRegistry, Template, EscapeSequenceSGRTemplate
-from kolombo.console import Console
-from kolombo.settings import SettingsManager
-from kolombo.version import __version__
+from kolombos.byteio import ReadMode, DisplayMode, MarkerDetailsEnum
+from kolombos.byteio.segment import Segment
+from kolombos.byteio.template import TemplateRegistry, Template, EscapeSequenceSGRTemplate
+from kolombos.console import Console
+from kolombos.settings import SettingsManager
+from kolombos.version import __version__
 
 project_dir = abspath(join(dirname(__file__), '..'))
 TPL_PATH = join(project_dir, 'dev', 'legend.tpl.ansi')
-OUTPUT_PATH = join(project_dir, 'kolombo', 'legend.ansi')
+OUTPUT_PATH = join(project_dir, 'kolombos', 'legend.ansi')
 
 SettingsManager.init()
 app_settings = SettingsManager.app_settings

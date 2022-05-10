@@ -1,10 +1,10 @@
-## kolombo        ## Control chars and ESC sequences visualizer
+## kolombos       ## Control chars and ESC sequences visualizer
 ## (C) 2022       ## A. Shavykin <0.delameter@gmail.com>
 ##----------------##-------------------------------------------------------------
 .ONESHELL:
 .PHONY: help test
 
-PROJECT_NAME = kolombo
+PROJECT_NAME = kolombos
 
 include .env.dist
 -include .env
