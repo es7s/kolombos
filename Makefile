@@ -68,7 +68,7 @@ install-dev: ## Install module from test repository
 ## Primary repository
 
 upload: ## Upload module
-	echo "upload"
+	python3 -m twine upload dist/* -u ${PYPI_USERNAME} -p ${PYPI_PASSWORD} --verbose
 
 install: ## Install module
 	pip install ${PROJECT_NAME}==${VERSION}

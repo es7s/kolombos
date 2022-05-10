@@ -21,8 +21,7 @@ function __es7s_install_hook {
     pushd "$ES7S_BIN_PATH" >/dev/null || exit 127
     python3 -m venv "$VENV_PATH"
     source "$VENV_PATH/bin/activate"
-    pip3 install -i https://test.pypi.org/simple/ kolombos-delameter --upgrade
-    # pip3 install kolombos --upgrade
+    pip3 install kolombos --upgrade
 
     grep -E '^#(#|!)' "$SELF_PATH" | sed -E "s/^##\s*//" > "$LAUNCHER_PATH"
     chmod +x "$LAUNCHER_PATH"
@@ -37,8 +36,7 @@ function __es7s_install_hook {
 function __es7s_uninstall_hook {
     pushd "$ES7S_BIN_PATH" >/dev/null || exit 127
     source "$VENV_PATH/bin/activate"
-    pip3 uninstall kolombos-delameter --yes
-    # pip3 uninstall kolombos --yes
+    pip3 uninstall kolombos --yes
 
     LAUNCHER_PATH="$ES7S_BIN_PATH/kolombos"
     [[ -f "$LAUNCHER_PATH" ]] && rm "$LAUNCHER_PATH"
