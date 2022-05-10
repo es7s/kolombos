@@ -1,5 +1,5 @@
 <h1 align="center">
-  <img src="https://user-images.githubusercontent.com/50381946/167739060-f61efea3-cf3e-4527-8c23-dbb0c028abdf.png">
+  <img src="https://user-images.githubusercontent.com/50381946/167742137-3c250ada-0b2c-4124-9604-e02abec50b7e.png">
   <br>
   <code>
     kolombos
@@ -54,7 +54,7 @@ OPERATING MODE
 
 `kolombos` can work in two primary modes: text and binary. The differences between them are line-by-line input reading in text mode vs. fixed size byte chunk reading in binary mode, and extended output in binary mode, which consists of text representation (similar to text mode) and hexademical byte values.
 
-<p align="center"><img src="https://user-images.githubusercontent.com/50381946/167741066-baf53f9d-bcf1-4053-af62-88d1018d3d66.png"></p>
+<p align="center"><img src="https://user-images.githubusercontent.com/50381946/167742271-2176ac38-b527-4373-89de-9ad5bf317f4d.png"></p>
 
 As you can see, some of the settings are shared between both modes, while the others are unique for one or another.
 
@@ -82,7 +82,7 @@ BINARY MODE OPTIONS
 
 ### Character classes
 
-There are 6 different _character classes_, and each of those can be displayed normally, highlighted (or _focused_) or ignored. 
+There are 6 different _character classes_, and each of those can be displayed normally, highlighted (or _focused_) or ignored.
 
 | output | character class | byte ranges | focus flag | ignore flag | examples | 
 | :---: | :------------- | :---: | :---: | :---: | :--- |
@@ -107,11 +107,11 @@ But what if we look a bit more deeper into it?
 
 `kolombos` shows us hidden until now characters &mdash; not only spaces and line breaks, but even more: some control characters, namely `01` **START OF HEADING** ASCII bytes, which `postgresql` uses to store multiline queries.
 
-Red symbol is an example of _marker_ &mdash; special sigil that indicates invisibile character in the input. Sigils were selected with a focus on dissimilarity and noticeability, which helps to detect them as soon as possible. Control char and escape sequence markers also provide some details about original input byte(s); there are three different levels of these details in text mode. 
+Red symbol is an example of _marker_ &mdash; special sigil that indicates invisibile character in the input. Sigils were selected with a focus on dissimilarity and noticeability, which helps to detect them as soon as possible. Control char and escape sequence markers also provide some details about original input byte(s); there are three different levels of these details in text mode.
 
-- Level 0 is no details, just the marker itself. 
+- Level 0 is no details, just the marker itself.
 - Level 1 is medium details (this is a default) &mdash; one extra character for control chars and varying amount for escape sequences. For most of the control characters the second char corresponds to their caret notation, e.g. `ⱯA` should be read as **^A** <sup><a href="https://en.wikipedia.org/wiki/C0_and_C1_control_codes#SOH">[wiki]</a></sup>.
-- Level 2 is maximuim amount of verbosity. For control chars it's their 2-digit hexademical value. Also note `-c` option in the last example below &mdash; which tells the application to highlight control characters and make them even more noticable. 
+- Level 2 is maximuim amount of verbosity. For control chars it's their 2-digit hexademical value. Also note `-c` option in the last example below &mdash; which tells the application to highlight control characters and make them even more noticable.
 
 <p align="center"><img src="https://user-images.githubusercontent.com/50381946/167739571-d14fc0ec-237a-4602-aeb4-b3feec79c08d.png"></p>
 
@@ -125,7 +125,7 @@ Second example is a result of running the app with `--ignore-space` and `--ignor
 
 ### ANSI escape sequecnces
 
-Escape sequences and their overlapping combinations were the main reason for me to develop this application. For those who doesn't know much about them here's some comprehensive materials: [[one]](https://en.wikipedia.org/wiki/ANSI_escape_code) [[two]](https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797). 
+Escape sequences and their overlapping combinations were the main reason for me to develop this application. For those who doesn't know much about them here's some comprehensive materials: [[one]](https://en.wikipedia.org/wiki/ANSI_escape_code) [[two]](https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797).
 
 `kolombos` can distiguish a few types of escape sequences, but most interesting and frequent type is _SGR sequence_, which consists of escape control character `1b`, square bracket `[`, one or more digit params separated by `;` and `m` character (_terminator_). Let me illustrate.
 
@@ -144,7 +144,7 @@ There are 3 different types of markers in the example above:
 - `Ͻ` is _CSI sequence_ (more common sequence class which includes SGRs) &mdash; they also begin with `ESC[`, but have different terminator characters; in general, they control cursor position.
 - Other types are listed in [Legend](#legend) section.
 
-For this example binary more would be more convenient. 
+For this example binary more would be more convenient.
 
 <p align="center"><img src="https://user-images.githubusercontent.com/50381946/167739691-fa994208-b79f-4dda-8ad4-00324a09faa2.png"></p>
 
@@ -161,7 +161,7 @@ Even more clear picture can be seen after launching the app with `-P` option (`-
 
 <p align="center"><img src="https://user-images.githubusercontent.com/50381946/167739715-4f797c07-62ad-4905-b326-88687b31c054.png"></p>
 
-Also notice that in binary mode each byte of input corresponds strictly to one hex value and one text representation character. That means that option `-m` is always equal to 2 (maximum verbosity) and cannot be changed.  
+Also notice that in binary mode each byte of input corresponds strictly to one hex value and one text representation character. That means that option `-m` is always equal to 2 (maximum verbosity) and cannot be changed.
 
 ### UTF-8 and binary data
 
@@ -184,6 +184,11 @@ UTF-8 sequences in text mode are automatically decoded and displayed as Unicode 
 Even more information can be seen after running `kolombos --legend`.
 
 ## Changelog
+
+### v1.0.2
+
+- Added logos.
+- Fixed pipy README images.
 
 ### v1.0.1
 
