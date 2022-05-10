@@ -101,8 +101,6 @@ class AppArgumentParser(CustomArgumentParser):
                 '',
                 f'Binary mode disables {fmt_b("--marker")} setting, because marker length should be always equal to actual sequence length. Therefore, control chars have 0 details level, while escape seqs are displayed with full details (2). Also, debug mode sets {fmt_b("--buffer")} setting to {Reader.READ_CHUNK_SIZE_DEBUG} bytes (however, it can be overriden as usual).',
                 '',
-                f"Run '{fmt_u('%(prog)s')} {fmt_b('--legend')}' to see annotation symbol list and color map.",
-                '',
                 '(c) 2022 A. Shavykin <0.delameter@gmail.com>',
             ],
             examples=[
@@ -114,6 +112,9 @@ class AppArgumentParser(CustomArgumentParser):
                 '',
                 'Read stdin in binary mode, highlight control characters, process 128 first bytes and exit',
                 ''.ljust(4) + f"{fmt_u('%(prog)s')} --binary --focus-control -B{fmt_u(128)}",
+                '',
+                'Display annotation symbol list and color map',
+                ''.ljust(4) + f"{fmt_u('%(prog)s')} --legend",
                 '\n'
             ],
             add_help=False,
