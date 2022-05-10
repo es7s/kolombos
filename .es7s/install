@@ -1,0 +1,27 @@
+#!/usr/bin/bash
+# -----------------------------------------------------------------------------
+# es7s/kolombo [Escape sequences and control characters visualiser]
+# (C) 2022 A. Shavykin <0.delameter@gmail.com>
+# -----------------------------------------------------------------------------
+# shellcheck disable=SC1090,SC2016
+
+ES7S_BIN_PATH="$HOME/bin/es7s"
+VENV_PATH="$ES7S_BIN_PATH/venv"
+LAUNCHER="$ES7S_BIN_PATH/kolombo"
+
+mkdir -p "$ES7S_BIN_PATH"
+python3 -m venv "$VENV_PATH"
+pushd "$ES7S_BIN_PATH" >/dev/null || exit 127
+source "$VENV_PATH/bin/activate"
+pip3 install -i https://test.pypi.org/simple/ kolombo-delameter --upgrade
+# pip3 install kolombo --upgrade
+
+echo '#!/usr/bin/bash
+
+path="$(dirname "$(readlink -f "$0")")"
+export PYTHONPATH="$path"
+"$path"/venv/bin/python -m kolombo "$@"
+' > "$LAUNCHER"
+chmod +x "$LAUNCHER"
+
+popd >/dev/null || exit 127

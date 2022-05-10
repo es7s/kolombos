@@ -25,9 +25,15 @@ cleanup:
 	rm -f -v dist/* ${PROJECT_NAME}.egg-info/*
 
 prepare:
-	python3 -m pip install --upgrade build twine
+	pip3 install --upgrade build twine
+
+init-venv:
+	python3 -m venv venv
+	. venv/bin/activate
+	pip3 install -r requirements.txt
 
 test: ## Run tests
+test: init-venv
 	. venv/bin/activate
 	python3 -s -m unittest -v
 
@@ -37,16 +43,18 @@ set-version: ## Set new package version
 	if [ -z $$VERSION ] ; then echo "No changes" && return 0 ; fi
 	if [ ! -f .env ] ; then cp -u .env.dist .env ; fi
 	sed -E -i "s/^VERSION.+/VERSION=$$VERSION/" .env
+	sed -E -i "s/^VERSION.+/VERSION=$$VERSION/" .env.dist
+	sed -E -i "s/^version.+/version = $$VERSION/" setup.cfg
+	sed -E -i "s/^__version__.+/__version__ = '$$VERSION'/" ${PROJECT_NAME}/version.py
 	echo "Updated version: ${GREEN}$$VERSION${RESET}"
 
 generate-legend: ## Generate legend.ansi from template
+generate-legend: init-venv
 	. venv/bin/activate
 	PYTHONPATH=${PWD} python3 dev/generate_legend.py
 
 build: ## Build module
-	sed -E -i "s/^VERSION.+/VERSION=$$VERSION/" .env.dist
-	sed -E -i "s/^version.+/version = $$VERSION/" setup.cfg
-	sed -E -i "s/^__version__.+/__version__ = '$$VERSION'/" ${PROJECT_NAME}/version.py
+build: cleanup
 	python3 -m build
 
 ## Test repository

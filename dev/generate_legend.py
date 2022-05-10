@@ -20,7 +20,7 @@ from kolombo.version import __version__
 
 project_dir = abspath(join(dirname(__file__), '..'))
 TPL_PATH = join(project_dir, 'dev', 'legend.tpl.ansi')
-OUTPUT_PATH = join(project_dir, 'legend.ansi')
+OUTPUT_PATH = join(project_dir, 'kolombo', 'legend.ansi')
 
 SettingsManager.init()
 app_settings = SettingsManager.app_settings

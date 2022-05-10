@@ -3,7 +3,7 @@
 [92;1m  / //_/[36m __ \/ / __ \[35m/ __ '__ \/ __ \/ __ \[m
 [92;1m / ,< [36m/ /_/ / / /_/ [35m/ / / / / / /_/ / /_/ /[m
 [92;1m/_/|_|[34m\____/_/\____/_/ /_/ /_/\.___/\____/[m
-                                   [34mv[1m0.9.8[m
+                                   [34mv[1m0.9.20[m
 
 [97;1mCHARACTER CLASSES[m
  [S]   ASCII whitespace chars   09-0d, 20
@@ -53,4 +53,4 @@
 
 Is a part of [1mes7s[m pack
 (c) 2022 A. Shavykin <0.delameter@gmail.com>
-# Generated at  9-May-22 23:54
+# Generated at 10-May-22 08:11

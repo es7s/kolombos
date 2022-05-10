@@ -1,0 +1,19 @@
+#!/usr/bin/bash
+# -----------------------------------------------------------------------------
+# es7s/kolombo [Escape sequences and control characters visualiser]
+# (C) 2022 A. Shavykin <0.delameter@gmail.com>
+# -----------------------------------------------------------------------------
+# shellcheck disable=SC1090
+
+ES7S_BIN_PATH="$HOME/bin/es7s"
+VENV_PATH="$ES7S_BIN_PATH/venv"
+LAUNCHER="$ES7S_BIN_PATH/kolombo"
+
+source "$VENV_PATH/bin/activate"
+pushd "$ES7S_BIN_PATH" >/dev/null || exit 127
+pip3 uninstall kolombo-delameter --yes
+# pip3 uninstall kolombo --yes
+
+[[ -f "$LAUNCHER" ]] && rm "$LAUNCHER"
+
+popd >/dev/null || exit 127
