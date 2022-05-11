@@ -18,15 +18,14 @@ class App:
             (RunnerFactory.create()).run()
         except Exception as e:
             Console.on_exception(e)
-            self.exit(1)
-        self.exit()
+            self._exit(1)
+        self._exit(0)
 
     def _parse_args(self):
         SettingsManager.init()
         AppArgumentParser().parse_args(namespace=SettingsManager.app_settings)
         Console.debug_settings()
 
-    @staticmethod
-    def exit(code: int = 0):
+    def _exit(self, code: int):
         print()
         exit(code)
