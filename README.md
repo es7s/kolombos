@@ -139,7 +139,7 @@ SGR sequences are used for terminal text coloring and formatting. Consider this 
 
 There are 3 different types of markers in the example above:
 
-- `ǝ` is a sigil for regular SGR sequence (which for example sets the color of the following text to the red);
+- `ǝ` is a sigil for regular SGR sequence (which for example sets the color of the following text to red);
 - `θ` is a _reset_ SGR sequence (`ESC[0m`) which completely disables all previously set colors and effects;
 - `Ͻ` is _CSI sequence_ (more common sequence class which includes SGRs) &mdash; they also begin with `ESC[`, but have different terminator characters; in general, they control cursor position.
 - Other types are listed in [Legend](#legend) section.
