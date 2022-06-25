@@ -185,6 +185,10 @@ Even more information can be seen after running `kolombos --legend`.
 
 ## Changelog
 
+### v1.1.0
+
+- Additional separators around escape seqs (in text mode) for better readability.
+
 ### v1.0.2
 
 - Added logos.

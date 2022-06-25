@@ -97,7 +97,7 @@ class AppArgumentParser(CustomArgumentParser):
             usage='%(prog)s [[-t] | -b | -l | -v | -h] [<options>] [<file>]',
             epilog=[
                 'Mandatory or optional arguments to long options are also mandatory or optional for any'
-                ' corresponding short options.',
+                ' corresponding short options. Arguments can be separated with both space or "=" in both cases.',
                 '',
                 f'Binary mode disables {fmt_b("--marker")} setting, because marker length should be always equal to actual sequence length. Therefore, control chars have 0 details level, while escape seqs are displayed with full details (2). Also, debug mode sets {fmt_b("--buffer")} setting to {Reader.READ_CHUNK_SIZE_DEBUG} bytes (however, it can be overriden as usual).',
                 '',

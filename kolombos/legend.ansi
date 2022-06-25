@@ -3,7 +3,7 @@
 [1;32m  / //_/[36m __ \/ / __ \[35m/ __ '__ \/ __ \/ __ \[33m/ ___/[m
 [1;94m / ,< [36m/ /_/ / / /_/ [35m/ / / / / / /_/ / /_/ [33m(__  )[m
 [1;34m/_/|_|[34m\____/_/\____/_/ /_/ /_/\.___/\____[33m/____/[m
-                                        [93mv1.0.1[m
+                                        [93mv1.1.0[m
 
 [97;1mCHARACTER CLASSES[m
  [S]   ASCII whitespace chars   09-0d, 20
@@ -40,17 +40,17 @@
        [94m d1 8b[39m[94;7m e4 b[39;27m‥   [94m_ы[39m [94;7m__世[39;27m       [90muse [1m--decode[22m to display Unicode in binary mode[m
        [94m f0 9f 90 8d[39m      [94m🐍[39m         [90mtext mode: decoding is done automatically[m
 
-  θ       [38;5;231;1m 1b[39;22m[38;5;231;40;4m 5b 6d[39;49;24m      [38;5;231;1mθ[39;22m[38;5;231;40;4m[39;49;24m      [E] SGR reset sequence [90mthis and following: text mode[m
-  ǝ    [1m 1b[22m[40;4m 5b 37 6d[49;24m      [1mǝ[22m      [E] SGR sequence [90mno details[m
-       [1m 1b[22m[40;4;94m 5b 39 3[49;24;39m‥     [1mǝ[22m[40;4;94m94[49;24;39m         [90mbrief details; color is the color of represented SGR[m
-       [1m 1b[22m[40;4;30;46m 5b 33 3[49;24;39;49m‥  [1mǝ[22m[40;4;30;46m[30;46m[49;24;39;49m       [90mfull details; bg color and some text attrs are also applied[m
+  θ       [38;5;231;1m 1b[39;22m[38;5;231;40;4m 5b 6d[39;49;24m     ⢸[38;5;231;1mθ[39;22m[38;5;231;40;4m[39;49;24m⢸     [E] SGR reset sequence [90mthis and following: text mode[m
+  ǝ    [1m 1b[22m[40;4m 5b 37 6d[49;24m     ⢸[1mǝ[22m⢸     [E] SGR sequence [90mno details[m
+       [1m 1b[22m[40;4;94m 5b 39 3[49;24;39m‥    ⢸[1mǝ[22m[40;4;94m94[49;24;39m⢸        [90mbrief details; color is the color of represented SGR[m
+       [1m 1b[22m[40;4;30;46m 5b 33 3[49;24;39;49m‥ ⢸[1mǝ[22m[40;4;30;46m[30;46m[49;24;39;49m⢸      [90mfull details; bg color and some text attrs are also applied[m
 
-  Ͻ    [92;1m 1b[39;22m[92;40;4m 5b 32 3[39;49;24m‥    [92;1mϽ[39;22m[92;40;4m[24d[39;49;24m    [E] CSI sequence [90mthis and following: full details[m
-  ꟻ       [32;7;1m 1b[39;27;22m[32;40;4m 28 42[39;49;24m     [32;7;1mꟻ[39;27;22m[32;40;4m(B[39;49;24m     [E] nF escape sequence [90mfocused[m
-  ꟼ          [33;1m 1b[39;22m[33;40;4m 32[39;49;24m     [33;1mꟼ[39;22m[33;40;4m2[39;49;24m      [E] Fp escape sequence
-  Ǝ          [33;1m 1b[39;22m[33;40;4m 47[39;49;24m     [33;1mƎ[39;22m[33;40;4mG[39;49;24m      [E] Fe escape sequence
-  Ꙅ          [33;7;1m 1b[39;27;22m[33;40;4m 73[39;49;24m     [33;7;1mꙄ[39;27;22m[33;40;4ms[39;49;24m      [E] Fs escape sequence [90mfocused[m
+  Ͻ    [92;1m 1b[39;22m[92;40;4m 5b 32 3[39;49;24m‥   ⢸[92;1mϽ[39;22m[92;40;4m[24d[39;49;24m⢸   [E] CSI sequence [90mthis and following: full details[m
+  ꟻ       [32;7;1m 1b[39;27;22m[32;40;4m 28 42[39;49;24m    ⢸[32;7;1mꟻ[39;27;22m[32;40;4m(B[39;49;24m⢸    [E] nF escape sequence [90mfocused[m
+  ꟼ          [33;1m 1b[39;22m[33;40;4m 32[39;49;24m    ⢸[33;1mꟼ[39;22m[33;40;4m2[39;49;24m⢸     [E] Fp escape sequence
+  Ǝ          [33;1m 1b[39;22m[33;40;4m 47[39;49;24m    ⢸[33;1mƎ[39;22m[33;40;4mG[39;49;24m⢸     [E] Fe escape sequence
+  Ꙅ          [33;7;1m 1b[39;27;22m[33;40;4m 73[39;49;24m    ⢸[33;7;1mꙄ[39;27;22m[33;40;4ms[39;49;24m⢸     [E] Fs escape sequence [90mfocused[m
 
 Is a part of [1mes7s[m pack
 (c) 2022 A. Shavykin <0.delameter@gmail.com>
-# Generated at 10-May-22 14:47
+# Generated at 25-Jun-22 05:42

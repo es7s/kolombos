@@ -9,7 +9,7 @@ from typing import List
 from pytermor import SequenceSGR, seq
 
 from . import Template
-from .. import CharClass, MarkerDetailsEnum, OpeningSeqPOV, LabelPOV
+from .. import CharClass, MarkerDetailsEnum, OpeningSeqPOV, LabelPOV, ReadMode
 from ..segment import Segment
 
 
@@ -35,6 +35,10 @@ class EscapeSequenceTemplate(Template):
         )
         self._substituted.insert(0, primary_seg)
         self._fill_additional_segments(params_raw)
+
+        if self._read_mode != ReadMode.BINARY:
+            self._substituted.insert(0, Segment(seq.NOOP, '', b'', '⢸'))
+            self._substituted.append(Segment(seq.NOOP, '', b'', '⡇'))
 
         return self._substituted
 
