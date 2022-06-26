@@ -15,6 +15,9 @@ from ...settings import SettingsManager
 
 
 class Template:
+    SEPARATOR_LEFT =  '⢸'
+    SEPARATOR_RIGHT = '⡇'
+
     IGNORED_LABEL: str = '×'
     IGNORED_OPENING_SEQ: SequenceSGR = seq.GRAY + seq.DIM
     DETAILS_OPENING_SEQ: SequenceSGR = seq.BG_BLACK + seq.UNDERLINED
@@ -88,3 +91,15 @@ class Template:
 
     def _get_details_opening_seq(self) -> SequenceSGR:
         raise NotImplemented
+
+    @staticmethod
+    def wrap_in_separators(s: str|List[Segment]) -> str|None:
+        if isinstance(s, str):
+            return f'{Template.SEPARATOR_LEFT}{s}{Template.SEPARATOR_RIGHT}'
+
+        if isinstance(s, list):
+            s.insert(0, Segment(seq.build_c256(255), '', b'', Template.SEPARATOR_LEFT))
+            s.append(Segment(seq.build_c256(255), '', b'', Template.SEPARATOR_RIGHT))
+            return
+
+        raise TypeError(f'Invalid argument type {type(s)}')

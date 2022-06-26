@@ -14,15 +14,15 @@
  [E]   ANSI escape sequences    1b[..]
 
 :{fmt_header}SIGILS^{}
- :{fmt_thead}chr^{}   :{fmt_thead}bin mode (hex/char) out^{}  :{fmt_thead}[class]/description^{}
-:{ex_s_tab  }[S] horizontal tab  :{fmt_comment}\t^{}
-:{ex_s_lf   }[S] line feed       :{fmt_comment}\n^{}
-:{ex_s_vtab }[S] vertical tab    :{fmt_comment}\v^{}
-:{ex_s_ff   }[S] form feed       :{fmt_comment}\f^{}
-:{ex_s_cr   }[S] carriage return :{fmt_comment}\r^{}
+ :{fmt_thead}chr^{}   :{fmt_thead}bin mode (hex/char) out^{}  :{fmt_thead}[cls] description  notes^{}
+:{ex_s_tab  }[S] horizontal tab   :{fmt_comment}\t^{}
+:{ex_s_lf   }[S] line feed        :{fmt_comment}\n^{}
+:{ex_s_vtab }[S] vertical tab     :{fmt_comment}\v^{}
+:{ex_s_ff   }[S] form feed        :{fmt_comment}\f^{}
+:{ex_s_cr   }[S] carriage return  :{fmt_comment}\r^{}
 :{ex_s_space}[S] space
 
-:{ex_c_misc0}[C] misc control char :{fmt_comment}text mode, no details (^{bold}-m0^{bold_dim_off})^{}
+:{ex_c_misc0}[C] misc control char  :{fmt_comment}text mode, no details (^{bold}-m0^{bold_dim_off})^{}
 :{ex_c_misc1}    :{fmt_comment}text mode, brief details (^{bold}-m1^{bold_dim_off})^{}
 :{ex_c_misc2}    :{fmt_comment}text mode, full details (^{bold}-m2^{bold_dim_off})^{}
 
@@ -40,16 +40,18 @@
 :{ex_u_2    }    :{fmt_comment}use ^{bold}--decode^{bold_dim_off} to display Unicode in binary mode^{}
 :{ex_u_3    }    :{fmt_comment}text mode: decoding is done automatically^{}
 
-:{ex_e_reset}[E] SGR reset sequence :{fmt_comment}this and following: text mode^{}
-:{ex_e_sgr1 }[E] SGR sequence :{fmt_comment}no details^{}
-:{ex_e_sgr2 }    :{fmt_comment}brief details; color is the color of represented SGR^{}
-:{ex_e_sgr3 }    :{fmt_comment}full details; bg color and some text attrs are also applied^{}
+:{ex_e_reset}[E] SGR reset sequence  :{fmt_comment}this and following: text mode^{}
+:{ex_e_sgr1 }[E] SGR sequence  :{fmt_comment}no details; hides separators automatically^{}
+:{ex_e_sgr2 }    :{fmt_comment}brief details; color matches the original SGR color^{}
+:{ex_e_sgr3 }    :{fmt_comment}brief details; indexed-mode color (background)^{}
+:{ex_e_sgr4 }   :{fmt_comment}brief details; RGB-mode color (foreground)^{}
+:{ex_e_sgr5 }    :{fmt_comment}full details; exactly repeats SGR param bytes^{}
 
-:{ex_e_csi  }[E] CSI sequence :{fmt_comment}this and following: full details^{}
-:{ex_e_nf   }[E] nF escape sequence :{fmt_comment}focused^{}
-:{ex_e_fp   }[E] Fp escape sequence
-:{ex_e_fe   }[E] Fe escape sequence
-:{ex_e_fs   }[E] Fs escape sequence :{fmt_comment}focused^{}
+:{ex_e_csi  }[E] CSI sequence  :{fmt_comment}this and following: full details^{}
+:{ex_e_nf   }[E] nF escape sequence
+:{ex_e_fp   }[E] Fp escape sequence  :{fmt_comment}focused^{}
+:{ex_e_fe   }[E] Fe escape sequence  :{fmt_comment}brief details^{}
+:{ex_e_fs   }[E] Fs escape sequence  :{fmt_comment}no details^{}
 
 Is a part of ^{bold}es7s^{} pack
 (c) 2022 A. Shavykin <0.delameter@gmail.com>

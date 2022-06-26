@@ -1,3 +1,4 @@
+
 <h1 align="center">
   <img src="https://user-images.githubusercontent.com/50381946/167742137-3c250ada-0b2c-4124-9604-e02abec50b7e.png">
   <br>
@@ -165,7 +166,7 @@ Also notice that in binary mode each byte of input corresponds strictly to one h
 
 ### UTF-8 and binary data
 
-There is no limitation for input bytes range in `kolombos` text mode &mdash; binary data will be displayed with replacement character `Ḇ`:
+There is no limitation for input bytes range in `kolombos` text mode &mdash; binary data will be displayed with the replacement character -- `Ḇ`:
 
 <p align="center"><img src="https://user-images.githubusercontent.com/50381946/167739738-82098d94-c379-459e-9301-629e128b5d90.png"></p>
 
@@ -184,6 +185,11 @@ UTF-8 sequences in text mode are automatically decoded and displayed as Unicode 
 Even more information can be seen after running `kolombos --legend`.
 
 ## Changelog
+
+### pending
+
+- Separators additional styling.
+- `--no-sep[arators]` launch iption.
 
 ### v1.1.0
 

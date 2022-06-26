@@ -11,6 +11,7 @@ from pytermor import SequenceSGR, seq
 from . import Template
 from .. import CharClass, MarkerDetailsEnum, OpeningSeqPOV, LabelPOV, ReadMode
 from ..segment import Segment
+from ...settings import SettingsManager
 
 
 class EscapeSequenceTemplate(Template):
@@ -36,9 +37,12 @@ class EscapeSequenceTemplate(Template):
         self._substituted.insert(0, primary_seg)
         self._fill_additional_segments(params_raw)
 
-        if self._read_mode != ReadMode.BINARY:
-            self._substituted.insert(0, Segment(seq.NOOP, '', b'', '⢸'))
-            self._substituted.append(Segment(seq.NOOP, '', b'', '⡇'))
+        if (self._read_mode != ReadMode.BINARY and
+            not SettingsManager.app_settings.no_separators and (
+                self._marker_details is MarkerDetailsEnum.BRIEF_DETAILS or
+                self._marker_details is MarkerDetailsEnum.FULL_DETAILS
+            )):
+            self._wrap_in_separators()
 
         return self._substituted
 
@@ -63,3 +67,6 @@ class EscapeSequenceTemplate(Template):
 
     def _get_details_opening_seq(self) -> SequenceSGR:
         return self._opening_seq_stack.get() + self.DETAILS_OPENING_SEQ
+
+    def _wrap_in_separators(self):
+        self.wrap_in_separators(self._substituted)
