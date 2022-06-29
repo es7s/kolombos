@@ -43,8 +43,8 @@
 :{ex_e_reset}[E] SGR reset sequence  :{fmt_comment}this and following: text mode^{}
 :{ex_e_sgr1 }[E] SGR sequence  :{fmt_comment}no details; hides separators automatically^{}
 :{ex_e_sgr2 }    :{fmt_comment}brief details; color matches the original SGR color^{}
-:{ex_e_sgr3 }    :{fmt_comment}brief details; indexed-mode color (background)^{}
-:{ex_e_sgr4 }   :{fmt_comment}brief details; RGB-mode color (foreground)^{}
+:{ex_e_sgr3 }    :{fmt_comment}brief details; indexed-mode color (both)^{}
+:{ex_e_sgr4 }    :{fmt_comment}brief details; RGB-mode color (foreground)^{}
 :{ex_e_sgr5 }    :{fmt_comment}full details; exactly repeats SGR param bytes^{}
 
 :{ex_e_csi  }[E] CSI sequence  :{fmt_comment}this and following: full details^{}

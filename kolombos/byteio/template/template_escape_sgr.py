@@ -50,7 +50,7 @@ class EscapeSequenceSGRTemplate(EscapeSequenceTemplate):
                 if len(pcodes) >= 4 and pcodes[0] == sgr.EXTENDED_MODE_RGB:
                     pcodes_allowed.extend([pcode, *[pcodes.pop(0) for _ in range(4)]])
                     brief_names.append(
-                        f'{brief_type}#'
+                        f'{brief_type}'
                         f'{pcodes_allowed[-3] * 256 * 256 + pcodes_allowed[-2] * 256 + pcodes_allowed[-1]:06x}'
                     )
                     continue

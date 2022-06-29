@@ -228,7 +228,7 @@ VARIABLES = {
     'ex_e_reset': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR_0, seq.RESET),
     'ex_e_sgr1': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR(sgr.INVERSED), no_details=True),
     'ex_e_sgr2': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR(sgr.HI_BLUE), brief_details=True, print_label=False),
-    'ex_e_sgr3': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, build_c256(22, True), brief_details=True, print_label=False),
+    'ex_e_sgr3': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, build_c256(71) + build_c256(16, True), brief_details=True, print_label=False),
     'ex_e_sgr4': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, build_rgb(171, 235, 172), brief_details=True, print_label=False),
     'ex_e_sgr5': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR(sgr.BLACK, sgr.BG_CYAN), full_details=True, print_label=False),
     'ex_e_csi': invoke_on_escape_sequences(reg.ESCAPE_SEQ_CSI, b'\x1b\x5b\x32\x34\x64', full_details=True),
@@ -260,6 +260,9 @@ if not out.endswith('\n'):
     out += '\n'
 out += f'# Generated at {datetime.now():%e-%b-%y %R}'
 
+def format_thousand_sep(value: int|float, separator=' '):
+    return f'{value:_}'.replace('_', separator)
+
 with open(OUTPUT_PATH, 'wt', encoding='utf8') as f:
     length = f.write(out)
-    Console.info(f'Wrote {length:d} bytes to "{OUTPUT_PATH:s}"')
+    Console.info(f'Wrote {fmt.bold(format_thousand_sep(length))} bytes to {fmt.blue(OUTPUT_PATH)}')
