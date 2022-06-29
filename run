@@ -1,0 +1,10 @@
+#!/bin/bash
+function _main() {
+    echo "$0"
+    if ! cd "$(dirname $(readlink -f -- $0))" ; then return 127 ; fi
+    if ! . venv/bin/activate ; then return 126 ; fi
+
+    PYTHONPATH=${PWD} python3 -m kolombos "$@"
+}
+
+_main "$@"

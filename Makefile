@@ -34,7 +34,7 @@ init-venv:
 
 test: ## Run tests
 test: init-venv
-	. venv/bin/activate
+	@. venv/bin/activate
 	python3 -s -m unittest -v
 
 set-version: ## Set new package version
@@ -50,7 +50,7 @@ set-version: ## Set new package version
 
 generate-legend: ## Generate legend.ansi from template
 generate-legend: init-venv
-	. venv/bin/activate
+	@. venv/bin/activate
 	PYTHONPATH=${PWD} python3 dev/generate_legend.py
 
 build: ## Build module
