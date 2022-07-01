@@ -27,8 +27,8 @@ class TemplateRegistry:
         self.WHITESPACE_CARR_RETURN = Template(c_ws, op_ws, '⇤')                                  # 0x0d
         self.WHITESPACE_SPACE = Template(c_ws, op_ws, LabelPOV('␣', {DisplayMode.FOCUSED: '·'}))  # 0x20
 
-        self.ESCAPE_SEQ_SGR_0 = EscapeSequenceTemplate(build_c256(231), 'θ')  # \e[m
-        self.ESCAPE_SEQ_SGR = EscapeSequenceSGRTemplate(SequenceSGR(), 'ǝ')  # \e[ (0x30-3f) (0x20-2f) m
+        self.ESCAPE_SEQ_SGR_0 = EscapeSequenceTemplate(build_c256(231) + build_c256(0, True), 'θ')  # \e[m
+        self.ESCAPE_SEQ_SGR = EscapeSequenceSGRTemplate(build_c256(255) + build_c256(0, True), 'ǝ')  # \e[ (0x30-3f) (0x20-2f) m
         self.ESCAPE_SEQ_CSI = EscapeSequenceTemplate(seq.HI_GREEN, 'Ͻ')   # \e[ (0x30-3f) (0x20-2f) ...
         self.ESCAPE_SEQ_NF = EscapeSequenceTemplate(seq.GREEN, 'ꟻ')       # \e (0x20-2f) ...
         self.ESCAPE_SEQ_FP = EscapeSequenceTemplate(seq.YELLOW, 'ꟼ')      # \e (0x30-3f)

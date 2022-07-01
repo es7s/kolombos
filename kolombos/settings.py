@@ -41,6 +41,7 @@ class Settings(Namespace):
         self.max_lines: int|None = None  # no limit
         self.no_color_markers: bool = False
         self.no_line_numbers: bool = False
+        self.no_separators: bool = False
         self.no_offsets: bool = False
         self.squash_ignored: bool = False  # TODO
         self.text: bool = True

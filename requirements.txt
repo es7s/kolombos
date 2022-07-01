@@ -1,1 +1,1 @@
-pytermor>=1.7.2
+pytermor>=1.8.0

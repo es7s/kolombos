@@ -132,7 +132,7 @@ class Parser:
             if sgr_params == b'' or sgr_params == b'0':         # allow passing in marker details format
                 return self._template_registry.ESCAPE_SEQ_SGR_0
             tpl = self._template_registry.ESCAPE_SEQ_SGR
-            tpl.set_details_fmt_str(sgr_params.decode('ascii'))  # @FIXME ugly state, eaugh
+            tpl.set_details_fmt_str(sgr_params)  # @FIXME ugly state, eaugh
             return tpl
         return self._template_registry.ESCAPE_SEQ_CSI
 

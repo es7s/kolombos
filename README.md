@@ -1,3 +1,4 @@
+
 <h1 align="center">
   <img src="https://user-images.githubusercontent.com/50381946/167742137-3c250ada-0b2c-4124-9604-e02abec50b7e.png">
   <br>
@@ -139,7 +140,7 @@ SGR sequences are used for terminal text coloring and formatting. Consider this 
 
 There are 3 different types of markers in the example above:
 
-- `ǝ` is a sigil for regular SGR sequence (which for example sets the color of the following text to the red);
+- `ǝ` is a sigil for regular SGR sequence (which for example sets the color of the following text to red);
 - `θ` is a _reset_ SGR sequence (`ESC[0m`) which completely disables all previously set colors and effects;
 - `Ͻ` is _CSI sequence_ (more common sequence class which includes SGRs) &mdash; they also begin with `ESC[`, but have different terminator characters; in general, they control cursor position.
 - Other types are listed in [Legend](#legend) section.
@@ -165,7 +166,7 @@ Also notice that in binary mode each byte of input corresponds strictly to one h
 
 ### UTF-8 and binary data
 
-There is no limitation for input bytes range in `kolombos` text mode &mdash; binary data will be displayed with replacement character `Ḇ`:
+There is no limitation for input bytes range in `kolombos` text mode &mdash; binary data will be displayed with the replacement character -- `Ḇ`:
 
 <p align="center"><img src="https://user-images.githubusercontent.com/50381946/167739738-82098d94-c379-459e-9301-629e128b5d90.png"></p>
 
@@ -179,11 +180,25 @@ UTF-8 sequences in text mode are automatically decoded and displayed as Unicode 
 
 ## Legend
 
-<p align="center"><img src="https://user-images.githubusercontent.com/50381946/167739806-43ffda49-a503-48e5-96c8-86a121020ce6.png"></p>
+<p align="center"><img src="https://user-images.githubusercontent.com/50381946/176942506-65e60769-a600-40d6-a4f8-e4d6562663bb.png"></p>
 
 Even more information can be seen after running `kolombos --legend`.
 
 ## Changelog
+
+### v1.2.0
+
+- Separators additional styling.
+- Separators auto-hide from `-m0`.
+- `--no-sep[arators]` launch option.
+- `run` dev script for quick launch of repo versions.
+- Updated output format of SGR color prefixes.
+- SGR labels are now getting colored instead of marker details (if `-m0` is set).
+- Updated legend.
+
+### v1.1.0
+
+- Additional separators around escape seqs (in text mode) for better readability.
 
 ### v1.0.2
 

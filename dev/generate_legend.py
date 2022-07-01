@@ -8,7 +8,8 @@ from datetime import datetime
 from os.path import dirname, abspath, join
 from typing import List
 
-from pytermor import seq, autof, ReplaceSGR, SequenceSGR, sgr, ljust_fmtd, rjust_fmtd, center_fmtd, fmt
+from pytermor import seq, autof, ReplaceSGR, SequenceSGR, sgr, ljust_fmtd, rjust_fmtd, center_fmtd, fmt, build_c256, \
+    build_rgb
 
 from es7s_tpl_processor import Es7sTemplateProcessor
 from kolombos.byteio import ReadMode, DisplayMode, MarkerDetailsEnum
@@ -79,7 +80,7 @@ def invoke_on_escape_sequences(t: Template, raw_or_seq: SequenceSGR | bytes, no_
                                brief_details: bool = False, full_details: bool = False, print_label=True, focus: bool = False) -> str:
     if isinstance(raw_or_seq, SequenceSGR):
         raw = raw_or_seq.print().encode()
-        sgr_params_str = ReplaceSGR('\\3').apply(raw_or_seq.print())
+        sgr_params_str = ReplaceSGR('\\3').apply(raw_or_seq.print()).encode()
     else:
         raw = raw_or_seq
         sgr_params_str = None
@@ -134,7 +135,7 @@ def invoke_on_utf8(t: Template, *raws: bytes, read_mode: ReadMode, print_label: 
 
 def substitute_with(t: Template, raw: bytes, display_mode: DisplayMode, read_mode: ReadMode,
                     marker_details: MarkerDetailsEnum = MarkerDetailsEnum.BRIEF_DETAILS,
-                    decode: bool = False, details_fmt_str: str = None) -> List[Segment]:
+                    decode: bool = False, details_fmt_str: bytes = None) -> List[Segment]:
     app_settings.text = read_mode.is_text
     app_settings.binary = not app_settings.text
     setattr(app_settings, f'focus_{t.char_class.value}', display_mode.is_focused)
@@ -224,15 +225,17 @@ VARIABLES = {
 
     'ex_p_print': invoke_default(reg.PRINTABLE_CHAR, b'a', b'b', b'c', b'd'),
 
-    'ex_e_reset': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR_0, seq.RESET),
-    'ex_e_sgr1': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR(sgr.INVERSED), no_details=True),
-    'ex_e_sgr2': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR(sgr.HI_BLUE), brief_details=True, print_label=False),
-    'ex_e_sgr3': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR(sgr.BLACK, sgr.BG_CYAN), full_details=True, print_label=False),
+    'ex_e_reset': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR_0, seq.RESET, no_details=True),
+    'ex_e_sgr1': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR(sgr.RED, 4), no_details=True, print_label=False),
+    'ex_e_sgr2': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR(sgr.HI_BLUE), full_details=True, print_label=True),
+    'ex_e_sgr3': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR(1, 7, 4), full_details=True, print_label=False),
+    'ex_e_sgr4': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, build_rgb(171, 235, 172), brief_details=True, print_label=False),
+    'ex_e_sgr5': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, build_c256(14) + build_c256(88, True), print_label=False),
     'ex_e_csi': invoke_on_escape_sequences(reg.ESCAPE_SEQ_CSI, b'\x1b\x5b\x32\x34\x64', full_details=True),
-    'ex_e_nf': invoke_on_escape_sequences(reg.ESCAPE_SEQ_NF, b'\x1b\x28\x42', full_details=True, focus=True),
-    'ex_e_fp': invoke_on_escape_sequences(reg.ESCAPE_SEQ_FP, b'\x1b\x32', full_details=True),
-    'ex_e_fe': invoke_on_escape_sequences(reg.ESCAPE_SEQ_FE, b'\x1b\x47', full_details=True),
-    'ex_e_fs': invoke_on_escape_sequences(reg.ESCAPE_SEQ_FS, b'\x1b\x73', full_details=True, focus=True),
+    'ex_e_nf': invoke_on_escape_sequences(reg.ESCAPE_SEQ_NF, b'\x1b\x28\x42', full_details=True),
+    'ex_e_fp': invoke_on_escape_sequences(reg.ESCAPE_SEQ_FP, b'\x1b\x32', full_details=True, focus=True),
+    'ex_e_fe': invoke_on_escape_sequences(reg.ESCAPE_SEQ_FE, b'\x1b\x47', brief_details=True),
+    'ex_e_fs': invoke_on_escape_sequences(reg.ESCAPE_SEQ_FS, b'\x1b\x73', no_details=True),
 
     'ex_u_1': invoke_default(reg.UTF_8_SEQ, b'\xd1', b'\x85', b'\xd0', b'\xb9'),
     'ex_u_2': invoke_on_utf8(reg.UTF_8_SEQ, 'ы'.encode('utf-8'), '世'.encode('utf-8'), read_mode=ReadMode.BINARY,
@@ -257,6 +260,9 @@ if not out.endswith('\n'):
     out += '\n'
 out += f'# Generated at {datetime.now():%e-%b-%y %R}'
 
+def format_thousand_sep(value: int|float, separator=' '):
+    return f'{value:_}'.replace('_', separator)
+
 with open(OUTPUT_PATH, 'wt', encoding='utf8') as f:
     length = f.write(out)
-    Console.info(f'Wrote {length:d} bytes to "{OUTPUT_PATH:s}"')
+    Console.info(f'Wrote {fmt.bold(format_thousand_sep(length))} bytes to {fmt.blue(OUTPUT_PATH)}')

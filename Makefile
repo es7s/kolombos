@@ -11,30 +11,25 @@ include .env.dist
 export
 VERSION ?= 0.0.0
 
-## Common commands
-
 BOLD   := $(shell tput -Txterm bold)
 GREEN  := $(shell tput -Txterm setaf 2)
 YELLOW := $(shell tput -Txterm setaf 3)
 RESET  := $(shell tput -Txterm sgr0)
 
-help:
-	@fgrep -h "##" $(MAKEFILE_LIST) | fgrep -v @fgrep | sed -Ee 's/^##\s*([^#]+)#*\s*(.*)/${YELLOW}\1${RESET}#\2/' -e 's/(.+):(#|\s)+(.+)/##   ${GREEN}\1${RESET}#\3/' | column -t -s '#'
 
-cleanup:
-	rm -f -v dist/* ${PROJECT_NAME}.egg-info/*
+## Common commands
 
-prepare:
+help:   ## Show this help
+	@fgrep -h "##" $(MAKEFILE_LIST) | fgrep -v @fgrep | sed -Ee 's/^(##)\s*([^#]+)#*\s*(.*)/\1${YELLOW}\2${RESET}#\3/' -e 's/(.+):(#|\s)+(.+)/##   ${GREEN}\1${RESET}#\3/' | column -t -s '#'
+
+prepare:  ## Prepare environment for module building
 	pip3 install --upgrade build twine
-
-init-venv:
 	python3 -m venv venv
 	. venv/bin/activate
 	pip3 install -r requirements.txt
 
 test: ## Run tests
-test: init-venv
-	. venv/bin/activate
+	@. venv/bin/activate
 	python3 -s -m unittest -v
 
 set-version: ## Set new package version
@@ -48,24 +43,34 @@ set-version: ## Set new package version
 	sed -E -i "s/^__version__.+/__version__ = '$$VERSION'/" ${PROJECT_NAME}/version.py
 	echo "Updated version: ${GREEN}$$VERSION${RESET}"
 
-generate-legend: ## Generate legend.ansi from template
-generate-legend: init-venv
-	. venv/bin/activate
+generate-legend: ## Update legend.ansi from the template
+	@. venv/bin/activate
 	PYTHONPATH=${PWD} python3 dev/generate_legend.py
 
-build: ## Build module
-build: cleanup
+demolish-build:
+	rm -f -v dist/* ${PROJECT_NAME}.egg-info/*
+
+## Dev repository
+
+build-dev: ## Build module with dev project name
+build-dev: demolish-build
+	sed -E -i "s/^name.+/name = ${PROJECT_NAME}-delameter/" setup.cfg
 	python3 -m build
+	sed -E -i "s/^name.+/name = ${PROJECT_NAME}/" setup.cfg
 
-## Test repository
+upload-dev: ## Upload module to dev repository
+	python3 -m twine upload --repository testpypi dist/* \
+			-u ${PYPI_USERNAME} -p ${PYPI_PASSWORD_DEV} --verbose
 
-upload-dev: ## Upload module to test repository
-	python3 -m twine upload --repository testpypi dist/* -u ${PYPI_USERNAME} -p ${PYPI_PASSWORD}
-
-install-dev: ## Install module from test repository
+install-dev: ## Install module from dev repository
 	pip install -i https://test.pypi.org/simple/ ${PROJECT_NAME}-delameter==${VERSION}
 
+
 ## Primary repository
+
+build: ## Build module
+build: demolish-build
+	python3 -m build
 
 upload: ## Upload module
 	python3 -m twine upload dist/* -u ${PYPI_USERNAME} -p ${PYPI_PASSWORD} --verbose

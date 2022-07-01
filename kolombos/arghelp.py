@@ -9,6 +9,7 @@ from typing import Optional, Iterable, List
 from pytermor import fmt
 
 from .byteio import Reader
+from .byteio.template import Template
 
 
 class CustomHelpFormatter(HelpFormatter):
@@ -28,6 +29,8 @@ class CustomHelpFormatter(HelpFormatter):
     def add_usage(self, usage: Optional[str], actions: Iterable[Action], groups: Iterable,
                   prefix: Optional[str] = ...):
         super().add_text(self.format_header('usage'))
+
+        usage = usage.replace("\n", f"\n{self.INDENT}")
         super().add_usage(usage, actions, groups, prefix=self.INDENT)
 
     def add_examples(self, examples: List[str]):
@@ -64,9 +67,12 @@ class CustomHelpFormatter(HelpFormatter):
 
 
 class CustomArgumentParser(ArgumentParser):
-    def __init__(self, examples: List[str] = None, epilog: List[str] = None, **kwargs):
+    def __init__(self, examples: List[str] = None, epilog: List[str] = None, usage: List[str] = None, **kwargs):
         self.examples = examples
-        kwargs.update({'epilog': '\n'.join(epilog)})
+        kwargs.update({
+            'epilog': '\n'.join(epilog),
+            'usage': '\n'.join(usage),
+        })
         super(CustomArgumentParser, self).__init__(**kwargs)
 
     def format_help(self) -> str:
@@ -94,10 +100,15 @@ class AppArgumentParser(CustomArgumentParser):
 
         super().__init__(
             description='Escape sequences and control characters visualiser',
-            usage='%(prog)s [[-t] | -b | -l | -v | -h] [<options>] [<file>]',
+            usage=[
+                '%(prog)s [[--text] | --binary] [<options>] [<file>]',
+                '%(prog)s --legend',
+                '%(prog)s --version',
+                '%(prog)s --help',
+            ],
             epilog=[
                 'Mandatory or optional arguments to long options are also mandatory or optional for any'
-                ' corresponding short options.',
+                ' corresponding short options. Arguments can be separated with both space or "=" in both cases.',
                 '',
                 f'Binary mode disables {fmt_b("--marker")} setting, because marker length should be always equal to actual sequence length. Therefore, control chars have 0 details level, while escape seqs are displayed with full details (2). Also, debug mode sets {fmt_b("--buffer")} setting to {Reader.READ_CHUNK_SIZE_DEBUG} bytes (however, it can be overriden as usual).',
                 '',
@@ -162,6 +173,7 @@ class AppArgumentParser(CustomArgumentParser):
 
         text_mode_group = self.add_argument_group('text mode options')
         text_mode_group.add_argument('-m', '--marker', metavar='<details>', action='store', type=int, default=1, help='marker details: 0 is none, 1 is brief, 2 is full '+fmt_default('[default: %(default)s]'))
+        text_mode_group.add_argument('--no-separators', action='store_true', default=False, help='do not print '+Template.wrap_in_separators('separators')+' around escape sequences')
         # text_mode_group.add_argument('-Q', '--squash-ignored', action='store_true', default=False, help=autof(seq.HI_YELLOW)('TODO ')+'replace sequences of ignored characters with one character')
         # text_mode_group.add_argument('-H', '--hide-ignored', action='store_true', default=False, help=autof(seq.HI_YELLOW)('TODO ')+'completely hide ignored character classes')
         text_mode_group.add_argument('--no-line-numbers', action='store_true', default=False, help='do not print line numbers')
