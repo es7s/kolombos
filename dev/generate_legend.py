@@ -225,12 +225,12 @@ VARIABLES = {
 
     'ex_p_print': invoke_default(reg.PRINTABLE_CHAR, b'a', b'b', b'c', b'd'),
 
-    'ex_e_reset': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR_0, seq.RESET),
-    'ex_e_sgr1': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR(sgr.INVERSED), no_details=True),
-    'ex_e_sgr2': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR(sgr.HI_BLUE), brief_details=True, print_label=False),
-    'ex_e_sgr3': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, build_c256(71) + build_c256(16, True), brief_details=True, print_label=False),
+    'ex_e_reset': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR_0, seq.RESET, no_details=True),
+    'ex_e_sgr1': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR(sgr.RED, 4), no_details=True, print_label=False),
+    'ex_e_sgr2': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR(sgr.HI_BLUE), full_details=True, print_label=True),
+    'ex_e_sgr3': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR(1, 7, 4), full_details=True, print_label=False),
     'ex_e_sgr4': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, build_rgb(171, 235, 172), brief_details=True, print_label=False),
-    'ex_e_sgr5': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR(sgr.BLACK, sgr.BG_CYAN), full_details=True, print_label=False),
+    'ex_e_sgr5': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, build_c256(14) + build_c256(88, True), print_label=False),
     'ex_e_csi': invoke_on_escape_sequences(reg.ESCAPE_SEQ_CSI, b'\x1b\x5b\x32\x34\x64', full_details=True),
     'ex_e_nf': invoke_on_escape_sequences(reg.ESCAPE_SEQ_NF, b'\x1b\x28\x42', full_details=True),
     'ex_e_fp': invoke_on_escape_sequences(reg.ESCAPE_SEQ_FP, b'\x1b\x32', full_details=True, focus=True),

@@ -40,12 +40,12 @@
 :{ex_u_2    }    :{fmt_comment}use ^{bold}--decode^{bold_dim_off} to display Unicode in binary mode^{}
 :{ex_u_3    }    :{fmt_comment}text mode: decoding is done automatically^{}
 
-:{ex_e_reset}[E] SGR reset sequence  :{fmt_comment}this and following: text mode^{}
-:{ex_e_sgr1 }[E] SGR sequence  :{fmt_comment}no details; hides separators automatically^{}
-:{ex_e_sgr2 }    :{fmt_comment}brief details; color matches the original SGR color^{}
-:{ex_e_sgr3 }    :{fmt_comment}brief details; indexed-mode color (both)^{}
-:{ex_e_sgr4 }    :{fmt_comment}brief details; RGB-mode color (foreground)^{}
-:{ex_e_sgr5 }    :{fmt_comment}full details; exactly repeats SGR param bytes^{}
+:{ex_e_sgr2}[E] SGR sequence  :{fmt_comment}full details; details color matches the SGR color^{}
+:{ex_e_sgr3}    :{fmt_comment}full details; all SGR bytes (except ^{bold}ǝ^{bold_dim_off} = ESC) are shown "as is"^{}
+:{ex_e_sgr5}    :{fmt_comment}brief details, indexed color; cmp. w. full ⢸ǝ38;5;14;48;5;88m⡇
+:{ex_e_sgr4}    :{fmt_comment}brief details, RGB color; compare w. full ⢸ǝ38;2;171;235;172m⡇
+:{ex_e_sgr1}    :{fmt_comment}no details; colorizes the label instead, also hides separators^{}
+:{ex_e_reset}[E] SGR reset sequence  :{fmt_comment}no details^{}
 
 :{ex_e_csi  }[E] CSI sequence  :{fmt_comment}this and following: full details^{}
 :{ex_e_nf   }[E] nF escape sequence

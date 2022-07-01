@@ -180,16 +180,21 @@ UTF-8 sequences in text mode are automatically decoded and displayed as Unicode 
 
 ## Legend
 
-<p align="center"><img src="https://user-images.githubusercontent.com/50381946/167739806-43ffda49-a503-48e5-96c8-86a121020ce6.png"></p>
+<p align="center"><img src="https://user-images.githubusercontent.com/50381946/176942506-65e60769-a600-40d6-a4f8-e4d6562663bb.png"></p>
 
 Even more information can be seen after running `kolombos --legend`.
 
 ## Changelog
 
-### pending
+### v1.2.0
 
 - Separators additional styling.
-- `--no-sep[arators]` launch iption.
+- Separators auto-hide from `-m0`.
+- `--no-sep[arators]` launch option.
+- `run` dev script for quick launch of repo versions.
+- Updated output format of SGR color prefixes.
+- SGR labels are now getting colored instead of marker details (if `-m0` is set).
+- Updated legend.
 
 ### v1.1.0
 

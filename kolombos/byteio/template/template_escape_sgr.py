@@ -4,19 +4,19 @@
 # -----------------------------------------------------------------------------
 from __future__ import annotations
 
-from pytermor import SequenceSGR, sgr
+from pytermor import SequenceSGR, sgr, seq
 from pytermor.sgr import *
 
 from . import EscapeSequenceTemplate
-from .. import OpeningSeqPOV, LabelPOV
+from .. import OpeningSeqPOV, LabelPOV, MarkerDetailsEnum
 from ...settings import SettingsManager
 
 
 # noinspection PyMethodMayBeStatic
 class EscapeSequenceSGRTemplate(EscapeSequenceTemplate):
-    ALLOWED_SGRS_FOR_MARKER_FORMAT = [  # INVERSED, BOLD, OVERLINED are reserved for markers themself
+    ALLOWED_SGRS_FOR_MARKER_FORMAT = [  # INVERSED, BOLD, UNDERLINED are reserved for markers themself
         DIM, ITALIC,
-        UNDERLINED, CROSSLINED,
+        OVERLINED, CROSSLINED,
         *LIST_ALL_COLORS,
     ]
 
@@ -58,15 +58,20 @@ class EscapeSequenceSGRTemplate(EscapeSequenceTemplate):
                 pcodes_allowed.append(pcode)
             brief_names.append(pcode)
 
-        self._brief_details_processed = '·'.join(str(bn) for bn in brief_names)
-        self._details_opening_seq = self.DETAILS_OPENING_SEQ + SequenceSGR(*pcodes_allowed)
+        self._brief_details_processed = f'{seq.UNDERLINED_OFF}:{seq.UNDERLINED}'.join(str(bn) for bn in brief_names)
+        self._details_opening_seq = SequenceSGR(*pcodes_allowed)
 
     def _get_brief_details_processed(self) -> str:
         if self._brief_details_processed is not None:
             return self._brief_details_processed
         return self.get_details_fmt_str()
 
+    def _get_label_opening_seq(self) -> SequenceSGR:
+        if self._marker_details is MarkerDetailsEnum.NO_DETAILS and not SettingsManager.app_settings.no_color_markers:
+            return super()._get_label_opening_seq() + self._details_opening_seq + self.ESQ_MARKER_LABEL_SEQ
+        return super()._get_label_opening_seq()
+
     def _get_details_opening_seq(self) -> SequenceSGR:
         if SettingsManager.app_settings.no_color_markers:
             return self.DETAILS_OPENING_SEQ
-        return self._details_opening_seq
+        return self.DETAILS_OPENING_SEQ + self._details_opening_seq
