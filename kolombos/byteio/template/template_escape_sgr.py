@@ -14,6 +14,8 @@ from ...settings import SettingsManager
 
 # noinspection PyMethodMayBeStatic
 class EscapeSequenceSGRTemplate(EscapeSequenceTemplate):
+    M1_SEPARATOR = '･'
+
     ALLOWED_SGRS_FOR_MARKER_FORMAT = [  # INVERSED, BOLD, UNDERLINED are reserved for markers themself
         DIM, ITALIC,
         OVERLINED, CROSSLINED,
@@ -58,7 +60,7 @@ class EscapeSequenceSGRTemplate(EscapeSequenceTemplate):
                 pcodes_allowed.append(pcode)
             brief_names.append(pcode)
 
-        self._brief_details_processed = f'{seq.UNDERLINED_OFF}:{seq.UNDERLINED}'.join(str(bn) for bn in brief_names)
+        self._brief_details_processed = f'{seq.UNDERLINED_OFF}{self.M1_SEPARATOR}{seq.UNDERLINED}'.join(str(bn) for bn in brief_names)
         self._details_opening_seq = SequenceSGR(*pcodes_allowed)
 
     def _get_brief_details_processed(self) -> str:
