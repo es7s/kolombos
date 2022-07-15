@@ -186,6 +186,10 @@ Even more information can be seen after running `kolombos --legend`.
 
 ## Changelog
 
+### v1.2.1
+
+- Minor update.
+
 ### v1.2.0
 
 - Separators additional styling.
