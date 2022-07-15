@@ -3,56 +3,56 @@
 [1;32m  / //_/[36m __ \/ / __ \[35m/ __ '__ \/ __ \/ __ \[33m/ ___/[m
 [1;94m / ,< [36m/ /_/ / / /_/ [35m/ / / / / / /_/ / /_/ [33m(__  )[m
 [1;34m/_/|_|[34m\____/_/\____/_/ /_/ /_/\.___/\____[33m/____/[m
-                                        [93mv1.2.0[m
+                                        [93mv1.2.1[m
 
 [97;1mCHARACTER CLASSES[m
- [S]   ASCII whitespace chars   09-0d, 20
- [C]   ASCII control chars      01-08, 0e-1f
- [P]   ASCII printable chars    21-7e
- [I]   binary data              80-ff
- [U]   UTF-8 sequences          various
- [E]   ANSI escape sequences    1b[..]
+  [S]   ASCII whitespace chars   09-0d, 20
+  [C]   ASCII control chars      01-08, 0e-1f
+  [P]   ASCII printable chars    21-7e
+  [I]   binary data              80-ff
+  [U]   UTF-8 sequences          various
+  [E]   ANSI escape sequences    1b[..]
 
 [97;1mSIGILS[m
- [2;4mchr[m   [2;4mbin mode (hex/char) out[m  [2;4m[cls] description  notes[m
-  ⇥       [90m 09[39m   [46;30m 09[49;39m     [90m⇥[39m [46;30m⇥[49;39m     [S] horizontal tab   [90m\t[m
-  ↵       [90m 0a[39m   [46;30m 0a[49;39m     [90m↵[39m [46;30m↵[49;39m     [S] line feed        [90m\n[m
-  ⤓       [90m 0b[39m   [46;30m 0b[49;39m     [90m⤓[39m [46;30m⤓[49;39m     [S] vertical tab     [90m\v[m
-  ↡       [90m 0c[39m   [46;30m 0c[49;39m     [90m↡[39m [46;30m↡[49;39m     [S] form feed        [90m\f[m
-  ⇤       [90m 0d[39m   [46;30m 0d[49;39m     [90m⇤[39m [46;30m⇤[49;39m     [S] carriage return  [90m\r[m
- ␣ ·      [90m 20[39m   [46;30m 20[49;39m     [90m␣[39m [46;30m·[49;39m     [S] space
+ [2;4mlabel[m  [2;4mbin mode (hex/char) out[m  [2;4mcls[m [2;4mdescription[m      [2;4mnotes[m
+   ⇥       [90m 09[39m   [46;30m 09[49;39m     [90m⇥[39m [46;30m⇥[49;39m     [S] horizontal tab   [90m\t, origin is kept[m
+   ↵       [90m 0a[39m   [46;30m 0a[49;39m     [90m↵[39m [46;30m↵[49;39m     [S] line feed        [90m\n, origin is kept[m
+   ⤓       [90m 0b[39m   [46;30m 0b[49;39m     [90m⤓[39m [46;30m⤓[49;39m     [S] vertical tab     [90m\v[m
+   ↡       [90m 0c[39m   [46;30m 0c[49;39m     [90m↡[39m [46;30m↡[49;39m     [S] form feed        [90m\f[m
+   ⇤       [90m 0d[39m   [46;30m 0d[49;39m     [90m⇤[39m [46;30m⇤[49;39m     [S] carriage return  [90m\r[m
+  ␣ ·      [90m 20[39m   [46;30m 20[49;39m     [90m␣[39m [46;30m·[49;39m     [S] space
 
-  Ɐ       [31m 01[39m   [31;7m 02[39;27m     [31mⱯ[39m [31;7mⱯ[39;27m     [C] misc control char  [90mtext mode, no details ([1m-m0[22m)[m
-                       [31mⱯ[39m[31;40;4mE[39;49;24m [31;7mⱯ[39;27m[31;40;4mP[39;49;24m        [90mtext mode, brief details ([1m-m1[22m)[m
-                      [31mⱯ[39m[31;40;4m1e[39;49;24m [31;7mⱯ[39;27m[31;40;4m1f[39;49;24m       [90mtext mode, full details ([1m-m2[22m)[m
+   Ɐ       [31m 01[39m   [31;7m 02[39;27m     [31mⱯ[39m [31;7mⱯ[39;27m     [C] misc control char  [90mtext mode, no details ([1m-m0[22m)[m
+                        [31mⱯ[39m[31;40;4mE[39;49;24m [31;7mⱯ[39;27m[31;40;4mP[39;49;24m        [90mtext mode, brief details ([1m-m1[22m)[m
+                       [31mⱯ[39m[31;40;4m1e[39;49;24m [31;7mⱯ[39;27m[31;40;4m1f[39;49;24m       [90mtext mode, full details ([1m-m2[22m)[m
 
-  Ø       [91m 00[39m   [91;7m 00[39;27m     [91mØ[39m [91;7mØ[39;27m     [C] null byte
-  ←       [31m 08[39m   [31;7m 08[39;27m     [31m←[39m [31;7m←[39;27m     [C] backspace
-  →       [31m 7f[39m   [31;7m 7f[39;27m     [31m→[39m [31;7m→[39;27m     [C] delete
-  ∌       [93m 1b[39m   [93;7m 1b[39;27m     [93m∌[39m [93;7m∌[39;27m     [C] escape
+   Ø       [91m 00[39m   [91;7m 00[39;27m     [91mØ[39m [91;7mØ[39;27m     [C] null byte
+   ←       [31m 08[39m   [31;7m 08[39;27m     [31m←[39m [31;7m←[39;27m     [C] backspace
+   →       [31m 7f[39m   [31;7m 7f[39;27m     [31m→[39m [31;7m→[39;27m     [C] delete
+   ∌       [93m 1b[39m   [93;7m 1b[39;27m     [93m∌[39m [93;7m∌[39;27m     [C] escape
 
-  [90m*[39m     61 62[47;30m 63[49;39m[47;30m 64[49;39m    ab [47;30mc[49;39m[47;30md[49;39m    [P] printable char
+   [90m*[39m     61 62[47;30m 63[49;39m[47;30m 64[49;39m    ab [47;30mc[49;39m[47;30md[49;39m    [P] printable char
 
-  ▯    [35m ee[39m[35m b0[39m[35;7m c0[39;27m[35;7m cc[39;27m    [35m▯[39m[35m▯[39m [35;7m▯[39;27m[35;7m▯[39;27m    [I] binary data
-  Ḇ    [35m c0[39m[35m ff[39m[35;7m ee[39;27m[35;7m da[39;27m    [35mḆ[39m[35mḆ[39m [35;7mḆ[39;27m[35;7mḆ[39;27m        [90mchar output in text mode[m
+   ▯    [35m ee[39m[35m b0[39m[35;7m c0[39;27m[35;7m cc[39;27m    [35m▯[39m[35m▯[39m [35;7m▯[39;27m[35;7m▯[39;27m    [I] binary data
+   Ḇ    [35m c0[39m[35m ff[39m[35;7m ee[39;27m[35;7m da[39;27m    [35mḆ[39m[35mḆ[39m [35;7mḆ[39;27m[35;7mḆ[39;27m        [90mchar output in text mode[m
 
-  ▯    [94m d1[39m[94m 85[39m[94;7m d0[39;27m[94;7m b9[39;27m    [94m▯[39m[94m▯[39m [94;7m▯[39;27m[94;7m▯[39;27m    [U] UTF-8 sequence
-       [94m d1 8b[39m[94;7m e4 b[39;27m‥   [94m_ы[39m [94;7m__世[39;27m       [90muse [1m--decode[22m to display Unicode in binary mode[m
-       [94m f0 9f 90 8d[39m      [94m🐍[39m         [90mtext mode: decoding is done automatically[m
+   ▯    [94m d1[39m[94m 85[39m[94;7m d0[39;27m[94;7m b9[39;27m    [94m▯[39m[94m▯[39m [94;7m▯[39;27m[94;7m▯[39;27m    [U] UTF-8 sequence
+        [94m d1 8b[39m[94;7m e4 b[39;27m‥   [94m_ы[39m [94;7m__世[39;27m       [90muse [1m--decode[22m to display Unicode in binary mode[m
+        [94m f0 9f 90 8d[39m      [94m🐍[39m         [90mtext mode: decoding is done automatically[m
 
-  ǝ    [38;5;255;48;5;0;1m 1b[39;49;22m[40;4;94m 5b 39 3[49;24;39m‥   [38;5;255m⢸[39m[38;5;255;48;5;0;1mǝ[39;49;22m[40;4;94m[94m[49;24;39m[38;5;255m⡇[39m   [E] SGR sequence  [90mfull details; details color matches the SGR color[m
-       [38;5;255;48;5;0;1m 1b[39;49;22m[40;4m 5b 31 3[49;24m‥ [38;5;255m⢸[39m[38;5;255;48;5;0;1mǝ[39;49;22m[40;4m[1;7;4m[49;24m[38;5;255m⡇[39m      [90mfull details; all SGR bytes (except [1mǝ[22m = ESC) are shown "as is"[m
-       [38;5;255;48;5;0;1m 1b[39;49;22m[40;4;38;5;14;48;5;88m 5b 33 3[49;24;39;49m‥ [38;5;255m⢸[39m[38;5;255;48;5;0;1mǝ[39;49;22m[40;4;38;5;14;48;5;88mF14[24m:[4mB88[49;24;39;49m[38;5;255m⡇[39m      [90mbrief details, indexed color; cmp. w. full ⢸ǝ38;5;14;48;5;88m⡇
-       [38;5;255;48;5;0;1m 1b[39;49;22m[40;4;38;2;171;235;172m 5b 33 3[49;24;39m‥ [38;5;255m⢸[39m[38;5;255;48;5;0;1mǝ[39;49;22m[40;4;38;2;171;235;172mFabebac[49;24;39m[38;5;255m⡇[39m      [90mbrief details, RGB color; compare w. full ⢸ǝ38;2;171;235;172m⡇
-       [38;5;255;48;5;0;1m 1b[39;49;22m[40;4;31m 5b 33 3[49;24;39m‥      [38;5;255;48;5;0;1;31;1mǝ[39;49;22;39;22m          [90mno details; colorizes the label instead, also hides separators[m
-  θ       [38;5;231;48;5;0;1m 1b[39;49;22m[38;5;231;48;5;0;40;4m 5b 6d[39;49;49;24m      [38;5;231;48;5;0;1mθ[39;49;22m      [E] SGR reset sequence  [90mno details[m
+   ǝ    [38;5;255;48;5;0;1m 1b[39;49;22m[40;4;94m 5b 39 3[49;24;39m‥   [38;5;255m⢸[39m[38;5;255;48;5;0;1mǝ[39;49;22m[40;4;94m[94m[49;24;39m[38;5;255m⡇[39m   [E] SGR sequence  [90mfull details; details color matches the SGR color[m
+        [38;5;255;48;5;0;1m 1b[39;49;22m[40;4m 5b 31 3[49;24m‥ [38;5;255m⢸[39m[38;5;255;48;5;0;1mǝ[39;49;22m[40;4m[1;7;4m[49;24m[38;5;255m⡇[39m      [90mfull details; all SGR bytes (except [1mǝ[22m = ESC) are shown "as is"[m
+        [38;5;255;48;5;0;1m 1b[39;49;22m[40;4;38;5;14;48;5;88m 5b 33 3[49;24;39;49m‥ [38;5;255m⢸[39m[38;5;255;48;5;0;1mǝ[39;49;22m[40;4;38;5;14;48;5;88mF14[24m･[4mB88[49;24;39;49m[38;5;255m⡇[39m      [90mbrief details, indexed color; cmp. w. full ⢸ǝ38;5;14;48;5;88m⡇
+        [38;5;255;48;5;0;1m 1b[39;49;22m[40;4;38;2;171;235;172m 5b 33 3[49;24;39m‥ [38;5;255m⢸[39m[38;5;255;48;5;0;1mǝ[39;49;22m[40;4;38;2;171;235;172mFabebac[49;24;39m[38;5;255m⡇[39m      [90mbrief details, RGB color; compare w. full ⢸ǝ38;2;171;235;172m⡇
+        [38;5;255;48;5;0;1m 1b[39;49;22m[40;4;31m 5b 33 3[49;24;39m‥      [38;5;255;48;5;0;1;31;1mǝ[39;49;22;39;22m          [90mno details; colorizes the label instead, also hides separators[m
+   θ       [38;5;231;48;5;0;1m 1b[39;49;22m[38;5;231;48;5;0;40;4m 5b 6d[39;49;49;24m      [38;5;231;48;5;0;1mθ[39;49;22m      [E] SGR reset sequence  [90mno details[m
 
-  Ͻ    [92;1m 1b[39;22m[92;40;4m 5b 32 3[39;49;24m‥   [38;5;255m⢸[39m[92;1mϽ[39;22m[92;40;4m[24d[39;49;24m[38;5;255m⡇[39m   [E] CSI sequence  [90mthis and following: full details[m
-  ꟻ       [32;1m 1b[39;22m[32;40;4m 28 42[39;49;24m    [38;5;255m⢸[39m[32;1mꟻ[39;22m[32;40;4m(B[39;49;24m[38;5;255m⡇[39m    [E] nF escape sequence
-  ꟼ          [33;7;1m 1b[39;27;22m[33;40;4m 32[39;49;24m    [38;5;255m⢸[39m[33;7;1mꟼ[39;27;22m[33;40;4m2[39;49;24m[38;5;255m⡇[39m     [E] Fp escape sequence  [90mfocused[m
-  Ǝ          [33;1m 1b[39;22m[33;40;4m 47[39;49;24m     [38;5;255m⢸[39m[33;1mƎ[39;22m[33;40;4m[39;49;24m[38;5;255m⡇[39m     [E] Fe escape sequence  [90mbrief details[m
-  Ꙅ          [33;1m 1b[39;22m[33;40;4m 73[39;49;24m      [33;1mꙄ[39;22m      [E] Fs escape sequence  [90mno details[m
+   Ͻ    [92;1m 1b[39;22m[92;40;4m 5b 32 3[39;49;24m‥   [38;5;255m⢸[39m[92;1mϽ[39;22m[92;40;4m[24d[39;49;24m[38;5;255m⡇[39m   [E] CSI sequence  [90mthis and following: full details[m
+   ꟻ       [32;1m 1b[39;22m[32;40;4m 28 42[39;49;24m    [38;5;255m⢸[39m[32;1mꟻ[39;22m[32;40;4m(B[39;49;24m[38;5;255m⡇[39m    [E] nF escape sequence
+   ꟼ          [33;7;1m 1b[39;27;22m[33;40;4m 32[39;49;24m    [38;5;255m⢸[39m[33;7;1mꟼ[39;27;22m[33;40;4m2[39;49;24m[38;5;255m⡇[39m     [E] Fp escape sequence  [90mfocused[m
+   Ǝ          [33;1m 1b[39;22m[33;40;4m 47[39;49;24m     [38;5;255m⢸[39m[33;1mƎ[39;22m[33;40;4m[39;49;24m[38;5;255m⡇[39m     [E] Fe escape sequence  [90mbrief details[m
+   Ꙅ          [33;1m 1b[39;22m[33;40;4m 73[39;49;24m      [33;1mꙄ[39;22m      [E] Fs escape sequence  [90mno details[m
 
 Is a part of [1mes7s[m pack
 (c) 2022 A. Shavykin <0.delameter@gmail.com>
-# Generated at  1-Jul-22 20:27
+# Generated at 16-Jul-22 01:29
