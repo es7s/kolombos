@@ -99,10 +99,11 @@ class ConsoleDebugBuffer(AbstractConsoleBuffer):
 
 
 class Console:
-    FMT_WARNING = autof(seq.HI_YELLOW)
+    FMT_WARNING = autof(seq.YELLOW)
     FMT_ERROR_TRACE = fmt.red
     FMT_ERROR = autof(seq.HI_RED)
     MAIN_PREFIX_LEN = 8
+    SEPARATOR_CHAR = '│'
 
     buffers: List[AbstractConsoleBuffer] = list()
     settings_prefix_len: int = 0
@@ -146,7 +147,7 @@ class Console:
 
     @staticmethod
     def warn(s: str = '', end='\n'):
-        Console.print(Console.FMT_WARNING(f'WARNING: {s}'), end=end)
+        Console.print(Console.FMT_WARNING(fmt.bold('WARN: ') + s), end=end, file=sys.stderr)
 
     @staticmethod
     def error(s: str = '', end='\n'):
@@ -154,7 +155,7 @@ class Console:
 
     @staticmethod
     def get_separator() -> str:
-        return Console._format_separator('│')
+        return Console._format_separator(Console.SEPARATOR_CHAR)
 
     @staticmethod
     def get_separator_line(
@@ -250,7 +251,9 @@ class Console:
 
     @staticmethod
     def format_prefix(label: str, f: Format) -> str:
-        return f(f'{label!s:>{Console.MAIN_PREFIX_LEN}.{Console.MAIN_PREFIX_LEN}s}') + Console.get_separator()
+        prefix = f(f'{label!s:>{Console.MAIN_PREFIX_LEN}.{Console.MAIN_PREFIX_LEN}s}') + Console.get_separator()
+        prefix = re.sub('0x', lambda m: fmt.dim(m.group()), prefix)
+        return prefix
 
     @staticmethod
     def format_prefix_with_offset(offset: int, f: Format = fmt.green) -> str:
@@ -259,6 +262,10 @@ class Console:
         else:
             offset_str = f'0x{offset:0{ceil(len(str(offset))/2)*2}x}'
         return Console.format_prefix(offset_str, f)
+
+    @staticmethod
+    def format_total_size(offset: int) -> str:
+        return Console.format_prefix_with_offset(offset, fmt.cyan)
 
     @staticmethod
     def print(s: str, end='\n', **kwargs):

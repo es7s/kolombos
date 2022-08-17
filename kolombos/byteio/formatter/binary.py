@@ -83,7 +83,7 @@ class BinaryFormatter(AbstractFormatter):
 
         if self._parser_buffer.closed and SettingsManager.app_settings.effective_print_offsets:
             self._output_buffer.write(
-                Console.format_prefix_with_offset(self._offset, autof(seq.HI_GREEN))
+                Console.format_total_size(self._offset)
             )
 
     def _justify_raw(self, num_bytes: int) -> str:

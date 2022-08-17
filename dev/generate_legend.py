@@ -76,8 +76,9 @@ def invoke_default(t: Template, *raws: bytes, read_mode: ReadMode = ReadMode.BIN
     return format_example(result)
 
 
-def invoke_on_escape_sequences(t: Template, raw_or_seq: SequenceSGR | bytes, no_details: bool = False,
-                               brief_details: bool = False, full_details: bool = False, print_label=True, focus: bool = False) -> str:
+def invoke_on_escape_sequences(t: Template, raw_or_seq: SequenceSGR|bytes, no_details: bool = False,
+                               brief_details: bool = False, full_details: bool = False, print_label=True,
+                               focus: bool = False, print_hex: bool = True) -> str:
     if isinstance(raw_or_seq, SequenceSGR):
         raw = raw_or_seq.print().encode()
         sgr_params_str = ReplaceSGR('\\3').apply(raw_or_seq.print()).encode()
@@ -90,7 +91,11 @@ def invoke_on_escape_sequences(t: Template, raw_or_seq: SequenceSGR | bytes, no_
     if print_label:
         label = t.label_stack.get()
 
-    result_hex = segs_to_hex(substitute_with(t, raw, dm, ReadMode.BINARY, details_fmt_str=sgr_params_str))
+    result_hex = None
+    if print_hex:
+        result_hex = segs_to_hex(substitute_with(t, raw, dm, ReadMode.BINARY, details_fmt_str=sgr_params_str))
+        result_hex = rjust_fmtd(result_hex, 12) + ' '
+
     result_chr = []
 
     if not any([no_details, brief_details, full_details]):
@@ -106,7 +111,6 @@ def invoke_on_escape_sequences(t: Template, raw_or_seq: SequenceSGR | bytes, no_
         result_chr.append(segs_to_processed(
             substitute_with(t, raw, dm, ReadMode.TEXT, MarkerDetailsEnum.FULL_DETAILS, details_fmt_str=sgr_params_str)))
 
-    result_hex = rjust_fmtd(result_hex, 12) + ' '
     result_chr_cols = center_fmtd('  '.join(result_chr), 10, ' '), None
 
     return format_example([label, result_hex, None, *result_chr_cols])
@@ -174,12 +178,12 @@ def segs_to_processed(segs: List[Segment]) -> str:
 
 
 def format_example(col_values: list) -> str:
-    result = ''
-    for col in COLS:
+    result = ' ' * PADDING_LEFT
+    for col in COLS_ORDER:
         if col_values[col] is not None:
             result += COL_FORMATTERS[col](col_values[col])
 
-    result += ' '
+    result += ' ' * PADDING_RIGHT
     return result
 
 
@@ -189,34 +193,24 @@ COL_HEX_FOCUSED = 2
 COL_CHR_DEFAULT = 3
 COL_CHR_FOCUSED = 4
 
-COLS = [
-    COL_LABEL,
-    COL_HEX_DEFAULT,
-    COL_HEX_FOCUSED,
-    COL_CHR_DEFAULT,
-    COL_CHR_FOCUSED,
-]
-COL_FORMATTERS = {
-    COL_LABEL: lambda s: center_fmtd(s, 5) + ' ' * 2,
-    COL_HEX_DEFAULT: lambda s: rjust_fmtd(s, 6),
-    COL_HEX_FOCUSED: lambda s: rjust_fmtd(s, 6) + ' ',
-    COL_CHR_DEFAULT: lambda s: rjust_fmtd(s, 5) + ' ',
-    COL_CHR_FOCUSED: lambda s: ljust_fmtd(s, 5)
-}
+COLS_ORDER = [COL_LABEL, COL_CHR_DEFAULT, COL_CHR_FOCUSED, COL_HEX_DEFAULT, COL_HEX_FOCUSED, ]
+COL_FORMATTERS = {COL_LABEL: lambda s: center_fmtd(s, 5), COL_CHR_DEFAULT: lambda s: rjust_fmtd(s, 5) + ' ',
+    COL_CHR_FOCUSED: lambda s: ljust_fmtd(s, 5), COL_HEX_DEFAULT: lambda s: rjust_fmtd(s, 6),
+    COL_HEX_FOCUSED: lambda s: rjust_fmtd(s, 6) + ' ', }
+PADDING_LEFT = 0
+PADDING_RIGHT = 3
 
-VARIABLES = {
-    'ver': __version__,
-    'ex_s_tab': invoke_default(reg.WHITESPACE_TAB, b'\x09'),
+VARIABLES = {'ver': __version__, 'ex_s_tab': invoke_default(reg.WHITESPACE_TAB, b'\x09'),
     'ex_s_lf': invoke_default(reg.WHITESPACE_NEWLINE, b'\x0a'),
     'ex_s_vtab': invoke_default(reg.WHITESPACE_VERT_TAB, b'\x0b'),
     'ex_s_ff': invoke_default(reg.WHITESPACE_FORM_FEED, b'\x0c'),
     'ex_s_cr': invoke_default(reg.WHITESPACE_CARR_RETURN, b'\x0d'),
     'ex_s_space': invoke_default(reg.WHITESPACE_SPACE, b'\x20'),
 
-    'ex_c_misc0': invoke_default(reg.CONTROL_CHAR, b'\x01', b'\x02'),
-    'ex_c_misc1': invoke_default(reg.CONTROL_CHAR, b'\x05', b'\x10', print_label=False, print_hex=False,
+    'ex_c_misc0': invoke_default(reg.CONTROL_CHAR, b'\x03', b'\x1e'),
+    'ex_c_misc1': invoke_default(reg.CONTROL_CHAR, b'\x03', b'\x1e', print_label=False, print_hex=False,
                                  read_mode=ReadMode.TEXT, marker=MarkerDetailsEnum.BRIEF_DETAILS),
-    'ex_c_misc2': invoke_default(reg.CONTROL_CHAR, b'\x1e', b'\x1f', print_label=False, print_hex=False,
+    'ex_c_misc2': invoke_default(reg.CONTROL_CHAR, b'\x03', b'\x1e', print_label=False, print_hex=False,
                                  read_mode=ReadMode.TEXT, marker=MarkerDetailsEnum.FULL_DETAILS),
     'ex_c_null': invoke_default(reg.CONTROL_CHAR_NULL, b'\x00'),
     'ex_c_bskpc': invoke_default(reg.CONTROL_CHAR_BACKSPACE, b'\x08'),
@@ -225,19 +219,29 @@ VARIABLES = {
 
     'ex_p_print': invoke_default(reg.PRINTABLE_CHAR, b'a', b'b', b'c', b'd'),
 
-    'ex_e_reset': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR_0, seq.RESET, no_details=True),
-    'ex_e_sgr1': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR(sgr.RED, 4), no_details=True, print_label=False),
-    'ex_e_sgr2': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR(sgr.HI_BLUE), full_details=True, print_label=True),
-    'ex_e_sgr3': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR(1, 7, 4), full_details=True, print_label=False),
-    'ex_e_sgr4': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, build_rgb(171, 235, 172), brief_details=True, print_label=False),
-    'ex_e_sgr5': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, build_c256(14) + build_c256(88, True), print_label=False),
+    'ex_e_reset_lbl': invoke_default(reg.ESCAPE_SEQ_SGR_0, b''),
+    'ex_e_reset_m0': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR_0, seq.RESET, no_details=True, print_label=False),
+    'ex_e_reset_m1': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR_0, seq.RESET, brief_details=True, print_label=False),
+    'ex_e_reset_m2': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR_0, seq.RESET, full_details=True, print_label=False),
+
+    'ex_e_sgr_lbl': invoke_default(reg.ESCAPE_SEQ_SGR, b''),
+    'ex_e_sgr_m0': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR(34), no_details=True, print_label=False),
+    'ex_e_sgr_m1': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR(35, 1), brief_details=True,
+                                              print_label=False),
+    'ex_e_sgr_m1_2': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, build_c256(14) + build_c256(88, True),
+                                                brief_details=True, print_label=False),
+    'ex_e_sgr_m1_3': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, build_rgb(0x9a, 0xae, 0x5a), brief_details=True,
+                                                print_label=False),
+    'ex_e_sgr_m2': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, build_rgb(0x9a, 0xae, 0x5a) + seq.BG_COLOR_OFF, full_details=True,
+                                              print_label=False, print_hex=False),
     'ex_e_csi': invoke_on_escape_sequences(reg.ESCAPE_SEQ_CSI, b'\x1b\x5b\x32\x34\x64', full_details=True),
-    'ex_e_nf': invoke_on_escape_sequences(reg.ESCAPE_SEQ_NF, b'\x1b\x28\x42', full_details=True),
+    'ex_e_nf': invoke_on_escape_sequences(reg.ESCAPE_SEQ_NF, b'\x1b\x28\x42', full_details=True, focus=True),
     'ex_e_fp': invoke_on_escape_sequences(reg.ESCAPE_SEQ_FP, b'\x1b\x32', full_details=True, focus=True),
     'ex_e_fe': invoke_on_escape_sequences(reg.ESCAPE_SEQ_FE, b'\x1b\x47', brief_details=True),
     'ex_e_fs': invoke_on_escape_sequences(reg.ESCAPE_SEQ_FS, b'\x1b\x73', no_details=True),
 
-    'ex_u_1': invoke_default(reg.UTF_8_SEQ, b'\xd1', b'\x85', b'\xd0', b'\xb9'),
+    'ex_u_lbl': invoke_default(reg.UTF_8_SEQ, b''),
+    'ex_u_1': invoke_default(reg.UTF_8_SEQ, b'\xd1', b'\x85', b'\xd0', b'\xb9', print_label=False),
     'ex_u_2': invoke_on_utf8(reg.UTF_8_SEQ, 'ы'.encode('utf-8'), '世'.encode('utf-8'), read_mode=ReadMode.BINARY,
                              print_hex=True, decode=True, processed_shift=1),
     'ex_u_3': invoke_on_utf8(reg.UTF_8_SEQ, '🐍'.encode('utf-8'), read_mode=ReadMode.TEXT, print_hex=True,
@@ -249,7 +253,12 @@ VARIABLES = {
 
     'fmt_header': seq.HI_WHITE + seq.BOLD,
     'fmt_thead': seq.DIM + seq.UNDERLINED,
+    'fmt_cc': seq.BOLD,
     'fmt_comment': seq.GRAY,
+    'fmt_param': seq.GRAY + seq.BOLD,
+    'fmt_m0': seq.GRAY + seq.BOLD,
+    'fmt_m1': build_c256(117),
+    'fmt_m2':  build_rgb(248, 184, 137),
 }
 
 with open(TPL_PATH, 'rt', encoding='utf8') as f:

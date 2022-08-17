@@ -165,14 +165,14 @@ class AppArgumentParser(CustomArgumentParser):
         binary_output_group.add_argument('-I', '--ignore-binary', action='store_true', default=False, help='dim/hide binary data')
 
         generic_group = self.add_argument_group('generic options')
+        generic_group.add_argument('-f', '--buffer', metavar='<size>', type=int, default=None, help='read buffer size, in bytes '+fmt_default(f'[default: {Reader.READ_CHUNK_SIZE}]'))
         generic_group.add_argument('-L', '--max-lines', metavar='<num>', action='store', type=int, default=0, help='stop after reading <num> lines '+fmt_default('[default: no limit]'))
         generic_group.add_argument('-B', '--max-bytes', metavar='<num>', action='store', type=int, default=0, help='stop after reading <num> bytes '+fmt_default('[default: no limit]'))
-        generic_group.add_argument('-f', '--buffer', metavar='<size>', type=int, default=None, help='read buffer size, in bytes '+fmt_default(f'[default: {Reader.READ_CHUNK_SIZE}]'))
-        generic_group.add_argument('-d', '--debug', action='count', default=0, help='enable debug mode; can be used from 1 to 4 times, each level increases verbosity (-d|dd|ddd|dddd)')
+        generic_group.add_argument('-D', '--debug', action='count', default=0, help='enable debug mode; can be used from 1 to 4 times, each level increases verbosity (-D|DD|DDD|DDDD)')
         generic_group.add_argument('--no-color-markers', action='store_true', default=False, help='disable applying self-formatting to SGR marker details')
 
         text_mode_group = self.add_argument_group('text mode options')
-        text_mode_group.add_argument('-m', '--marker', metavar='<details>', action='store', type=int, default=1, help='marker details: 0 is none, 1 is brief, 2 is full '+fmt_default('[default: %(default)s]'))
+        text_mode_group.add_argument('-m', '--marker', metavar='<details>', action='store', type=int, default=0, help='marker details: 0 is none, 1 is brief, 2 is full '+fmt_default('[default: %(default)s]'))
         text_mode_group.add_argument('--no-separators', action='store_true', default=False, help='do not print '+Template.wrap_in_separators('separators')+' around escape sequences')
         # text_mode_group.add_argument('-Q', '--squash-ignored', action='store_true', default=False, help=autof(seq.HI_YELLOW)('TODO ')+'replace sequences of ignored characters with one character')
         # text_mode_group.add_argument('-H', '--hide-ignored', action='store_true', default=False, help=autof(seq.HI_YELLOW)('TODO ')+'completely hide ignored character classes')
@@ -180,7 +180,7 @@ class AppArgumentParser(CustomArgumentParser):
 
         bin_mode_group = self.add_argument_group('binary mode options')
         bin_mode_group.add_argument('-w', '--columns', metavar='<num>', action='store', type=int, default=0, help='format output as <num>-columns wide table '+fmt_default('[default: auto]'))
-        bin_mode_group.add_argument('-D', '--decode', action='store_true', default=False, help='decode valid UTF-8 sequences, print as unicode chars')
+        bin_mode_group.add_argument('-d', '--decode', action='store_true', default=False, help='decode valid UTF-8 sequences, print as unicode chars')
         offsets_group = bin_mode_group.add_mutually_exclusive_group()
         offsets_group.add_argument('--decimal-offsets', action='store_true', default=False, help='output offsets in decimal format '+fmt_default('[default: hex format]'))
         offsets_group.add_argument('--no-offsets', action='store_true', default=False, help='do not print offsets')

@@ -68,4 +68,4 @@ class MarkerDetailsEnum(Enum):
     BRIEF_DETAILS = 1
     FULL_DETAILS = 2
     BINARY_STRICT = 3  # require len(raw) = len(processed)
-    DEFAULT = BRIEF_DETAILS
+    DEFAULT = NO_DETAILS
