@@ -4,7 +4,7 @@
 # -----------------------------------------------------------------------------
 from __future__ import annotations
 
-from pytermor import SequenceSGR, seq
+from pytermor import SequenceSGR, Seqs
 
 from . import Template
 from .. import CharClass, OpeningSeqPOV, LabelPOV
@@ -21,6 +21,6 @@ class NewlineTemplate(Template):
             if self._display_mode.is_ignored:
                 return f'{default}\n'   # line breaks must be printed even if char class is ignored
 
-            return f'{default}{seq.RESET}\n'  # prevent colored bg overlapping between lines
+            return f'{default}{Seqs.RESET}\n'  # prevent colored bg overlapping between lines
 
         return default

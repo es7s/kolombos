@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import List
 
-from pytermor import SequenceSGR, seq
+from pytermor import SequenceSGR, Seqs
 
 from . import Template
 from .. import CharClass, MarkerDetailsEnum, OpeningSeqPOV, LabelPOV, ReadMode
@@ -15,7 +15,7 @@ from ...settings import SettingsManager
 
 
 class EscapeSequenceTemplate(Template):
-    ESQ_MARKER_LABEL_SEQ: SequenceSGR = seq.BOLD
+    ESQ_MARKER_LABEL_SEQ: SequenceSGR = Seqs.BOLD
 
     def __init__(self, opening_seq: SequenceSGR | OpeningSeqPOV, label: str | LabelPOV = ''):
         super().__init__(CharClass.ESCAPE_SEQ, opening_seq, label)

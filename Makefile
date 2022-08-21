@@ -5,6 +5,8 @@
 .PHONY: help test
 
 PROJECT_NAME = kolombos
+PROJECT_NAME_PUBLIC = ${PROJECT_NAME}
+PROJECT_NAME_PRIVATE = ${PROJECT_NAME}-delameter
 
 include .env.dist
 -include .env
@@ -28,9 +30,11 @@ prepare:  ## Prepare environment for module building
 	. venv/bin/activate
 	pip3 install -r requirements.txt
 
-test: ## Run tests
-	@. venv/bin/activate
-	python3 -s -m unittest -v
+demolish-build:  ## Purge build output folders
+	rm -f -v dist/* ${PROJECT_NAME_PUBLIC}.egg-info/* ${PROJECT_NAME_PRIVATE}.egg-info/*
+
+
+## Testing / Pre-build
 
 set-version: ## Set new package version
 	@echo "Current version: ${YELLOW}${VERSION}${RESET}"
@@ -47,35 +51,52 @@ generate-legend: ## Update legend.ansi from the template
 	@. venv/bin/activate
 	PYTHONPATH=${PWD} python3 dev/generate_legend.py
 
-demolish-build:
-	rm -f -v dist/* ${PROJECT_NAME}.egg-info/*
+test: ## Run tests
+	@. venv/bin/activate
+	python3 -s -m unittest -v
 
-## Dev repository
+depends:  ## Build and display module dependency graph
+	mkdir -p dev/diagrams
+	pydeps ${PROJECT_NAME} --rmprefix ${PROJECT_NAME}. -o dev/diagrams/imports.svg
+	pydeps ${PROJECT_NAME} --rmprefix ${PROJECT_NAME}. -o dev/diagrams/cycles.svg 	   --show-cycle                       --no-show
+	pydeps ${PROJECT_NAME} --rmprefix ${PROJECT_NAME}. -o dev/diagrams/imports-ext.svg --pylib  --collapse-target-cluster --no-show
 
-build-dev: ## Build module with dev project name
+
+## Releasing (dev)
+
+build-dev: ## Create new private build (<kolombos-delameter>)
 build-dev: demolish-build
-	sed -E -i "s/^name.+/name = ${PROJECT_NAME}-delameter/" setup.cfg
+	sed -E -i "s/^name.+/name = ${PROJECT_NAME_PRIVATE}/" setup.cfg
 	python3 -m build
-	sed -E -i "s/^name.+/name = ${PROJECT_NAME}/" setup.cfg
+	sed -E -i "s/^name.+/name = ${PROJECT_NAME_PUBLIC}/" setup.cfg
 
-upload-dev: ## Upload module to dev repository
+upload-dev: ## Upload last successful build to dev repo
 	python3 -m twine upload --repository testpypi dist/* \
 			-u ${PYPI_USERNAME} -p ${PYPI_PASSWORD_DEV} --verbose
 
-install-dev: ## Install module from dev repository
-	pip install -i https://test.pypi.org/simple/ ${PROJECT_NAME}-delameter==${VERSION}
+install-dev: ## Install latest private build from dev repo
+	pip install -i https://test.pypi.org/simple/ ${PROJECT_NAME_PRIVATE}==${VERSION}
+
+install-dev-public: ## Install latest public build from dev repo
+	pip install -i https://test.pypi.org/simple/ ${PROJECT_NAME_PUBLIC}==${VERSION}
 
 
-## Primary repository
+## Releasing (PRIMARY)
 
-build: ## Build module
+build: ## Create new public build (<kolombos>)
 build: demolish-build
 	python3 -m build
 
-upload: ## Upload module
+upload: ## Upload last successful build to PRIMARY repo
 	python3 -m twine upload dist/* -u ${PYPI_USERNAME} -p ${PYPI_PASSWORD} --verbose
 
-install: ## Install module
-	pip install ${PROJECT_NAME}==${VERSION}
+install: ## Install latest public build from PRIMARY repo
+	pip install ${PROJECT_NAME_PUBLIC}==${VERSION}
 
-##
+
+##-----------------------##-------------------------------------------------------------
+## To install private    ## #
+## build over public one:## #
+# make build upload-dev install-dev-public :##
+##                       ## #                                               (dont do that)
+########################### #

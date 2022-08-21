@@ -8,7 +8,8 @@ import re
 from re import Match
 from typing import cast, Dict, Callable, List
 
-from pytermor import seq, apply_filters, StringFilter, fmt
+from pytermor import Seqs, Spans
+from pytermor.util import apply_filters, StringFilter
 
 from . import ParserBuffer
 from ..segment import SegmentBuffer, Segment
@@ -26,7 +27,6 @@ class Parser:
         self._template_registry: TemplateRegistry = template_registry
 
         self.F_SEPARATOR = StringFilter[bytes](
-            lambda b: re.sub(
                 b'('                                   # [0] UTF-8
                 b'[\xc2-\xdf][\x80-\xbf]|'             # - non-overlong 2-byte
                 b'\xe0[\xa0-\xbf][\x80-\xbf]|'         # - excluding overlongs
@@ -57,8 +57,7 @@ class Parser:
                 b'(\x0d+)|'                            # [31] whitespaces/carriage returns
                 b'(\x20+)|'                            # [32] whitespace/spaces
                 b'([\x21-\x7e]+)',                     # [33] printable chars (letters, digits, punctuation)
-                self._substitute, b
-            ))
+            self._substitute)
 
         self.MGROUP_TO_TPL_MAP: Dict[int, Template|MatchResolver] = {  # @FIXME map templates to regexps
             0: self._template_registry.UTF_8_SEQ,                      #        and build F_SEPARATOR automatically?
@@ -83,7 +82,7 @@ class Parser:
         }
 
         self._offset = 0
-        self._debug_buffer = ConsoleDebugBuffer('parser', seq.CYAN)
+        self._debug_buffer = ConsoleDebugBuffer('parser', Seqs.CYAN)
 
     def parse(self, offset: int):
         raw = self._parser_buffer.get_raw()
@@ -145,7 +144,7 @@ class Parser:
                 cur_raw = b''
                 debug_msg += '; '
 
-            debug_msg += f'Seg {fmt.inversed("<"+segment.type_label+">")}: {Console.printd(cur_raw)}'
+            debug_msg += f'Seg {Spans.INVERSED("<"+segment.type_label+">")}: {Console.printd(cur_raw)}'
             debug_processed_bytes = segment.processed.encode('ascii', errors="replace")
             if cur_raw != debug_processed_bytes:
                 debug_msg += f' -> {Console.printd(debug_processed_bytes)}'

@@ -4,7 +4,7 @@
 # -----------------------------------------------------------------------------
 from __future__ import annotations
 
-from pytermor import fmt
+from pytermor import Spans
 
 from ...console import ConsoleDebugBuffer, Console
 
@@ -20,7 +20,7 @@ class ParserBuffer:
         self._raw_buffer += b
         self._closed = finish
 
-        self._debug_buffer.write(3, f'Appending {fmt.bold(len(b))} bytes')
+        self._debug_buffer.write(3, f'Appending {Spans.BOLD(len(b))} bytes')
         self._debug_buffer.write(2, f'Buffer state: {Console.printd(self._raw_buffer)}')
         if finish:
             self._debug_buffer.write(1, 'Closing buffer for input')

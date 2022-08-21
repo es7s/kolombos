@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import List
 
-from pytermor import seq, SequenceSGR
+from pytermor import SequenceSGR, Seqs, ansi
 
 from .. import CharClass, DisplayMode, MarkerDetailsEnum, ReadMode, PartialOverride, OpeningSeqPOV, LabelPOV
 from ..const import TYPE_LABEL_MAP, TYPE_LABEL_DETAILS
@@ -19,8 +19,8 @@ class Template:
     SEPARATOR_RIGHT = '⡇'
 
     IGNORED_LABEL: str = '×'
-    IGNORED_OPENING_SEQ: SequenceSGR = seq.GRAY + seq.DIM
-    DETAILS_OPENING_SEQ: SequenceSGR = seq.BG_BLACK + seq.UNDERLINED
+    IGNORED_OPENING_SEQ: SequenceSGR = Seqs.GRAY + Seqs.DIM
+    DETAILS_OPENING_SEQ: SequenceSGR = Seqs.BG_BLACK + Seqs.UNDERLINED
 
     def __init__(self, char_class: CharClass, opening_seq: SequenceSGR | OpeningSeqPOV, label: str | LabelPOV = ''):
         if not isinstance(opening_seq, PartialOverride):
@@ -39,7 +39,7 @@ class Template:
         self._decode: bool = False
 
         if not self._opening_seq_stack.has_key(DisplayMode.FOCUSED):
-            self._opening_seq_stack.set(DisplayMode.FOCUSED, self._opening_seq_stack.get() + seq.INVERSED)
+            self._opening_seq_stack.set(DisplayMode.FOCUSED, self._opening_seq_stack.get() + Seqs.INVERSED)
         if not self._opening_seq_stack.has_key(DisplayMode.IGNORED):
             self._opening_seq_stack.set(DisplayMode.IGNORED, self.IGNORED_OPENING_SEQ)
 
@@ -98,8 +98,8 @@ class Template:
             return f'{Template.SEPARATOR_LEFT}{s}{Template.SEPARATOR_RIGHT}'
 
         if isinstance(s, list):
-            s.insert(0, Segment(seq.build_c256(255), '', b'', Template.SEPARATOR_LEFT))
-            s.append(Segment(seq.build_c256(255), '', b'', Template.SEPARATOR_RIGHT))
+            s.insert(0, Segment(SequenceSGR.init_color_indexed(255), '', b'', Template.SEPARATOR_LEFT))
+            s.append(Segment(SequenceSGR.init_color_indexed(255), '', b'', Template.SEPARATOR_RIGHT))
             return
 
         raise TypeError(f'Invalid argument type {type(s)}')

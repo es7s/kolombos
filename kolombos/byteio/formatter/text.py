@@ -2,7 +2,8 @@
 # es7s/kolombos [Escape sequences and control characters visualiser]
 # (C) 2022 A. Shavykin <0.delameter@gmail.com>
 # -----------------------------------------------------------------------------
-from pytermor import seq, ReplaceSGR
+from pytermor import Seqs
+from pytermor.util import ReplaceSGR
 
 from . import AbstractFormatter
 from .. import ParserBuffer, WaitRequest
@@ -18,7 +19,7 @@ class TextFormatter(AbstractFormatter):
         self._line_num = 1
 
         self._output_buffer = ConsoleOutputBuffer()
-        self._debug_buffer = ConsoleDebugBuffer('txtfmt', seq.YELLOW)
+        self._debug_buffer = ConsoleDebugBuffer('txtfmt', Seqs.YELLOW)
 
     def format(self):
         while True:

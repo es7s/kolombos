@@ -8,8 +8,8 @@ from datetime import datetime
 from os.path import dirname, abspath, join
 from typing import List
 
-from pytermor import seq, autof, ReplaceSGR, SequenceSGR, sgr, ljust_fmtd, rjust_fmtd, center_fmtd, fmt, build_c256, \
-    build_rgb
+from pytermor import *
+from pytermor.util.stdlib_ext import *
 
 from es7s_tpl_processor import Es7sTemplateProcessor
 from kolombos.byteio import ReadMode, DisplayMode, MarkerDetailsEnum
@@ -42,7 +42,7 @@ def invoke_default(t: Template, *raws: bytes, read_mode: ReadMode = ReadMode.BIN
         labels = []
         label_default = sanitize(t.label_stack.get(DisplayMode.DEFAULT, read_mode))
         if not label_default:
-            label_default = autof(seq.GRAY)('*')
+            label_default = Span(Seqs.GRAY)('*')
         labels.append(label_default)
 
         label_focused = sanitize(t.label_stack.get(DisplayMode.FOCUSED, read_mode))
@@ -80,8 +80,8 @@ def invoke_on_escape_sequences(t: Template, raw_or_seq: SequenceSGR|bytes, no_de
                                brief_details: bool = False, full_details: bool = False, print_label=True,
                                focus: bool = False, print_hex: bool = True) -> str:
     if isinstance(raw_or_seq, SequenceSGR):
-        raw = raw_or_seq.print().encode()
-        sgr_params_str = ReplaceSGR('\\3').apply(raw_or_seq.print()).encode()
+        raw = raw_or_seq.assemble().encode()
+        sgr_params_str = ReplaceSGR('\\3').apply(raw_or_seq.assemble()).encode()
     else:
         raw = raw_or_seq
         sgr_params_str = None
@@ -94,7 +94,7 @@ def invoke_on_escape_sequences(t: Template, raw_or_seq: SequenceSGR|bytes, no_de
     result_hex = None
     if print_hex:
         result_hex = segs_to_hex(substitute_with(t, raw, dm, ReadMode.BINARY, details_fmt_str=sgr_params_str))
-        result_hex = rjust_fmtd(result_hex, 12) + ' '
+        result_hex = rjust_sgr(result_hex, 12) + ' '
 
     result_chr = []
 
@@ -111,7 +111,7 @@ def invoke_on_escape_sequences(t: Template, raw_or_seq: SequenceSGR|bytes, no_de
         result_chr.append(segs_to_processed(
             substitute_with(t, raw, dm, ReadMode.TEXT, MarkerDetailsEnum.FULL_DETAILS, details_fmt_str=sgr_params_str)))
 
-    result_chr_cols = center_fmtd('  '.join(result_chr), 10, ' '), None
+    result_chr_cols = center_sgr('  '.join(result_chr), 10, ' '), None
 
     return format_example([label, result_hex, None, *result_chr_cols])
 
@@ -131,8 +131,8 @@ def invoke_on_utf8(t: Template, *raws: bytes, read_mode: ReadMode, print_label: 
             hex_segs += substitute_with(t, cur_raw, dm, read_mode, decode=decode)
         result_chr += [segs_to_processed(substitute_with(t, cur_raw, dm, read_mode, decode=decode))]
 
-    result_hex = ljust_fmtd(segs_to_hex(hex_segs), 13)
-    result_chr = ' '*processed_shift + center_fmtd(' '.join(result_chr), 8)
+    result_hex = ljust_sgr(segs_to_hex(hex_segs), 13)
+    result_chr = ' '*processed_shift + center_sgr(' '.join(result_chr), 8)
 
     return format_example([label, result_hex, None, result_chr, None])
 
@@ -164,7 +164,7 @@ def segs_to_hex(segs: List[Segment]) -> str:
         if len(cur_raw) > 0 and len(seg.raw) + cur_b > max_b:
             cur_hex = cur_hex[:-1]
             excessive = True
-        result += autof(seg.opening_seq)(' ' + cur_hex)
+        result += Span(seg.opening_seq)(' ' + cur_hex)
         cur_b += len(cur_raw)
         if cur_b >= max_b:
             break
@@ -174,7 +174,7 @@ def segs_to_hex(segs: List[Segment]) -> str:
 
 
 def segs_to_processed(segs: List[Segment]) -> str:
-    return ''.join([autof(seg.opening_seq)(sanitize(seg.processed)) for seg in segs])
+    return ''.join([Span(seg.opening_seq)(sanitize(seg.processed)) for seg in segs])
 
 
 def format_example(col_values: list) -> str:
@@ -194,9 +194,9 @@ COL_CHR_DEFAULT = 3
 COL_CHR_FOCUSED = 4
 
 COLS_ORDER = [COL_LABEL, COL_CHR_DEFAULT, COL_CHR_FOCUSED, COL_HEX_DEFAULT, COL_HEX_FOCUSED, ]
-COL_FORMATTERS = {COL_LABEL: lambda s: center_fmtd(s, 5), COL_CHR_DEFAULT: lambda s: rjust_fmtd(s, 5) + ' ',
-    COL_CHR_FOCUSED: lambda s: ljust_fmtd(s, 5), COL_HEX_DEFAULT: lambda s: rjust_fmtd(s, 6),
-    COL_HEX_FOCUSED: lambda s: rjust_fmtd(s, 6) + ' ', }
+COL_FORMATTERS = {COL_LABEL: lambda s: center_sgr(s, 5), COL_CHR_DEFAULT: lambda s: rjust_sgr(s, 5) + ' ',
+    COL_CHR_FOCUSED: lambda s: ljust_sgr(s, 5), COL_HEX_DEFAULT: lambda s: rjust_sgr(s, 6),
+    COL_HEX_FOCUSED: lambda s: rjust_sgr(s, 6) + ' ', }
 PADDING_LEFT = 0
 PADDING_RIGHT = 3
 
@@ -220,19 +220,19 @@ VARIABLES = {'ver': __version__, 'ex_s_tab': invoke_default(reg.WHITESPACE_TAB, 
     'ex_p_print': invoke_default(reg.PRINTABLE_CHAR, b'a', b'b', b'c', b'd'),
 
     'ex_e_reset_lbl': invoke_default(reg.ESCAPE_SEQ_SGR_0, b''),
-    'ex_e_reset_m0': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR_0, seq.RESET, no_details=True, print_label=False),
-    'ex_e_reset_m1': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR_0, seq.RESET, brief_details=True, print_label=False),
-    'ex_e_reset_m2': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR_0, seq.RESET, full_details=True, print_label=False),
+    'ex_e_reset_m0': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR_0, Seqs.RESET, no_details=True, print_label=False),
+    'ex_e_reset_m1': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR_0, Seqs.RESET, brief_details=True, print_label=False),
+    'ex_e_reset_m2': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR_0, Seqs.RESET, full_details=True, print_label=False),
 
     'ex_e_sgr_lbl': invoke_default(reg.ESCAPE_SEQ_SGR, b''),
     'ex_e_sgr_m0': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR(34), no_details=True, print_label=False),
     'ex_e_sgr_m1': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR(35, 1), brief_details=True,
                                               print_label=False),
-    'ex_e_sgr_m1_2': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, build_c256(14) + build_c256(88, True),
+    'ex_e_sgr_m1_2': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR.init_color_indexed(14) + SequenceSGR.init_color_indexed(88, True),
                                                 brief_details=True, print_label=False),
-    'ex_e_sgr_m1_3': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, build_rgb(0x9a, 0xae, 0x5a), brief_details=True,
+    'ex_e_sgr_m1_3': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR.init_color_rgb(0x9a, 0xae, 0x5a), brief_details=True,
                                                 print_label=False),
-    'ex_e_sgr_m2': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, build_rgb(0x9a, 0xae, 0x5a) + seq.BG_COLOR_OFF, full_details=True,
+    'ex_e_sgr_m2': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR.init_color_rgb(0x9a, 0xae, 0x5a) + Seqs.BG_COLOR_OFF, full_details=True,
                                               print_label=False, print_hex=False),
     'ex_e_csi': invoke_on_escape_sequences(reg.ESCAPE_SEQ_CSI, b'\x1b\x5b\x32\x34\x64', full_details=True),
     'ex_e_nf': invoke_on_escape_sequences(reg.ESCAPE_SEQ_NF, b'\x1b\x28\x42', full_details=True, focus=True),
@@ -251,14 +251,14 @@ VARIABLES = {'ver': __version__, 'ex_s_tab': invoke_default(reg.WHITESPACE_TAB, 
     'ex_i_2': invoke_default(reg.BINARY_DATA, b'\xc0', b'\xff', b'\xee', b'\xda', read_mode=ReadMode.TEXT,
                              print_label=True),
 
-    'fmt_header': seq.HI_WHITE + seq.BOLD,
-    'fmt_thead': seq.DIM + seq.UNDERLINED,
-    'fmt_cc': seq.BOLD,
-    'fmt_comment': seq.GRAY,
-    'fmt_param': seq.GRAY + seq.BOLD,
-    'fmt_m0': seq.GRAY + seq.BOLD,
-    'fmt_m1': build_c256(117),
-    'fmt_m2':  build_rgb(248, 184, 137),
+    'fmt_header': Seqs.HI_WHITE + Seqs.BOLD,
+    'fmt_thead': Seqs.DIM + Seqs.UNDERLINED,
+    'fmt_cc': Seqs.BOLD,
+    'fmt_comment': Seqs.GRAY,
+    'fmt_param': Seqs.GRAY + Seqs.BOLD,
+    'fmt_m0': Seqs.GRAY + Seqs.BOLD,
+    'fmt_m1': SequenceSGR.init_color_indexed(117),
+    'fmt_m2':  SequenceSGR.init_color_rgb(248, 184, 137),
 }
 
 with open(TPL_PATH, 'rt', encoding='utf8') as f:
@@ -269,9 +269,11 @@ if not out.endswith('\n'):
     out += '\n'
 out += f'# Generated at {datetime.now():%e-%b-%y %R}'
 
+
 def format_thousand_sep(value: int|float, separator=' '):
     return f'{value:_}'.replace('_', separator)
 
+
 with open(OUTPUT_PATH, 'wt', encoding='utf8') as f:
     length = f.write(out)
-    Console.info(f'Wrote {fmt.bold(format_thousand_sep(length))} bytes to {fmt.blue(OUTPUT_PATH)}')
+    Console.info(f'Wrote {Spans.BOLD(format_thousand_sep(length))} bytes to {Spans.BLUE(OUTPUT_PATH)}')

@@ -6,7 +6,8 @@ from __future__ import annotations
 
 from typing import Deque, List, Tuple
 
-from pytermor import autof, fmt, SequenceSGR, ReplaceSGR
+from pytermor import Span, Spans, SequenceSGR
+from pytermor.util import ReplaceSGR
 
 from . import Chainable, SegmentPrinter, Segment, StartSequenceRef, StopSequenceRef, OneUseSequenceRef, SequenceRef
 from .. import WaitRequest
@@ -33,7 +34,7 @@ class SegmentBuffer:
 
     def attach(self, *segments: Segment):
         for segment in segments:
-            f = autof(segment.opening_seq)
+            f = Span(segment.opening_seq)
             if len(f.opening_seq.params) == 0 or set(f.opening_seq.params) == {0}:
                 self._segment_chain.append(segment)
                 continue
@@ -86,8 +87,8 @@ class SegmentBuffer:
         raw_byte_len, sgr_byte_len, values, has_more = preview_data
 
         result = ('len ' +
-                  fmt.bold(raw_byte_len) +
-                  fmt.italic(f'+{sgr_byte_len}'))
+                  Spans.BOLD(raw_byte_len) +
+                  Spans.ITALIC(f'+{sgr_byte_len}'))
 
         if SettingsManager.app_settings.debug_buffer_contents:
             values_str = []
@@ -96,13 +97,13 @@ class SegmentBuffer:
                 if isinstance(value, int):
                     values_str.append(f'{value:02x}')
                 elif isinstance(value, SequenceRef):
-                    values_str.append(fmt.italic(self._preview_sgr(value.ref.print())))
-            result += ': ' + fmt.gray('[' + ' '.join(values_str) + has_more_str + ']')
+                    values_str.append(Spans.ITALIC(self._preview_sgr(value.ref.assemble())))
+            result += ': ' + Spans.GRAY('[' + ' '.join(values_str) + has_more_str + ']')
 
             if SettingsManager.app_settings.debug_buffer_contents_full:
                 result += '. Active SGR buffer state: '
-                sgrs_str = ' '.join([self._preview_sgr(sgr.print()) for sgr in self._active_sgrs])
-                result += fmt.gray(f'[{sgrs_str}]')
+                sgrs_str = ' '.join([self._preview_sgr(sgr.assemble()) for sgr in self._active_sgrs])
+                result += Spans.GRAY(f'[{sgrs_str}]')
 
         return result
 
@@ -146,10 +147,10 @@ class SegmentBuffer:
 
             self._segment_chain.popleft()
 
-        output.extend([OneUseSequenceRef(autof(sgr).closing_seq) for sgr in self._active_sgrs])
+        output.extend([OneUseSequenceRef(Span(sgr).closing_seq) for sgr in self._active_sgrs])
         self._last_detached_data_len = sum([el.data_len for el in output])
 
-        self._debug_buffer.write(2, 'Detached ' + fmt.bold(sum([el.data_len for el in output])) + ' data byte(s)')
+        self._debug_buffer.write(2, 'Detached ' + Spans.BOLD(sum([el.data_len for el in output])) + ' data byte(s)')
         self._debug_buffer.write(2, f'Buffer state: {Console.printd(self)}')
         return output
 
@@ -163,7 +164,7 @@ class SegmentBuffer:
                 output += printer.print(cur_element)
 
             elif isinstance(cur_element, SequenceRef):  # StartSequenceRef | OneUseSequenceRef
-                output += self._append_sgr_to_output(printer, cur_element.ref.print())
+                output += self._append_sgr_to_output(printer, cur_element.ref.assemble())
 
         # @TODO optimize sgrs: {RED}A{COLOR_OFF}{RED}A{COLOR_OFF}... -> {RED}AA{COLOR_OFF}
         return output
@@ -176,10 +177,10 @@ class SegmentBuffer:
         return sgr_str
 
     def _get_active_sgrs_opening(self) -> str:
-        return ''.join(sgr.print() for sgr in self._active_sgrs)
+        return ''.join(sgr.assemble() for sgr in self._active_sgrs)
 
     def _get_active_sgrs_closing(self) -> str:
-        return ''.join(autof(sgr).closing_str for sgr in self._active_sgrs)
+        return ''.join(Span(sgr).closing_str for sgr in self._active_sgrs)
 
     def _preview_sgr(self, sgr_str: str) -> str:
         return ReplaceSGR('[ǝ\\3]').apply(sgr_str)
@@ -199,7 +200,7 @@ class SegmentBuffer:
                 raw_byte_len += el.data_len
 
             elif isinstance(el, SequenceRef):
-                sgr_len = len(el.ref.print())
+                sgr_len = len(el.ref.assemble())
                 if not max_input_exceeded:
                     result.append(el)
                 sgr_byte_len += sgr_len

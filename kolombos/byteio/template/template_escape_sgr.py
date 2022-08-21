@@ -4,8 +4,7 @@
 # -----------------------------------------------------------------------------
 from __future__ import annotations
 
-from pytermor import SequenceSGR, sgr, seq
-from pytermor.sgr import *
+from pytermor import SequenceSGR, IntCodes, Seqs
 
 from . import EscapeSequenceTemplate
 from .. import OpeningSeqPOV, LabelPOV, MarkerDetailsEnum
@@ -17,9 +16,9 @@ class EscapeSequenceSGRTemplate(EscapeSequenceTemplate):
     M1_SEPARATOR = '･'
 
     ALLOWED_SGRS_FOR_MARKER_FORMAT = [  # INVERSED, BOLD, UNDERLINED are reserved for markers themself
-        DIM, ITALIC,
-        OVERLINED, CROSSLINED,
-        *LIST_ALL_COLORS,
+        IntCodes.DIM, IntCodes.ITALIC,
+        IntCodes.OVERLINED, IntCodes.CROSSLINED,
+        *IntCodes.LIST_ALL_COLORS,
     ]
 
     def __init__(self, opening_seq: SequenceSGR | OpeningSeqPOV, label: str | LabelPOV = ''):
@@ -43,13 +42,13 @@ class EscapeSequenceSGRTemplate(EscapeSequenceTemplate):
         while len(pcodes):  # @TODO automatically set black/white text if only bg color is defined, and vice versa
             pcode = pcodes.pop(0)
 
-            if pcode == sgr.COLOR_EXTENDED or pcode == sgr.BG_COLOR_EXTENDED:
-                brief_type = 'F' if pcode == sgr.COLOR_EXTENDED else 'B'
-                if len(pcodes) >= 2 and pcodes[0] == sgr.EXTENDED_MODE_256:
+            if pcode == IntCodes.COLOR_EXTENDED or pcode == IntCodes.BG_COLOR_EXTENDED:
+                brief_type = 'F' if pcode == IntCodes.COLOR_EXTENDED else 'B'
+                if len(pcodes) >= 2 and pcodes[0] == IntCodes.EXTENDED_MODE_256:
                     pcodes_allowed.extend([pcode, pcodes.pop(0), pcodes.pop(0)])
                     brief_names.append(f'{brief_type}{pcodes_allowed[-1]}')
                     continue
-                if len(pcodes) >= 4 and pcodes[0] == sgr.EXTENDED_MODE_RGB:
+                if len(pcodes) >= 4 and pcodes[0] == IntCodes.EXTENDED_MODE_RGB:
                     pcodes_allowed.extend([pcode, *[pcodes.pop(0) for _ in range(4)]])
                     brief_names.append(
                         f'{brief_type}'
@@ -60,7 +59,7 @@ class EscapeSequenceSGRTemplate(EscapeSequenceTemplate):
                 pcodes_allowed.append(pcode)
             brief_names.append(pcode)
 
-        self._brief_details_processed = f'{seq.UNDERLINED_OFF}{self.M1_SEPARATOR}{seq.UNDERLINED}'.join(str(bn) for bn in brief_names)
+        self._brief_details_processed = f'{Seqs.UNDERLINED_OFF}{self.M1_SEPARATOR}{Seqs.UNDERLINED}'.join(str(bn) for bn in brief_names)
         self._details_opening_seq = SequenceSGR(*pcodes_allowed)
 
     def _get_brief_details_processed(self) -> str:

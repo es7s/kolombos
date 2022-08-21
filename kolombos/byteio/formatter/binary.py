@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from math import floor
 
-from pytermor import fmt, autof, seq, Format
+from pytermor import Spans, Seqs, NOOP_SPAN
 
 from . import AbstractFormatter
 from .. import ParserBuffer, WaitRequest
@@ -29,12 +29,12 @@ class BinaryFormatter(AbstractFormatter):
         self._cols: int|None = SettingsManager.app_settings.columns
 
         self._output_buffer = ConsoleOutputBuffer()
-        self._debug_buffer = ConsoleDebugBuffer('binfmt', seq.YELLOW)
+        self._debug_buffer = ConsoleDebugBuffer('binfmt', Seqs.YELLOW)
 
     def format(self):
         cur_cols = self._cols
         if cur_cols is None:
-            prefix_example = Console.format_prefix_with_offset(self._offset, Format())
+            prefix_example = Console.format_prefix_with_offset(self._offset, NOOP_SPAN)
             cur_cols = self._compute_cols_num(len(prefix_example))
 
         req_bytes = cur_cols
@@ -42,7 +42,7 @@ class BinaryFormatter(AbstractFormatter):
             req_bytes = min(self._segment_buffer.data_len, cur_cols)
 
         while True:
-            self._debug_buffer.write(1, 'Requested ' + fmt.bold(req_bytes) + ' byte(s)')
+            self._debug_buffer.write(1, 'Requested ' + Spans.BOLD(req_bytes) + ' byte(s)')
             try:
                 force = self._parser_buffer.closed
                 result = self._segment_buffer.detach_bytes(req_bytes, force, [
@@ -107,5 +107,5 @@ class BinaryFormatter(AbstractFormatter):
         chunk_fit = floor(available_total / chunk_len)
 
         result = chunk_fit * self.BYTE_CHUNK_LEN
-        self._debug_buffer.write(2, f'Columns amount set to: {fmt.bold(result)}')
+        self._debug_buffer.write(2, f'Columns amount set to: {Spans.BOLD(result)}')
         return result

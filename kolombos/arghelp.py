@@ -6,7 +6,7 @@ import re
 from argparse import HelpFormatter, Action, ArgumentParser, SUPPRESS
 from typing import Optional, Iterable, List
 
-from pytermor import fmt
+from pytermor import Spans
 
 from .byteio import Reader
 from .byteio.template import Template
@@ -18,7 +18,7 @@ class CustomHelpFormatter(HelpFormatter):
 
     @staticmethod
     def format_header(title: str) -> str:
-        return fmt.bold(title.upper())
+        return Spans.BOLD(title.upper())
 
     def __init__(self, prog):
         super().__init__(prog, max_help_position=30, indent_increment=self.INDENT_INCREMENT)
@@ -94,9 +94,9 @@ class CustomArgumentParser(ArgumentParser):
 
 class AppArgumentParser(CustomArgumentParser):
     def __init__(self):
-        fmt_b = fmt.bold
-        fmt_u = fmt.underlined
-        fmt_default = fmt.yellow
+        fmt_b = Spans.BOLD
+        fmt_u = Spans.UNDERLINED
+        fmt_default = Spans.YELLOW
 
         super().__init__(
             description='Escape sequences and control characters visualiser',
@@ -174,8 +174,8 @@ class AppArgumentParser(CustomArgumentParser):
         text_mode_group = self.add_argument_group('text mode options')
         text_mode_group.add_argument('-m', '--marker', metavar='<details>', action='store', type=int, default=0, help='marker details: 0 is none, 1 is brief, 2 is full '+fmt_default('[default: %(default)s]'))
         text_mode_group.add_argument('--no-separators', action='store_true', default=False, help='do not print '+Template.wrap_in_separators('separators')+' around escape sequences')
-        # text_mode_group.add_argument('-Q', '--squash-ignored', action='store_true', default=False, help=autof(seq.HI_YELLOW)('TODO ')+'replace sequences of ignored characters with one character')
-        # text_mode_group.add_argument('-H', '--hide-ignored', action='store_true', default=False, help=autof(seq.HI_YELLOW)('TODO ')+'completely hide ignored character classes')
+        # text_mode_group.add_argument('-Q', '--squash-ignored', action='store_true', default=False, help=Span(Seqs.HI_YELLOW)('TODO ')+'replace sequences of ignored characters with one character')
+        # text_mode_group.add_argument('-H', '--hide-ignored', action='store_true', default=False, help=Span(Seqs.HI_YELLOW)('TODO ')+'completely hide ignored character classes')
         text_mode_group.add_argument('--no-line-numbers', action='store_true', default=False, help='do not print line numbers')
 
         bin_mode_group = self.add_argument_group('binary mode options')

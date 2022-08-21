@@ -9,7 +9,8 @@ import re
 from re import Match
 from typing import Dict, Any, List
 
-from pytermor import build, seq, StringFilter, apply_filters
+from pytermor import Seqs, SequenceSGR
+from pytermor.util import StringFilter, apply_filters
 
 from kolombos.console import Console
 
@@ -19,15 +20,12 @@ class Es7sTemplateProcessor:
     def __init__(self):
         self._variables: Dict[str, Any] = dict()
         self._filters: List[StringFilter[str]] = [
-            StringFilter[str](
-                lambda s: re.sub(r'#{}(.*?){}#', '', s, flags=re.DOTALL)
-            ),
-            StringFilter[str](
-                lambda s: re.sub(r'\^{\s*([\w;]*)\s*}', lambda m: self._resolve_fmt_match(m), s)
-            ),
-            StringFilter[str](
-                lambda s: re.sub(r':{\s*(\w+)\s*}', lambda m: self._resolve_var_match(m), s)
-            ),
+            # StringFilter[str](
+            #     lambda s: re.sub(r'#{}(.*?){}#', '', s, flags=re.DOTALL)
+            # ),
+            StringFilter[str](r'#{}(.*?){}#', ''),
+            StringFilter[str](r'\^{\s*([\w;]*)\s*}', lambda m: self._resolve_fmt_match(m)),
+            StringFilter[str](r':{\s*(\w+)\s*}', lambda m: self._resolve_var_match(m)),
         ]
 
     def substitute(self, inp: str, variables: Dict[str, Any] = None) -> str:
@@ -38,10 +36,10 @@ class Es7sTemplateProcessor:
     def _resolve_fmt_match(self, m: Match) -> str:
         params_str = m.group(1)
         if len(params_str) == 0:
-            return seq.RESET.print()
+            return Seqs.RESET.assemble()
         params = [self._try_int(p) for p in params_str.split(';')]
         try:
-            return build(*params).print()
+            return SequenceSGR(*params).assemble()
         except KeyError:
             Console.warn(f'Unable to substitute format from "{params_str}"')
             return m.group(0)

@@ -11,7 +11,8 @@ from abc import ABCMeta, abstractmethod
 from math import ceil
 from typing import List, Any
 
-from pytermor import autof, seq, fmt, SequenceSGR, ReplaceSGR, Format
+from pytermor import Spans, SequenceSGR, Seqs, Span
+from pytermor.util import ReplaceSGR
 
 from . import ArgumentError, get_terminal_width
 from .byteio import CharClass
@@ -35,7 +36,7 @@ class ConsoleOutputBuffer(AbstractConsoleBuffer):
             self.flush()
 
     def write_with_line_num(self, s: str, line_num: int, end='', flush=True):
-        fmt_ = fmt.green
+        fmt_ = Spans.GREEN
         if SettingsManager.app_settings.debug:
             prefix = Console.format_prefix(str(line_num), fmt_)
         elif SettingsManager.app_settings.no_line_numbers:
@@ -48,7 +49,7 @@ class ConsoleOutputBuffer(AbstractConsoleBuffer):
             self.flush()
 
     def write_with_offset(self, s: str, offset: int, end='\n', flush=True):
-        fmt_ = fmt.green
+        fmt_ = Spans.GREEN
         if SettingsManager.app_settings.effective_print_offsets:
             prefix = Console.format_prefix_with_offset(offset, fmt_)
         else:
@@ -67,11 +68,11 @@ class ConsoleOutputBuffer(AbstractConsoleBuffer):
 
 
 class ConsoleDebugBuffer(AbstractConsoleBuffer):
-    def __init__(self, key_prefix: str = None, prefix_offset_color: SequenceSGR = seq.GRAY):
+    def __init__(self, key_prefix: str = None, prefix_offset_color: SequenceSGR = Seqs.GRAY):
         self._buf = ''
 
-        self._default_prefix = Console.format_prefix(key_prefix, autof(seq.GRAY + seq.BG_BLACK)) if key_prefix else None
-        self._prefix_fmt = autof(prefix_offset_color + seq.BG_BLACK)
+        self._default_prefix = Console.format_prefix(key_prefix, Span(Seqs.GRAY + Seqs.BG_BLACK)) if key_prefix else None
+        self._prefix_fmt = Span(prefix_offset_color + Seqs.BG_BLACK)
 
         Console.register_buffer(self)
 
@@ -99,9 +100,9 @@ class ConsoleDebugBuffer(AbstractConsoleBuffer):
 
 
 class Console:
-    FMT_WARNING = autof(seq.YELLOW)
-    FMT_ERROR_TRACE = fmt.red
-    FMT_ERROR = autof(seq.HI_RED)
+    FMT_WARNING = Span(Seqs.YELLOW)
+    FMT_ERROR_TRACE = Spans.RED
+    FMT_ERROR = Span(Seqs.HI_RED)
     MAIN_PREFIX_LEN = 8
     SEPARATOR_CHAR = '│'
 
@@ -135,7 +136,7 @@ class Console:
 
         else:
             Console.error(f'{e.__class__.__name__}: {e!s}')
-            Console.info("Run the app with '"+fmt.bold('--debug')+"' argument to see the details")
+            Console.info("Run the app with '"+Spans.BOLD('--debug')+"' argument to see the details")
 
     @staticmethod
     def debug(s: str = '', end='\n'):
@@ -147,11 +148,11 @@ class Console:
 
     @staticmethod
     def warn(s: str = '', end='\n'):
-        Console.print(Console.FMT_WARNING(fmt.bold('WARN: ') + s), end=end, file=sys.stderr)
+        Console.print(Console.FMT_WARNING(Spans.BOLD('WARN: ') + s), end=end, file=sys.stderr)
 
     @staticmethod
     def error(s: str = '', end='\n'):
-        Console.print(Console.FMT_ERROR(fmt.bold('ERROR: ') + s), end=end, file=sys.stderr)
+        Console.print(Console.FMT_ERROR(Spans.BOLD('ERROR: ') + s), end=end, file=sys.stderr)
 
     @staticmethod
     def get_separator() -> str:
@@ -183,11 +184,11 @@ class Console:
         main_raw = '─' * Console.MAIN_PREFIX_LEN
         settings_part = ''
         if Console.settings_prefix_len and (settings_open or settings_mid or settings_close):
-            main_part = autof(seq.BG_BLACK)(main_raw + main_cross)
-            settings_part = (autof(seq.BG_BLACK)('─' * (Console.settings_prefix_len - Console.MAIN_PREFIX_LEN - 1)) +
+            main_part = Span(Seqs.BG_BLACK)(main_raw + main_cross)
+            settings_part = (Span(Seqs.BG_BLACK)('─' * (Console.settings_prefix_len - Console.MAIN_PREFIX_LEN - 1)) +
                              settings_cross)
         else:
-            main_part = autof(seq.BG_BLACK)(main_raw) + main_cross
+            main_part = Span(Seqs.BG_BLACK)(main_raw) + main_cross
 
         max_width = get_terminal_width(exact=True)
         filler_len = max_width - len(ReplaceSGR('').apply(main_part+settings_part))
@@ -206,19 +207,19 @@ class Console:
         def debug_print(attr, app_value, default_value):
             if app_value != default_value:
                 fmt_attr_seq = fmt_header.opening_seq
-                values = fmt.green(f'{app_value!s}') + ' ' + fmt.gray(f'[{default_value!s}]')
+                values = Spans.GREEN(f'{app_value!s}') + ' ' + Spans.GRAY(f'[{default_value!s}]')
             else:
-                fmt_attr_seq = seq.BG_BLACK
-                values = fmt.yellow(f'{default_value!s}')
+                fmt_attr_seq = Seqs.BG_BLACK
+                values = Spans.YELLOW(f'{default_value!s}')
 
             if is_derived(attr, app_settings):
-                fmt_attr_seq += seq.ITALIC
+                fmt_attr_seq += Seqs.ITALIC
 
-            debug_buffer.write(3, autof(fmt_attr_seq)(attr.rjust(max_attr_len)) + Console.get_separator() + values)
+            debug_buffer.write(3, Span(fmt_attr_seq)(attr.rjust(max_attr_len)) + Console.get_separator() + values)
 
         default_settings = Settings()
         debug_buffer = ConsoleDebugBuffer()
-        fmt_header = autof(seq.BG_BLACK + seq.BOLD)
+        fmt_header = Span(Seqs.BG_BLACK + Seqs.BOLD)
         derived = app_settings.debug_settings_derived
 
         attrs = [attr for attr in sorted(
@@ -232,7 +233,7 @@ class Console:
         debug_buffer.write(3, Console.get_separator_line(settings_open=True))
         header = 'Settings [Derived]'.upper().ljust(max_attr_len)
         if derived:
-            header = header.replace('[', f'[{seq.ITALIC}').replace(']', f'{seq.ITALIC_OFF}]')
+            header = header.replace('[', f'[{Seqs.ITALIC}').replace(']', f'{Seqs.ITALIC_OFF}]')
         else:
             header = re.sub(r'\[\w+]', lambda m: len(m.group(0)) * ' ', header)
 
@@ -250,13 +251,13 @@ class Console:
         debug_buffer.write(3, Console.get_separator_line(settings_close=True, main_open=True))
 
     @staticmethod
-    def format_prefix(label: str, f: Format) -> str:
+    def format_prefix(label: str, f: Span) -> str:
         prefix = f(f'{label!s:>{Console.MAIN_PREFIX_LEN}.{Console.MAIN_PREFIX_LEN}s}') + Console.get_separator()
-        prefix = re.sub('0x', lambda m: fmt.dim(m.group()), prefix)
+        prefix = re.sub('0x', lambda m: Spans.DIM(m.group()), prefix)
         return prefix
 
     @staticmethod
-    def format_prefix_with_offset(offset: int, f: Format = fmt.green) -> str:
+    def format_prefix_with_offset(offset: int, f: Span = Spans.GREEN) -> str:
         if SettingsManager.app_settings.decimal_offsets:
             offset_str = f'{offset:d}'
         else:
@@ -265,7 +266,7 @@ class Console:
 
     @staticmethod
     def format_total_size(offset: int) -> str:
-        return Console.format_prefix_with_offset(offset, fmt.cyan)
+        return Console.format_prefix_with_offset(offset, Spans.CYAN)
 
     @staticmethod
     def print(s: str, end='\n', **kwargs):
@@ -280,22 +281,22 @@ class Console:
             v = v.preview(max_input_len)
 
         if isinstance(v, (bytes, List)):
-            result = 'len ' + fmt.bold(len(v))
+            result = 'len ' + Spans.BOLD(len(v))
             if not SettingsManager.app_settings.debug_buffer_contents:
                 return result
 
             if len(v) == 0:
-                return f'{result} {seq.GRAY}[]{seq.COLOR_OFF}'
+                return f'{result} {Seqs.GRAY}[]{Seqs.COLOR_OFF}'
             if isinstance(v, bytes):
                 v = ' '.join([f'{b:02x}' for b in v])
             return f'{result} ' + \
-                   f'{seq.GRAY}[' + \
+                   f'{Seqs.GRAY}[' + \
                    f'{v[:2*(max_input_len-1)]}' + \
                    ('.. ' + ''.join(v[-2:])if len(v) > 2 * (max_input_len - 1) else '') + \
-                   f']{seq.COLOR_OFF}'
+                   f']{Seqs.COLOR_OFF}'
 
         return f'{v!s}'
 
     @staticmethod
     def _format_separator(s: str) -> str:
-        return autof(seq.GRAY)(s) if SettingsManager.app_settings.debug > 0 else fmt.cyan(s)
+        return Span(Seqs.GRAY)(s) if SettingsManager.app_settings.debug > 0 else Spans.CYAN(s)
