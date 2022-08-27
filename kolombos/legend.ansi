@@ -3,7 +3,7 @@
 [1;32m  / //_/[36m __ \/ / __ \[35m/ __ '__ \/ __ \/ __ \[33m/ ___/[m
 [1;94m / ,< [36m/ /_/ / / /_/ [35m/ / / / / / /_/ / /_/ [33m(__  )[m
 [1;34m/_/|_|[34m\____/_/\____/_/ /_/ /_/\.___/\____[33m/____/[m
-                                        [93mv1.3.0-dev3[m
+                                        [93mv1.3.0-dev4[m
 
 [97;1mCHARACTER CLASSES[m
   [90m<[m[1mS[m[90m>[m   ASCII whitespace chars   09-0d, 20      [90;1m-s -S[m
@@ -64,4 +64,4 @@
 
 [90mIs a part of [94mes7s[90m pack[m
 [90m(c) 2022 A. Shavykin <[33m0[90m.delameter@gmail.com>[m
-# Generated at 21-Aug-22 08:40
+# Generated at 27-Aug-22 11:59

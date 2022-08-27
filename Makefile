@@ -25,10 +25,10 @@ help:   ## Show this help
 	@fgrep -h "##" $(MAKEFILE_LIST) | fgrep -v @fgrep | sed -Ee 's/^(##)\s*([^#]+)#*\s*(.*)/\1${YELLOW}\2${RESET}#\3/' -e 's/(.+):(#|\s)+(.+)/##   ${GREEN}\1${RESET}#\3/' | column -t -s '#'
 
 prepare:  ## Prepare environment for module building
-	pip3 install --upgrade build twine
 	python3 -m venv venv
 	. venv/bin/activate
-	pip3 install -r requirements.txt
+	pip3 install -r requirements-dev.txt --upgrade
+	pip3 install -r requirements.txt -i https://test.pypi.org/simple/  # @FIXME
 
 demolish-build:  ## Purge build output folders
 	rm -f -v dist/* ${PROJECT_NAME_PUBLIC}.egg-info/* ${PROJECT_NAME_PRIVATE}.egg-info/*
@@ -57,6 +57,7 @@ test: ## Run tests
 
 depends:  ## Build and display module dependency graph
 	mkdir -p dev/diagrams
+	. venv/bin/activate
 	pydeps ${PROJECT_NAME} --rmprefix ${PROJECT_NAME}. -o dev/diagrams/imports.svg
 	pydeps ${PROJECT_NAME} --rmprefix ${PROJECT_NAME}. -o dev/diagrams/cycles.svg 	   --show-cycle                       --no-show
 	pydeps ${PROJECT_NAME} --rmprefix ${PROJECT_NAME}. -o dev/diagrams/imports-ext.svg --pylib  --collapse-target-cluster --no-show
@@ -67,10 +68,12 @@ depends:  ## Build and display module dependency graph
 build-dev: ## Create new private build (<kolombos-delameter>)
 build-dev: demolish-build
 	sed -E -i "s/^name.+/name = ${PROJECT_NAME_PRIVATE}/" setup.cfg
+	. venv/bin/activate
 	python3 -m build
 	sed -E -i "s/^name.+/name = ${PROJECT_NAME_PUBLIC}/" setup.cfg
 
 upload-dev: ## Upload last successful build to dev repo
+	. venv/bin/activate
 	python3 -m twine upload --repository testpypi dist/* \
 			-u ${PYPI_USERNAME} -p ${PYPI_PASSWORD_DEV} --verbose
 
@@ -85,9 +88,11 @@ install-dev-public: ## Install latest public build from dev repo
 
 build: ## Create new public build (<kolombos>)
 build: demolish-build
+	. venv/bin/activate
 	python3 -m build
 
 upload: ## Upload last successful build to PRIMARY repo
+	. venv/bin/activate
 	python3 -m twine upload dist/* -u ${PYPI_USERNAME} -p ${PYPI_PASSWORD} --verbose
 
 install: ## Install latest public build from PRIMARY repo

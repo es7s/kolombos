@@ -1,1 +1,2 @@
-pytermor ~= 2.1
+--pre
+pytermor==2.1.*

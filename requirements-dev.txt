@@ -1,0 +1,3 @@
+build
+twine
+pydeps~=1.10
