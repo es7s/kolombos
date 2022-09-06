@@ -14,7 +14,7 @@ from pytermor.util.stdlib_ext import *
 from es7s_tpl_processor import Es7sTemplateProcessor
 from kolombos.byteio import ReadMode, DisplayMode, MarkerDetailsEnum
 from kolombos.byteio.segment import Segment
-from kolombos.byteio.template import TemplateRegistry, Template, EscapeSequenceSGRTemplate
+from kolombos.byteio.template import TemplateRegistry, Template, EscapeSequenceSGRTemplate, Utf8SequenceTemplate
 from kolombos.console import Console
 from kolombos.settings import SettingsManager
 from kolombos.version import __version__
@@ -33,22 +33,30 @@ def sanitize(s: str) -> str:
     return s.replace('\t', '').replace('\n', '')
 
 
+def render_label(char: str, fg: str|None = 'rgb_white', bg: str|None = 'rgb_black', bold=True) -> str:
+    return Style(fg=fg, bg=bg, bold=bold).render(' ' + sanitize(char) + ' ')
+
+
 def invoke_default(t: Template, *raws: bytes, read_mode: ReadMode = ReadMode.BINARY,
                    print_label: bool = True, print_hex: bool = True,
                    marker: MarkerDetailsEnum = MarkerDetailsEnum.DEFAULT) -> str:
     result = [''] * 5
 
     if print_label:
+
         labels = []
-        label_default = sanitize(t.label_stack.get(DisplayMode.DEFAULT, read_mode))
-        if not label_default:
-            label_default = Span(Seqs.GRAY)('*')
+        label_default_raw = t.label_stack.get(DisplayMode.DEFAULT, read_mode)
+        if label_default_raw:
+            label_default = render_label(label_default_raw)
+        else:
+            label_default = render_label('(*)', fg='rgb_gray_40', bg=None, bold=False)
         labels.append(label_default)
 
-        label_focused = sanitize(t.label_stack.get(DisplayMode.FOCUSED, read_mode))
-        if label_focused and label_focused not in labels:
+        label_focused_raw = t.label_stack.get(DisplayMode.FOCUSED, read_mode)
+        label_focused = render_label(label_focused_raw)
+        if label_focused_raw and label_focused_raw != label_default_raw:
             labels.append(label_focused)
-        result[COL_LABEL] = ' '.join(labels)
+        result[COL_LABEL] = '\x00'.join(labels)
 
     if len(raws) == 1:
         raw = [raws[0], None, raws[0], None]
@@ -73,6 +81,9 @@ def invoke_default(t: Template, *raws: bytes, read_mode: ReadMode = ReadMode.BIN
                 result[col_hex] += segs_to_hex(substitute_with(t, cur_raw, display_mode, ReadMode.BINARY, marker))
             result[col_chr] += segs_to_processed(substitute_with(t, cur_raw, display_mode, read_mode, marker))
 
+    # if raws == (b'',):
+    #     for col in [COL_HEX_DEFAULT, COL_HEX_FOCUSED, COL_CHR_DEFAULT, COL_CHR_FOCUSED]:
+    #         result[col] = Text(('--'*3)[:-1], style=Style(fg='gray')).render()
     return format_example(result)
 
 
@@ -89,7 +100,7 @@ def invoke_on_escape_sequences(t: Template, raw_or_seq: SequenceSGR|bytes, no_de
 
     label = ''
     if print_label:
-        label = t.label_stack.get()
+        label = render_label(t.label_stack.get())
 
     result_hex = None
     if print_hex:
@@ -120,7 +131,12 @@ def invoke_on_utf8(t: Template, *raws: bytes, read_mode: ReadMode, print_label: 
                    decode: bool = False, processed_shift: int = 0) -> str:
     label = ''
     if print_label:
-        label = t.label_stack.get(ReadMode.BINARY)
+        if decode:
+            label = render_label(Utf8SequenceTemplate.DECODED_LEFT_FILL_CHAR)
+        elif read_mode.is_text:
+            label = render_label('(*)', fg='rgb_gray_40', bg=None, bold=False)
+        else:
+            label = render_label(t.label_stack.get(ReadMode.BINARY))
 
     raw = list(raws)
     hex_segs = []
@@ -194,13 +210,20 @@ COL_CHR_DEFAULT = 3
 COL_CHR_FOCUSED = 4
 
 COLS_ORDER = [COL_LABEL, COL_CHR_DEFAULT, COL_CHR_FOCUSED, COL_HEX_DEFAULT, COL_HEX_FOCUSED, ]
-COL_FORMATTERS = {COL_LABEL: lambda s: center_sgr(s, 5), COL_CHR_DEFAULT: lambda s: rjust_sgr(s, 5) + ' ',
-    COL_CHR_FOCUSED: lambda s: ljust_sgr(s, 5), COL_HEX_DEFAULT: lambda s: rjust_sgr(s, 6),
-    COL_HEX_FOCUSED: lambda s: rjust_sgr(s, 6) + ' ', }
+COL_FORMATTERS = {
+    COL_LABEL: lambda s: center_sgr(' '.join(s.split('\x00')), 7),
+    COL_CHR_DEFAULT: lambda s: rjust_sgr(s, 5) + ' ',
+    COL_CHR_FOCUSED: lambda s: ljust_sgr(s, 5),
+    COL_HEX_DEFAULT: lambda s: rjust_sgr(s, 6),
+    COL_HEX_FOCUSED: lambda s: rjust_sgr(s, 6) + ' ',
+}
 PADDING_LEFT = 0
 PADDING_RIGHT = 3
 
-VARIABLES = {'ver': __version__, 'ex_s_tab': invoke_default(reg.WHITESPACE_TAB, b'\x09'),
+VARIABLES = {
+    'ver': __version__,
+
+    'ex_s_tab': invoke_default(reg.WHITESPACE_TAB, b'\x09'),
     'ex_s_lf': invoke_default(reg.WHITESPACE_NEWLINE, b'\x0a'),
     'ex_s_vtab': invoke_default(reg.WHITESPACE_VERT_TAB, b'\x0b'),
     'ex_s_ff': invoke_default(reg.WHITESPACE_FORM_FEED, b'\x0c'),
@@ -217,15 +240,16 @@ VARIABLES = {'ver': __version__, 'ex_s_tab': invoke_default(reg.WHITESPACE_TAB, 
     'ex_c_del': invoke_default(reg.CONTROL_CHAR_DELETE, b'\x7f'),
     'ex_c_esc': invoke_default(reg.CONTROL_CHAR_ESCAPE, b'\x1b'),
 
-    'ex_p_print': invoke_default(reg.PRINTABLE_CHAR, b'a', b'b', b'c', b'd'),
+    'ex_p_print': invoke_default(reg.PRINTABLE_CHAR, b'!', b'"', b'1', b'2'),
+    'ex_p_print2': invoke_default(reg.PRINTABLE_CHAR, b'A', b'B', b'}', b'~', print_label=False),
 
     'ex_e_reset_lbl': invoke_default(reg.ESCAPE_SEQ_SGR_0, b''),
-    'ex_e_reset_m0': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR_0, Seqs.RESET, no_details=True, print_label=False),
+    'ex_e_reset_m0': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR_0, Seqs.RESET, no_details=True, print_label=True),
     'ex_e_reset_m1': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR_0, Seqs.RESET, brief_details=True, print_label=False),
     'ex_e_reset_m2': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR_0, Seqs.RESET, full_details=True, print_label=False),
 
     'ex_e_sgr_lbl': invoke_default(reg.ESCAPE_SEQ_SGR, b''),
-    'ex_e_sgr_m0': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR(34), no_details=True, print_label=False),
+    'ex_e_sgr_m0': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR(34), no_details=True, print_label=True),
     'ex_e_sgr_m1': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR(35, 1), brief_details=True,
                                               print_label=False),
     'ex_e_sgr_m1_2': invoke_on_escape_sequences(reg.ESCAPE_SEQ_SGR, SequenceSGR.init_color_indexed(14) + SequenceSGR.init_color_indexed(88, True),
@@ -241,22 +265,22 @@ VARIABLES = {'ver': __version__, 'ex_s_tab': invoke_default(reg.WHITESPACE_TAB, 
     'ex_e_fs': invoke_on_escape_sequences(reg.ESCAPE_SEQ_FS, b'\x1b\x73', no_details=True),
 
     'ex_u_lbl': invoke_default(reg.UTF_8_SEQ, b''),
-    'ex_u_1': invoke_default(reg.UTF_8_SEQ, b'\xd1', b'\x85', b'\xd0', b'\xb9', print_label=False),
+    'ex_u_1': invoke_default(reg.UTF_8_SEQ, b'\xd1', b'\x85', b'\xd0', b'\xb9', print_label=True),
     'ex_u_2': invoke_on_utf8(reg.UTF_8_SEQ, 'ы'.encode('utf-8'), '世'.encode('utf-8'), read_mode=ReadMode.BINARY,
-                             print_hex=True, decode=True, processed_shift=1),
+                             print_hex=True, decode=True, processed_shift=1, print_label=True),
     'ex_u_3': invoke_on_utf8(reg.UTF_8_SEQ, '🐍'.encode('utf-8'), read_mode=ReadMode.TEXT, print_hex=True,
-                             processed_shift=1),
+                             processed_shift=1, print_label=True),
 
     'ex_i_1': invoke_default(reg.BINARY_DATA, b'\xee', b'\xb0', b'\xc0', b'\xcc'),
     'ex_i_2': invoke_default(reg.BINARY_DATA, b'\xc0', b'\xff', b'\xee', b'\xda', read_mode=ReadMode.TEXT,
                              print_label=True),
 
+    'separator': 87*Style(fg='rgb_gray_20').render('─'),
     'fmt_header': Seqs.HI_WHITE + Seqs.BOLD,
     'fmt_thead': Seqs.DIM + Seqs.UNDERLINED,
     'fmt_cc': Seqs.BOLD,
     'fmt_comment': Seqs.GRAY,
     'fmt_param': Seqs.GRAY + Seqs.BOLD,
-    'fmt_m0': Seqs.GRAY + Seqs.BOLD,
     'fmt_m1': SequenceSGR.init_color_indexed(117),
     'fmt_m2':  SequenceSGR.init_color_rgb(248, 184, 137),
 }

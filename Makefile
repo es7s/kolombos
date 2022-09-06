@@ -78,9 +78,11 @@ upload-dev: ## Upload last successful build to dev repo
 			-u ${PYPI_USERNAME} -p ${PYPI_PASSWORD_DEV} --verbose
 
 install-dev: ## Install latest private build from dev repo
+	. "${ES7S_VENV}/bin/activate"
 	pip install -i https://test.pypi.org/simple/ ${PROJECT_NAME_PRIVATE}==${VERSION}
 
 install-dev-public: ## Install latest public build from dev repo
+	. "${ES7S_VENV}/bin/activate"
 	pip install -i https://test.pypi.org/simple/ ${PROJECT_NAME_PUBLIC}==${VERSION}
 
 
@@ -96,6 +98,7 @@ upload: ## Upload last successful build to PRIMARY repo
 	python3 -m twine upload dist/* -u ${PYPI_USERNAME} -p ${PYPI_PASSWORD} --verbose
 
 install: ## Install latest public build from PRIMARY repo
+	. "${ES7S_VENV}/bin/activate"
 	pip install ${PROJECT_NAME_PUBLIC}==${VERSION}
 
 

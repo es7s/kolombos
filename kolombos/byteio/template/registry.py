@@ -28,9 +28,9 @@ class TemplateRegistry:
         self.WHITESPACE_SPACE = Template(c_ws, op_ws, LabelPOV('␣', {DisplayMode.FOCUSED: '·'}))  # 0x20
 
         self.ESCAPE_SEQ_SGR_0 = EscapeSequenceTemplate(SequenceSGR.init_color_indexed(231) +
-                                                       SequenceSGR.init_color_indexed(0, True), 'θ')  # \e[m
+                                                       SequenceSGR.init_color_indexed(16, True), 'θ')  # \e[m
         self.ESCAPE_SEQ_SGR = EscapeSequenceSGRTemplate(SequenceSGR.init_color_indexed(255) +
-                                                        SequenceSGR.init_color_indexed(0, True), 'ǝ')  # \e[ (0x30-3f) (0x20-2f) m
+                                                        SequenceSGR.init_color_indexed(16, True), 'ǝ')  # \e[ (0x30-3f) (0x20-2f) m
         self.ESCAPE_SEQ_CSI = EscapeSequenceTemplate(Seqs.HI_GREEN, 'Ͻ')   # \e[ (0x30-3f) (0x20-2f) ...
         self.ESCAPE_SEQ_NF = EscapeSequenceTemplate(Seqs.GREEN, 'ꟻ')       # \e (0x20-2f) ...
         self.ESCAPE_SEQ_FP = EscapeSequenceTemplate(Seqs.YELLOW, 'ꟼ')      # \e (0x30-3f)

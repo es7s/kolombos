@@ -2,8 +2,8 @@
 ^{bold;hi_green}   / /^{hi_green}__^{hi_blue}____  / /___  ____ ___  / /_  ____ ^{hi_yellow} _____^{}
 ^{bold;green   }  / //_/^{cyan} __ \/ / __ \^{magenta    }/ __ '__ \/ __ \/ __ \^{yellow   }/ ___/^{}
 ^{bold;hi_blue } / ,< ^{cyan}/ /_/ / / /_/ ^{magenta    }/ / / / / / /_/ / /_/ ^{yellow   }(__  )^{}
-^{bold;blue    }/_/|_|^{blue}\____/_/\____#{}        {}#/_/ /_/ /_/\.___/\____^{yellow   }/____/^{}
-#{}                               {}#                                        ^{hi_yellow}v:{ver}^{}
+^{bold;blue    }/_/|_|^{blue}\____/_/\____#{}········{}#/_/ /_/ /_/\.___/\____^{yellow   }/____/^{}
+#{}··········{}#       #{}{}#             #{}········{}#                        ^{hi_yellow}v:{ver}^{}
 
 :{fmt_header}CHARACTER CLASSES^{}
   :{fmt_comment}<^{}:{fmt_cc}S^{}:{fmt_comment}>^{}   ASCII whitespace chars   09-0d, 20      :{fmt_param}-s -S^{}
@@ -14,15 +14,16 @@
   :{fmt_comment}<^{}:{fmt_cc}E^{}:{fmt_comment}>^{}   ANSI escape sequences    1b[..]         :{fmt_param}-e -E^{}
 
 :{fmt_header}SIGILS^{}
- :{fmt_thead}label^{}  :{fmt_thead}char, hex out (+focused)^{} :{fmt_thead}cls^{} :{fmt_thead}description^{}      :{fmt_thead}notes^{}
+ :{fmt_thead}CHAR(s)^{} :{fmt_thead}OUTPUT (regular/focused)^{}  :{fmt_thead}CLS^{} :{fmt_thead}DESCRIPTION and NOTES                            ^{}
+         :{fmt_thead}TEXT MODE^{} :{fmt_thead} BINARY MODE ^{}
  :{ex_s_tab  }:{fmt_comment}<^{}:{fmt_cc}:{fmt_cc}S^{}:{fmt_comment}>^{} horizontal tab   :{fmt_comment}\t, origin is kept^{}
  :{ex_s_lf   }:{fmt_comment}<^{}:{fmt_cc}S^{}:{fmt_comment}>^{} line feed        :{fmt_comment}\n, origin is kept^{}
  :{ex_s_vtab }:{fmt_comment}<^{}:{fmt_cc}S^{}:{fmt_comment}>^{} vertical tab     :{fmt_comment}\v^{}
  :{ex_s_ff   }:{fmt_comment}<^{}:{fmt_cc}S^{}:{fmt_comment}>^{} form feed        :{fmt_comment}\f^{}
  :{ex_s_cr   }:{fmt_comment}<^{}:{fmt_cc}S^{}:{fmt_comment}>^{} carriage return  :{fmt_comment}\r^{}
  :{ex_s_space}:{fmt_comment}<^{}:{fmt_cc}S^{}:{fmt_comment}>^{} space
-
- :{ex_c_misc0}:{fmt_comment}<^{}:{fmt_cc}C^{}:{fmt_comment}>^{} misc control char  :{fmt_param}--text --marker :{fmt_m0}0^{}
+ :{separator}
+ :{ex_c_misc0}:{fmt_comment}<^{}:{fmt_cc}C^{}:{fmt_comment}>^{} misc control char
  :{ex_c_misc1}    :{fmt_comment}"caret notation"^{}   :{fmt_param}--text --marker :{fmt_m1}1^{}
  :{ex_c_misc2}                       :{fmt_param}--text --marker :{fmt_m2}2^{}
 
@@ -30,37 +31,35 @@
  :{ex_c_bskpc}:{fmt_comment}<^{}:{fmt_cc}C^{}:{fmt_comment}>^{} backspace
  :{ex_c_del  }:{fmt_comment}<^{}:{fmt_cc}C^{}:{fmt_comment}>^{} delete
  :{ex_c_esc  }:{fmt_comment}<^{}:{fmt_cc}C^{}:{fmt_comment}>^{} escape
-
- :{ex_p_print}:{fmt_comment}<^{}:{fmt_cc}P^{}:{fmt_comment}>^{} printable char
-
+ :{separator}
+ :{ex_p_print}:{fmt_comment}<^{}:{fmt_cc}P^{}:{fmt_comment}>^{} ASCII printable char
+ :{ex_p_print2}
+ :{separator}
  :{ex_i_1    }:{fmt_comment}<^{}:{fmt_cc}I^{}:{fmt_comment}>^{} binary data  :{fmt_param}--binary^{}
  :{ex_i_2    }                 :{fmt_param}--text^{}
+ :{separator}
+ :{ex_u_3    }:{fmt_comment}<^{}:{fmt_cc}U^{}:{fmt_comment}>^{} UTF-8 sequence  :{fmt_param}--text^{}:{fmt_comment}: auto-decoding^{}
+ :{ex_u_1    }                    :{fmt_param}--binary^{}
+ :{ex_u_2    }                    :{fmt_param}--binary^{} :{fmt_comment}with :{fmt_param}--decode^{}
+ :{separator}
+ :{ex_e_reset_m0}:{fmt_comment}<^{}:{fmt_cc}E^{}:{fmt_comment}>^{} SGR reset sequence
+ :{ex_e_reset_m1}    :{fmt_param}-m1:{fmt_m1}·^{}  :{fmt_comment}separators by default for ^{bold}m>0^{}
+ :{ex_e_reset_m2}    :{fmt_param}-m2:{fmt_m2}·^{}  :{fmt_comment}all SGR bytes "as is" except ^{bold}ǝ|θ^{bold_dim_off}=ESC^{}
 
- :{ex_u_lbl  }:{fmt_comment}<^{}:{fmt_cc}U^{}:{fmt_comment}>^{} UTF-8 sequence
- :{ex_u_1    }    :{fmt_param}--binary^{}
- :{ex_u_2    }    :{fmt_param}--binary^{}  :{fmt_comment}use :{fmt_param}--decode^{}:{fmt_comment} to display Unicode^{}
- :{ex_u_3    }    :{fmt_param}--text^{}    :{fmt_comment}decoding is done automatically^{}
+ :{ex_e_sgr_m0  }:{fmt_comment}<^{}:{fmt_cc}E^{}:{fmt_comment}>^{} SGR sequence  :{fmt_comment}label color matches the SGR color^{}
+ :{ex_e_sgr_m1  }    :{fmt_param}-m1:{fmt_m1}·^{}  :{fmt_comment}color code is shown and colorized instead^{}
+ :{ex_e_sgr_m1_2}    :{fmt_param}-m1:{fmt_m1}·^{}  :{fmt_comment}indexed color codes as foregr./backgr.^{}
+ :{ex_e_sgr_m1_3}    :{fmt_param}-m1:{fmt_m1}·^{}  :{fmt_comment}RGB color as hex value; below is same SGR^{}
+ :{ex_e_sgr_m2}    :{fmt_param}-m2:{fmt_m2}·^{}  :{fmt_comment}the reason of making several detail levels^{}
 
- :{ex_e_reset_lbl}:{fmt_comment}<^{}:{fmt_cc}E^{}:{fmt_comment}>^{} SGR reset sequence
- :{ex_e_reset_m0}    :{fmt_param}-m:{fmt_m0}0^{}
- :{ex_e_reset_m1}    :{fmt_param}-m:{fmt_m1}1^{}  :{fmt_comment}separators by default for ^{bold}m>0^{}
- :{ex_e_reset_m2}    :{fmt_param}-m:{fmt_m2}2^{}  :{fmt_comment}all SGR bytes "as is" except ^{bold}ǝ|θ^{bold_dim_off}=ESC^{}
-
- :{ex_e_sgr_lbl }:{fmt_comment}<^{}:{fmt_cc}E^{}:{fmt_comment}>^{} SGR sequence
- :{ex_e_sgr_m0  }    :{fmt_param}-m:{fmt_m0}0^{}  :{fmt_comment}label color matches the SGR color^{}
- :{ex_e_sgr_m1  }    :{fmt_param}-m:{fmt_m1}1^{}  :{fmt_comment}color code is shown and colorized instead^{}
- :{ex_e_sgr_m1_2}    :{fmt_param}-m:{fmt_m1}1^{}  :{fmt_comment}indexed color codes as foregr./backgr.^{}
- :{ex_e_sgr_m1_3}    :{fmt_param}-m:{fmt_m1}1^{}  :{fmt_comment}RGB color as hex value; next ex. is same SGR^{}
- :{ex_e_sgr_m2}    :{fmt_param}-m:{fmt_m2}2^{}  :{fmt_comment}the reason of making several detail levels^{}
-
- :{ex_e_csi  }:{fmt_comment}<^{}:{fmt_cc}E^{}:{fmt_comment}>^{} CSI sequence  :{fmt_param}-m:{fmt_m2}2^{}
- :{ex_e_nf   }:{fmt_comment}<^{}:{fmt_cc}E^{}:{fmt_comment}>^{} nF sequence   :{fmt_param}-m:{fmt_m2}2^{} :{fmt_param}--focus-esc^{}
- :{ex_e_fp   }:{fmt_comment}<^{}:{fmt_cc}E^{}:{fmt_comment}>^{} Fp sequence   :{fmt_param}-m:{fmt_m2}2^{} :{fmt_param}--focus-esc^{}
- :{ex_e_fe   }:{fmt_comment}<^{}:{fmt_cc}E^{}:{fmt_comment}>^{} Fe sequence   :{fmt_param}-m:{fmt_m1}1^{}
- :{ex_e_fs   }:{fmt_comment}<^{}:{fmt_cc}E^{}:{fmt_comment}>^{} Fs sequence   :{fmt_param}-m:{fmt_m0}0^{}
+ :{ex_e_csi  }:{fmt_comment}<^{}:{fmt_cc}E^{}:{fmt_comment}>^{} CSI sequence  :{fmt_param}-m2:{fmt_m2}·^{}
+ :{ex_e_nf   }:{fmt_comment}<^{}:{fmt_cc}E^{}:{fmt_comment}>^{} nF sequence   :{fmt_param}-m2:{fmt_m2}·^{} :{fmt_param}--focus-esc^{}
+ :{ex_e_fp   }:{fmt_comment}<^{}:{fmt_cc}E^{}:{fmt_comment}>^{} Fp sequence   :{fmt_param}-m2:{fmt_m2}·^{} :{fmt_param}--focus-esc^{}
+ :{ex_e_fe   }:{fmt_comment}<^{}:{fmt_cc}E^{}:{fmt_comment}>^{} Fe sequence   :{fmt_param}-m1:{fmt_m1}·^{}
+ :{ex_e_fs   }:{fmt_comment}<^{}:{fmt_cc}E^{}:{fmt_comment}>^{} Fs sequence
 
 
 :{fmt_comment}For best view your terminal should be ^{bold}88^{bold_dim_off} chars wide (or wider)^{}
 
-:{fmt_comment}Is a part of ^{hi_blue}es7s:{fmt_comment} pack^{}
+:{fmt_comment}Is a part of ^{bold;white}es7s:{fmt_comment} pack^{}
 :{fmt_comment}(c) 2022 A. Shavykin <^{yellow}0:{fmt_comment}.delameter@gmail.com>^{}

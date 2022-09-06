@@ -11,6 +11,8 @@ from .. import CharClass, OpeningSeqPOV, LabelPOV
 
 
 class Utf8SequenceTemplate(Template):
+    DECODED_LEFT_FILL_CHAR = '_'
+
     def __init__(self, opening_seq: SequenceSGR | OpeningSeqPOV, label: str | LabelPOV = ''):
         super().__init__(CharClass.UTF_8_SEQ, opening_seq, label)
 
@@ -24,7 +26,7 @@ class Utf8SequenceTemplate(Template):
             decoded = raw.decode('utf8', errors='replace')
             if self._read_mode.is_binary:
                 if len(decoded) < len(raw):
-                    decoded = decoded.rjust(len(raw), '_')
+                    decoded = decoded.rjust(len(raw), self.DECODED_LEFT_FILL_CHAR)
                 elif len(decoded) > len(raw):
                     decoded = decoded[:len(raw)]
             return decoded

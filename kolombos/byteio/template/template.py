@@ -20,7 +20,7 @@ class Template:
 
     IGNORED_LABEL: str = '×'
     IGNORED_OPENING_SEQ: SequenceSGR = Seqs.GRAY + Seqs.DIM
-    DETAILS_OPENING_SEQ: SequenceSGR = Seqs.BG_BLACK + Seqs.UNDERLINED
+    DETAILS_OPENING_SEQ: SequenceSGR = SequenceSGR.init_color_indexed(16, True) + Seqs.UNDERLINED
 
     def __init__(self, char_class: CharClass, opening_seq: SequenceSGR | OpeningSeqPOV, label: str | LabelPOV = ''):
         if not isinstance(opening_seq, PartialOverride):
