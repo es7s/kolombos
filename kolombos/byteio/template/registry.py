@@ -24,7 +24,7 @@ class TemplateRegistry:
         self.WHITESPACE_NEWLINE = NewlineTemplate(op_ws, '↵')                                     # 0x0a
         self.WHITESPACE_VERT_TAB = Template(c_ws, op_ws, '⤓')                                     # 0x0b
         self.WHITESPACE_FORM_FEED = Template(c_ws, op_ws, '↡')                                    # 0x0c
-        self.WHITESPACE_CARR_RETURN = Template(c_ws, op_ws, '⇤')                                  # 0x0d
+        self.WHITESPACE_CARR_RETURN = Template(c_ws, op_ws, '⇤')                                  # 0x0d @FIXME #13
         self.WHITESPACE_SPACE = Template(c_ws, op_ws, LabelPOV('␣', {DisplayMode.FOCUSED: '·'}))  # 0x20
 
         self.ESCAPE_SEQ_SGR_0 = EscapeSequenceTemplate(SequenceSGR.init_color_indexed(231) +
