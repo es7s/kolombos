@@ -5,6 +5,13 @@
   <code>kolombos</code>
   <br>
 </h1>
+  
+  <p align="center">
+    <a href="https://pypi.org/project/kolombos/"><img alt="PyPI" src="https://img.shields.io/pypi/v/kolombos"></a>
+    <a href="https://pepy.tech/project/kolombos/">
+      <img alt="Downloads" src="https://pepy.tech/badge/kolombos">
+    </a>
+  </p>
 
 CLI application for visualising usually invisible characters and bytes:
 
