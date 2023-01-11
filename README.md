@@ -191,6 +191,9 @@ Even more information can be seen after running `kolombos --legend`.
 
 ## Changelog
 
+### v1.4.1
+- Temporarily injected `pytermor` v2.1
+
 ### v1.4
 - REFACTOR: base colors
 - REFACTOR: extended legend 
