@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import List
 
-from pytermor import SequenceSGR, Seqs
+from pytermor import SequenceSGR, Seqs, NOOP_SEQ
 
 from . import Template
 from .. import CharClass, MarkerDetailsEnum, OpeningSeqPOV, LabelPOV, ReadMode
@@ -15,7 +15,7 @@ from ...settings import SettingsManager
 
 
 class EscapeSequenceTemplate(Template):
-    ESQ_MARKER_LABEL_SEQ: SequenceSGR = Seqs.BOLD
+    ESQ_MARKER_LABEL_SEQ: SequenceSGR = NOOP_SEQ
 
     def __init__(self, opening_seq: SequenceSGR | OpeningSeqPOV, label: str | LabelPOV = ''):
         super().__init__(CharClass.ESCAPE_SEQ, opening_seq, label)
@@ -50,7 +50,7 @@ class EscapeSequenceTemplate(Template):
         if self._marker_details is MarkerDetailsEnum.NO_DETAILS:
             return
 
-        params_processed = params_raw.decode('ascii')
+        params_processed = params_raw.decode('ascii', errors='ignore')
 
         if self._marker_details is MarkerDetailsEnum.BRIEF_DETAILS:
             params_processed = self._get_brief_details_processed()

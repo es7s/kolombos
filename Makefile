@@ -7,6 +7,7 @@
 PROJECT_NAME = kolombos
 PROJECT_NAME_PUBLIC = ${PROJECT_NAME}
 PROJECT_NAME_PRIVATE = ${PROJECT_NAME}-delameter
+DEPENDS_PATH = dev/diagrams
 
 include .env.dist
 -include .env
@@ -56,12 +57,9 @@ test: ## Run tests
 	python3 -s -m unittest -v
 
 depends:  ## Build and display module dependency graph
-	mkdir -p dev/diagrams
-	. venv/bin/activate
-	pydeps ${PROJECT_NAME} --rmprefix ${PROJECT_NAME}. -o dev/diagrams/imports.svg
-	pydeps ${PROJECT_NAME} --rmprefix ${PROJECT_NAME}. -o dev/diagrams/cycles.svg 	   --show-cycle                       --no-show
-	pydeps ${PROJECT_NAME} --rmprefix ${PROJECT_NAME}. -o dev/diagrams/imports-ext.svg --pylib  --collapse-target-cluster --no-show
-
+	rm -vrf ${DEPENDS_PATH}
+	mkdir -p ${DEPENDS_PATH}
+	./pydeps.sh ${PROJECT_NAME} ${DEPENDS_PATH}
 
 ## Releasing (dev)
 

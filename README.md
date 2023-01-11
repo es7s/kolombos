@@ -2,9 +2,7 @@
 <h1 align="center">
   <img src="https://user-images.githubusercontent.com/50381946/167742137-3c250ada-0b2c-4124-9604-e02abec50b7e.png">
   <br>
-  <code>
-    kolombos
-  </code>
+  <code>kolombos</code>
   <br>
 </h1>
 
@@ -18,16 +16,19 @@ CLI application for visualising usually invisible characters and bytes:
 
 ## Installation
 
+### Via `pipx`
+
+    pipx install kolombos
+
+### Without `pipx`
+
 #### System-wide install (`sudo`)
 
-    pip3 install kolombos
-
+    python -m pip install kolombos
 
 #### User install (no `sudo`)
 
-    pip3 install --user kolombos
-
-    # Add local 'pip' to PATH:
+    python -m pip install --user kolombos
     export PATH="${PATH}:${HOME}/.local/bin/"
 
 ## Usage
@@ -36,7 +37,7 @@ Application can be useful for a variety of tasks, e.g. browsing unknown data for
 
 ```
 USAGE
-  kolombos [[-t] | -b | -l | -v | -h] [<options>] [<file>]
+  kolombos [[--text] | --binary] [<options>] [<file>]
 
 POSITIONAL ARGUMENTS
   <file>                  file to read from; if empty or "-", read stdin instead
@@ -55,26 +56,26 @@ OPERATING MODE
 
 `kolombos` can work in two primary modes: text and binary. The differences between them are line-by-line input reading in text mode vs. fixed size byte chunk reading in binary mode, and extended output in binary mode, which consists of text representation (similar to text mode) and hexademical byte values.
 
-<p align="center"><img src="https://user-images.githubusercontent.com/50381946/167742271-2176ac38-b527-4373-89de-9ad5bf317f4d.png"></p>
+<p align="center"><img src="https://user-images.githubusercontent.com/50381946/211690178-d71a1e97-e9e5-43e9-a77d-500fc2740855.png"></p>
 
 As you can see, some of the settings are shared between both modes, while the others are unique for one or another.
 
 ```
 GENERIC OPTIONS
+  -f, --buffer <size>     read buffer size, in bytes [default: 4096]
   -L, --max-lines <num>   stop after reading <num> lines [default: no limit]
   -B, --max-bytes <num>   stop after reading <num> bytes [default: no limit]
-  -f, --buffer <size>     read buffer size, in bytes [default: 4096]
-  -d, --debug             enable debug mode; can be used from 1 to 4 times, each level increases
-                          verbosity (-d|dd|ddd|dddd)
-  --no-color-markers      disable applying self-formatting to SGR marker details
+  -D, --debug             enable debug mode; can be used from 1 to 4 times, each level increases verbosity (-D|DD|DDD|DDDD)
+  --color-markers         apply SGR marker format to themselves
 
 TEXT MODE OPTIONS
-  -m, --marker <details>  marker details: 0 is none, 1 is brief, 2 is full [default: 1]
+  -m, --marker <details>  marker details: 0 is none, 1 is brief, 2 is full [default: 0]
+  --no-separators         do not print ⢸separators⡇ around escape sequences
   --no-line-numbers       do not print line numbers
 
 BINARY MODE OPTIONS
   -w, --columns <num>     format output as <num>-columns wide table [default: auto]
-  -D, --decode            decode valid UTF-8 sequences, print as unicode chars
+  -d, --decode            decode valid UTF-8 sequences, print as unicode chars
   --decimal-offsets       output offsets in decimal format [default: hex format]
   --no-offsets            do not print offsets
 
@@ -87,12 +88,12 @@ There are 6 different _character classes_, and each of those can be displayed no
 
 | output | character class | byte ranges | focus flag | ignore flag | examples | 
 | :---: | :------------- | :---: | :---: | :---: | :--- |
-| ![image](https://user-images.githubusercontent.com/50381946/167739257-3ec7f3cd-e9b4-4a06-a217-cae84701d71f.png) | **whitespace** | `09-0d`<br>`20` | <code><b>-s</b></code> | <code><b>-S</b></code> | space, line feed, carriage return | 
-| ![image](https://user-images.githubusercontent.com/50381946/167739275-22dd74a0-0bed-4756-8fc7-849b511cec91.png) | **control char** | `01-08`<br>`0e-1f` | <code><b>-c</b></code> | <code><b>-C</b></code> | null byte, backspace, delete |
-| ![image](https://user-images.githubusercontent.com/50381946/167739296-fbdfdc46-1963-4ed1-8aca-2dff6724c56a.png) | **printable char** | `21-7e` | <code><b>-p</b></code> | <code><b>-P</b></code> | ASCII alphanumeric and punctuation characters: A-Z, a-z, 0-9, (), [] | 
-| ![image](https://user-images.githubusercontent.com/50381946/167739324-e103ac56-4d03-4d5b-aaea-41266d2a9dbe.png) | **escape sequence** | `1b[..]` | <code><b>-e</b></code> | <code><b>-E</b></code> | ANSI escape sequences controlling cursor position, color, font styling, and other terminal options | 
-| ![image](https://user-images.githubusercontent.com/50381946/167739347-06a455fb-3bde-43c3-98d1-e2097e59d22a.png) | **UTF-8 sequence** | _various_ | <code><b>-u</b></code> | <code><b>-U</b></code> | valid UTF-8 byte sequences that can be decoded into Unicode characters |
-| ![image](https://user-images.githubusercontent.com/50381946/167739364-172f999f-b853-4191-b189-ebdfffa83cf7.png) | **binary data** | `80-ff` | <code><b>-i</b></code> | <code><b>-I</b></code> | standalone non-(7 bit)-ASCII bytes |
+| ![cc1](https://user-images.githubusercontent.com/50381946/211689929-14e93463-d5a6-4003-9f9c-4663a1d147b2.png) | **whitespace** | `09-0d`<br>`20` | <code><b>-s</b></code> | <code><b>-S</b></code> | space, line feed, carriage return | 
+| ![cc2](https://user-images.githubusercontent.com/50381946/211689948-81656bec-04ca-4575-aa8f-45d633d2a73b.png) | **control char** | `01-08`<br>`0e-1f` | <code><b>-c</b></code> | <code><b>-C</b></code> | null byte, backspace, delete |
+| ![cc3](https://user-images.githubusercontent.com/50381946/211690013-92d8e952-8ef8-4cdc-9365-1e3e8dd436fa.png) | **printable char** | `21-7e` | <code><b>-p</b></code> | <code><b>-P</b></code> | ASCII alphanumeric and punctuation characters: A-Z, a-z, 0-9, (), [] | 
+| ![cc4](https://user-images.githubusercontent.com/50381946/211690015-a0f7b3b1-c773-4d3c-963d-a35c643670a7.png) | **escape sequence** | `1b[..]` | <code><b>-e</b></code> | <code><b>-E</b></code> | ANSI escape sequences controlling cursor position, color, font styling, and other terminal options | 
+| ![cc5](https://user-images.githubusercontent.com/50381946/211690016-e47ef065-c0d7-4647-989a-af5188d00ef6.png) | **UTF-8 sequence** | _various_ | <code><b>-u</b></code> | <code><b>-U</b></code> | valid UTF-8 byte sequences that can be decoded into Unicode characters |
+| ![cc6](https://user-images.githubusercontent.com/50381946/211690017-4bfa43d7-f978-4267-a21a-005e40ce858d.png) | **binary data** | `80-ff` | <code><b>-i</b></code> | <code><b>-I</b></code> | standalone non-(7 bit)-ASCII bytes |
 
 ## Examples
 
@@ -100,11 +101,11 @@ There are 6 different _character classes_, and each of those can be displayed no
 
 Let's take a look at one of the files from somebody's home directory &mdash; `.psql_history`. At the first sight it's a regular text file:
 
-<p align="center"><img src="https://user-images.githubusercontent.com/50381946/167739522-bbf46ae0-281c-4f36-a343-eeb98fe8f1dd.png"></p>
+<p align="center"><img src="https://user-images.githubusercontent.com/50381946/211690258-2cd1c2ce-f254-4988-84e9-3f2584d607b4.png"></p>
 
 But what if we look a bit more deeper into it?
 
-<p align="center"><img src="https://user-images.githubusercontent.com/50381946/167739540-d21cdd1c-dc78-4933-9c83-d8a25617ad9b.png"></p>
+<p align="center"><img src="https://user-images.githubusercontent.com/50381946/211690261-2897e4cd-1b24-4407-a11f-b5398b69088f.png"></p>
 
 `kolombos` shows us hidden until now characters &mdash; not only spaces and line breaks, but even more: some control characters, namely `01` **START OF HEADING** ASCII bytes, which `postgresql` uses to store multiline queries.
 
@@ -114,7 +115,7 @@ Red symbol is an example of _marker_ &mdash; special sigil that indicates invisi
 - Level 1 is medium details (this is a default) &mdash; one extra character for control chars and varying amount for escape sequences. For most of the control characters the second char corresponds to their caret notation, e.g. `ⱯA` should be read as **^A** <sup><a href="https://en.wikipedia.org/wiki/C0_and_C1_control_codes#SOH">[wiki]</a></sup>.
 - Level 2 is maximuim amount of verbosity. For control chars it's their 2-digit hexademical value. Also note `-c` option in the last example below &mdash; which tells the application to highlight control characters and make them even more noticable.
 
-<p align="center"><img src="https://user-images.githubusercontent.com/50381946/167739571-d14fc0ec-237a-4602-aeb4-b3feec79c08d.png"></p>
+<p align="center"><img src="https://user-images.githubusercontent.com/50381946/211690263-d10ecd0e-6390-4ecf-a2e2-e1f99d1893d6.png"></p>
 
 Some of the control characters has unique sigils &mdash; for example, null byte (see [Legend](#legend)).
 
@@ -122,7 +123,8 @@ A few more examples of option combinations. First one is `--focus-space` flag, o
 
 Second example is a result of running the app with `--ignore-space` and `--ignore-printable` options; as you can see, now almost nothing is in the way of observing our precious control characters (if that's what you were after, that is):
 
-<p align="center"><img src="https://user-images.githubusercontent.com/50381946/167739603-6743acf3-8a0e-45c7-a6fd-98c56202ac20.png"></p>
+<p align="center"><img src="https://user-images.githubusercontent.com/50381946/211690266-45a61611-4b65-45a2-bb5a-fcb95cede039.png"></p>
+
 
 ### ANSI escape sequecnces
 
@@ -132,11 +134,11 @@ Escape sequences and their overlapping combinations were the main reason for me 
 
 SGR sequences are used for terminal text coloring and formatting. Consider this command with the following output:
 
-<p align="center"><img src="https://user-images.githubusercontent.com/50381946/167739638-63daf48f-f2aa-404f-9cb7-f963f8bd1390.png"></p>
+<p align="center"><img src="https://user-images.githubusercontent.com/50381946/211690488-39dbb65f-98cb-4473-854f-6422b7005479.png"></p>
 
 `kolombos` can show us what exactly is happening out there:
 
-<p align="center"><img src="https://user-images.githubusercontent.com/50381946/167739662-5819ac1a-5808-4785-b16b-a7a2ac6417ce.png"></p>
+<p align="center"><img src="https://user-images.githubusercontent.com/50381946/211690491-e9508abc-d2d3-48e1-8a30-d4a519f42d93.png"></p>
 
 There are 3 different types of markers in the example above:
 
@@ -147,9 +149,9 @@ There are 3 different types of markers in the example above:
 
 For this example binary more would be more convenient.
 
-<p align="center"><img src="https://user-images.githubusercontent.com/50381946/167739691-fa994208-b79f-4dda-8ad4-00324a09faa2.png"></p>
+<p align="center"><img src="https://user-images.githubusercontent.com/50381946/211690493-8fa5f092-3a02-4f83-85de-93c0d6c9d9b2.png"></p>
 
-As you can see, SGR sequence parameters (or _marker details_) has the same color as input text (but this behaviour can be disabled with `--no-color-markers` option). As a rule of a thumb, the only <u>underlined</u> bytes in `kolombo`'s output are the bytes that correspond to escape sequences' params, introducers or terminators (but not the `1b`|`ESC` character itself, though).
+As a rule of a thumb, the only <u>underlined</u> bytes in `kolombo`'s output are the bytes that correspond to escape sequences' params, introducers or terminators (but not the `1b`|`ESC` character itself, though).
 
 Now it's clear where and which sequences are located:
 
@@ -158,39 +160,54 @@ Now it's clear where and which sequences are located:
 - `θ[m` &mdash; SGR that resets, or disables all formatting;
 - `ǝ[01;91m` &mdash; SGR that sets text style to _bold_ and text color to _bright red_, etc.
 
-Even more clear picture can be seen after launching the app with `-P` option (`--ignore-printable`):
+There is an option of highlighting SGR sequences with their own colors: `--color-markers`, which is disabled by default. In this particular case, even more clear picture can be seen after launching the app with `-P` option (`--ignore-printable`):
 
-<p align="center"><img src="https://user-images.githubusercontent.com/50381946/167739715-4f797c07-62ad-4905-b326-88687b31c054.png"></p>
+<p align="center"><img src="https://user-images.githubusercontent.com/50381946/211690495-f12b6340-faf0-478b-b423-76e3c29f08c2.png"></p>
 
 Also notice that in binary mode each byte of input corresponds strictly to one hex value and one text representation character. That means that option `-m` is always equal to 2 (maximum verbosity) and cannot be changed.
+
 
 ### UTF-8 and binary data
 
 There is no limitation for input bytes range in `kolombos` text mode &mdash; binary data will be displayed with the replacement character -- `Ḇ`:
 
-<p align="center"><img src="https://user-images.githubusercontent.com/50381946/167739738-82098d94-c379-459e-9301-629e128b5d90.png"></p>
+<p align="center"><img src="https://user-images.githubusercontent.com/50381946/211690642-a12558e2-c8c9-4571-84a7-ed6f808adef3.png"></p>
 
 But it's better and faster to work with binary data in binary mode. Valid UTF-8 sequences and escape sequences can be seen even in completely random byte data:
 
-<p align="center"><img src="https://user-images.githubusercontent.com/50381946/167739752-8356e30a-84d0-4ee1-9994-a54e4b2e1c4f.png"></p>
+<p align="center"><img alt="ss11" src="https://user-images.githubusercontent.com/50381946/211690667-5998f67d-0210-498c-b4ac-37f463d907d5.png"></p>
 
-UTF-8 sequences in text mode are automatically decoded and displayed as Unicode characters. In binary mode for faster data processing they are displayed as boxes by default, but still can be decoded with `-D`|`--decode` option (note the same requirement as for escape sequence markers &mdash; hex value length must always correspond to text representation length):
+UTF-8 sequences in text mode are automatically decoded and displayed as Unicode characters. In binary mode for faster data processing they are displayed as boxes by default, but still can be decoded with `-d`|`--decode` option (note the same requirement as for escape sequence markers &mdash; hex value length must always correspond to text representation length):
 
-<p align="center"><img src="https://user-images.githubusercontent.com/50381946/167739780-98af352d-9dff-4f9f-8515-03d7cdefa065.png"></p>
+<p align="center"><img alt="ss12" src="https://user-images.githubusercontent.com/50381946/211690706-e3068c34-749f-425b-b5b9-59c5f8ba3a13.png"></p>
+
 
 ## Legend
 
-<p align="center"><img src="https://user-images.githubusercontent.com/50381946/176942506-65e60769-a600-40d6-a4f8-e4d6562663bb.png"></p>
+<p align="center"><img alt="ss13v3" src="https://user-images.githubusercontent.com/50381946/211690757-e76df8a2-f7f6-4845-b35d-d6032b0dedb7.png"></p>
 
 Even more information can be seen after running `kolombos --legend`.
 
+
 ## Changelog
+
+### v1.4
+- REFACTOR: base colors
+- REFACTOR: extended legend 
+- DOCS:  update README and screenshots 
+
+
+### v1.3
+- Swap -D and -d (debug/decode)
+- Make '--marker 0' default (was 1)
+- Update legend
+- Upgrade `pytermor` to 2.1
 
 ### v1.2.1
 
 - Minor update.
 
-### v1.2.0
+### v1.2
 
 - Separators additional styling.
 - Separators auto-hide from `-m0`.
@@ -200,7 +217,7 @@ Even more information can be seen after running `kolombos --legend`.
 - SGR labels are now getting colored instead of marker details (if `-m0` is set).
 - Updated legend.
 
-### v1.1.0
+### v1.1
 
 - Additional separators around escape seqs (in text mode) for better readability.
 

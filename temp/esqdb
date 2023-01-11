@@ -1,5 +1,7 @@
 [ SGR   all SGRs
 [ CSI   most CSI            _curpos_request "\e[6n"
+                            ls -la --color ~ ⢸Ͻ[K⡇  # clear line whole/before/after cursor
 ] OSC                       set-title
 
 ( nF    code switching      tput from Makefiles ⢸ꟻ(B⡇
+

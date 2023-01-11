@@ -39,7 +39,7 @@ class Settings(Namespace):
         self.marker: int = MarkerDetailsEnum.DEFAULT.value
         self.max_bytes: int|None = None  # no limit
         self.max_lines: int|None = None  # no limit
-        self.no_color_markers: bool = False
+        self.color_markers: bool = False
         self.no_line_numbers: bool = False
         self.no_separators: bool = False
         self.no_offsets: bool = False

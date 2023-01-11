@@ -52,7 +52,7 @@ class EscapeSequenceSGRTemplate(EscapeSequenceTemplate):
                     pcodes_allowed.extend([pcode, *[pcodes.pop(0) for _ in range(4)]])
                     brief_names.append(
                         f'{brief_type}'
-                        f'{pcodes_allowed[-3] * 256 * 256 + pcodes_allowed[-2] * 256 + pcodes_allowed[-1]:06x}'
+                        f'{pcodes_allowed[-3] * 256 * 256 + pcodes_allowed[-2] * 256 + pcodes_allowed[-1]:06X}'
                     )
                     continue
             elif pcode in self.ALLOWED_SGRS_FOR_MARKER_FORMAT:
@@ -68,11 +68,11 @@ class EscapeSequenceSGRTemplate(EscapeSequenceTemplate):
         return self.get_details_fmt_str()
 
     def _get_label_opening_seq(self) -> SequenceSGR:
-        if self._marker_details is MarkerDetailsEnum.NO_DETAILS and not SettingsManager.app_settings.no_color_markers:
-            return super()._get_label_opening_seq() + self._details_opening_seq + self.ESQ_MARKER_LABEL_SEQ
+        if SettingsManager.app_settings.color_markers:
+            return self._details_opening_seq + self.ESQ_MARKER_LABEL_SEQ
         return super()._get_label_opening_seq()
 
     def _get_details_opening_seq(self) -> SequenceSGR:
-        if SettingsManager.app_settings.no_color_markers:
+        if not SettingsManager.app_settings.color_markers:
             return self.DETAILS_OPENING_SEQ
         return self.DETAILS_OPENING_SEQ + self._details_opening_seq

@@ -19,7 +19,7 @@ class TemplateRegistry:
         self.CONTROL_CHAR_ESCAPE = Template(c_cc, Seqs.HI_YELLOW, '∌')  # 0x1b
 
         c_ws = CharClass.WHITESPACE
-        op_ws: OpeningSeqPOV = OpeningSeqPOV(Seqs.GRAY, {DisplayMode.FOCUSED: Seqs.BG_CYAN + Seqs.BLACK})
+        op_ws: OpeningSeqPOV = OpeningSeqPOV(Seqs.HI_CYAN, {DisplayMode.FOCUSED: Seqs.BG_CYAN + Seqs.BLACK})
         self.WHITESPACE_TAB = Template(c_ws, op_ws, LabelPOV('⇥', {ReadMode.TEXT: '⇥\t'}))        # 0x09
         self.WHITESPACE_NEWLINE = NewlineTemplate(op_ws, '↵')                                     # 0x0a
         self.WHITESPACE_VERT_TAB = Template(c_ws, op_ws, '⤓')                                     # 0x0b
@@ -27,9 +27,9 @@ class TemplateRegistry:
         self.WHITESPACE_CARR_RETURN = Template(c_ws, op_ws, '⇤')                                  # 0x0d @FIXME #13
         self.WHITESPACE_SPACE = Template(c_ws, op_ws, LabelPOV('␣', {DisplayMode.FOCUSED: '·'}))  # 0x20
 
-        self.ESCAPE_SEQ_SGR_0 = EscapeSequenceTemplate(SequenceSGR.init_color_indexed(231) +
+        self.ESCAPE_SEQ_SGR_0 = EscapeSequenceTemplate(SequenceSGR.init_color_indexed(255) +
                                                        SequenceSGR.init_color_indexed(16, True), 'θ')  # \e[m
-        self.ESCAPE_SEQ_SGR = EscapeSequenceSGRTemplate(SequenceSGR.init_color_indexed(255) +
+        self.ESCAPE_SEQ_SGR = EscapeSequenceSGRTemplate(SequenceSGR.init_color_indexed(210) +
                                                         SequenceSGR.init_color_indexed(16, True), 'ǝ')  # \e[ (0x30-3f) (0x20-2f) m
         self.ESCAPE_SEQ_CSI = EscapeSequenceTemplate(Seqs.HI_GREEN, 'Ͻ')   # \e[ (0x30-3f) (0x20-2f) ...
         self.ESCAPE_SEQ_NF = EscapeSequenceTemplate(Seqs.GREEN, 'ꟻ')       # \e (0x20-2f) ...
@@ -42,5 +42,5 @@ class TemplateRegistry:
         c_bin = CharClass.BINARY_DATA
         self.BINARY_DATA = Template(c_bin, Seqs.MAGENTA, LabelPOV('Ḇ', {ReadMode.BINARY: '▯'}))  # 0x80-0xff
 
-        op_pr: OpeningSeqPOV = OpeningSeqPOV(SequenceSGR(), {DisplayMode.FOCUSED: Seqs.BG_WHITE + Seqs.BLACK})
+        op_pr: OpeningSeqPOV = OpeningSeqPOV(SequenceSGR.init_color_indexed(102), {DisplayMode.FOCUSED: Seqs.BG_WHITE + Seqs.BLACK})
         self.PRINTABLE_CHAR = PrintableCharTemplate(op_pr, '')  # 0x21-0x7e
