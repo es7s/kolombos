@@ -40,7 +40,7 @@ def sanitize(s: str) -> str:
     return s.replace("\t", "").replace("\n", "")
 
 
-def render_label(char: str, fg: str | None = "rgb_white", bg: str | None = "rgb_black", bold=True) -> str:
+def render_label(char: str, fg: str | None = 0xFFFFFF, bg: str | None = 0x000000, bold=True) -> str:
     return Style(fg=fg, bg=bg, bold=bold).render(" " + sanitize(char) + " ")
 
 
@@ -61,7 +61,7 @@ def invoke_default(
         if label_default_raw:
             label_default = render_label(label_default_raw)
         else:
-            label_default = render_label("(*)", fg="rgb_gray_40", bg=None, bold=False)
+            label_default = render_label("(*)", fg=0x666666, bg=None, bold=False)
         labels.append(label_default)
 
         label_focused_raw = t.label_stack.get(DM.FOCUSED, read_mode)
@@ -157,7 +157,7 @@ def invoke_on_utf8(
         if decode:
             label = render_label(Utf8SequenceTemplate.DECODED_LEFT_FILL_CHAR)
         elif read_mode.is_text:
-            label = render_label("(*)", fg="rgb_gray_40", bg=None, bold=False)
+            label = render_label("(*)", fg=0x666666, bg=None, bold=False)
         else:
             label = render_label(t.label_stack.get(RM.BINARY))
 
@@ -276,11 +276,11 @@ VARIABLES = {
     "ex_s_ff": idef(reg.WHITESPACE_FORM_FEED, b"\x0c"),
     "ex_s_cr": idef(reg.WHITESPACE_CARR_RETURN, b"\x0d"),
     "ex_s_space": idef(reg.WHITESPACE_SPACE, b"\x20"),
-    "ex_c_misc0": idef(reg.CONTROL_CHAR, b"\x03", b"\x1e"),
+    "ex_c_misc0": idef(reg.CONTROL_CHAR, b"\x03", b"\x1a"),
     "ex_c_misc1": idef(
         reg.CONTROL_CHAR,
         b"\x03",
-        b"\x1e",
+        b"\x1a",
         read_mode=RM.TEXT,
         print_label=False,
         print_hex=False,
@@ -289,7 +289,7 @@ VARIABLES = {
     "ex_c_misc2": idef(
         reg.CONTROL_CHAR,
         b"\x03",
-        b"\x1e",
+        b"\x1a",
         print_label=False,
         print_hex=False,
         read_mode=RM.TEXT,
@@ -323,12 +323,12 @@ VARIABLES = {
     "ex_u_3": iutf(reg.UTF_8_SEQ, enc("🐍"), read_mode=RM.TEXT, print_hex=True, shift=1, print_label=True),
     "ex_i_1": idef(reg.BINARY_DATA, b"\xee", b"\xb0", b"\xc0", b"\xcc"),
     "ex_i_2": idef(reg.BINARY_DATA, b"\xc0", b"\xff", b"\xee", b"\xda", read_mode=RM.TEXT, print_label=True),
-    "separator": 87 * Style(fg="rgb_gray_20").render("─"),
+    "separator": 87 * Style(fg=0x333333).render("─"),
     "fmt_header": Seqs.HI_WHITE + Seqs.BOLD,
     "fmt_thead": Seqs.DIM + Seqs.UNDERLINED,
     "fmt_cc": Seqs.BOLD,
     "fmt_comment": Seqs.GRAY,
-    "fmt_param": Seqs.GRAY + Seqs.BOLD,
+    "fmt_param": Seqs.DIM + Seqs.BOLD,
     "fmt_m1": initc256(117),
     "fmt_m2": initcrgb(248, 184, 137),
 }

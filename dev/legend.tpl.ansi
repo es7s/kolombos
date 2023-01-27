@@ -6,26 +6,26 @@
 #{}··········{}#       #{}{}#             #{}········{}#                        ^{hi_yellow}v:{ver}^{}
 
 :{fmt_header}CHARACTER CLASSES^{}
-  :{fmt_comment}<^{}:{fmt_cc}S^{}:{fmt_comment}>^{}   ASCII whitespace chars   09-0d, 20      :{fmt_param}-s -S^{}
-  :{fmt_comment}<^{}:{fmt_cc}C^{}:{fmt_comment}>^{}   ASCII control chars      01-08, 0e-1f   :{fmt_param}-c -C^{}
-  :{fmt_comment}<^{}:{fmt_cc}P^{}:{fmt_comment}>^{}   ASCII printable chars    21-7e          :{fmt_param}-p -P^{}
-  :{fmt_comment}<^{}:{fmt_cc}I^{}:{fmt_comment}>^{}   binary data              80-ff          :{fmt_param}-i -I^{}
-  :{fmt_comment}<^{}:{fmt_cc}U^{}:{fmt_comment}>^{}   UTF-8 sequences          various        :{fmt_param}-u -U^{}
-  :{fmt_comment}<^{}:{fmt_cc}E^{}:{fmt_comment}>^{}   ANSI escape sequences    1b[..]         :{fmt_param}-e -E^{}
+  :{fmt_comment}<^{}:{fmt_cc}S^{}:{fmt_comment}>^{}   ASCII whitespace chars   09-0d, 20          :{fmt_param}-s -S^{}
+  :{fmt_comment}<^{}:{fmt_cc}C^{}:{fmt_comment}>^{}   ASCII control chars      01-08, 0e-1f, 7f   :{fmt_param}-c -C^{}
+  :{fmt_comment}<^{}:{fmt_cc}P^{}:{fmt_comment}>^{}   ASCII printable chars    21-7e              :{fmt_param}-p -P^{}
+  :{fmt_comment}<^{}:{fmt_cc}I^{}:{fmt_comment}>^{}   binary data              80-ff              :{fmt_param}-i -I^{}
+  :{fmt_comment}<^{}:{fmt_cc}U^{}:{fmt_comment}>^{}   UTF-8 sequences          various            :{fmt_param}-u -U^{}
+  :{fmt_comment}<^{}:{fmt_cc}E^{}:{fmt_comment}>^{}   ANSI escape sequences    1b[..]             :{fmt_param}-e -E^{}
 
 :{fmt_header}SIGILS^{}
  :{fmt_thead}CHAR(s)^{} :{fmt_thead}OUTPUT (regular/focused)^{}  :{fmt_thead}CLS^{} :{fmt_thead}DESCRIPTION and NOTES                            ^{}
          :{fmt_thead}TEXT MODE^{} :{fmt_thead} BINARY MODE ^{}
- :{ex_s_tab  }:{fmt_comment}<^{}:{fmt_cc}:{fmt_cc}S^{}:{fmt_comment}>^{} horizontal tab    :{fmt_comment}HT  "^{bold}\t^{}:{fmt_comment}"        origin is kept^{}
- :{ex_s_lf   }:{fmt_comment}<^{}:{fmt_cc}S^{}:{fmt_comment}>^{} line feed         :{fmt_comment}LF  "^{bold}\n^{}:{fmt_comment}"        origin is kept^{}
+ :{ex_s_tab  }:{fmt_comment}<^{}:{fmt_cc}:{fmt_cc}S^{}:{fmt_comment}>^{} horizontal tab    :{fmt_comment}HT  "^{bold}\t^{}:{fmt_comment}"       (origin is kept)^{}
+ :{ex_s_lf   }:{fmt_comment}<^{}:{fmt_cc}S^{}:{fmt_comment}>^{} line feed         :{fmt_comment}LF  "^{bold}\n^{}:{fmt_comment}"       (origin is kept)^{}
  :{ex_s_vtab }:{fmt_comment}<^{}:{fmt_cc}S^{}:{fmt_comment}>^{} vertical tab      :{fmt_comment}VT  "^{bold}\v^{}:{fmt_comment}"^{}
  :{ex_s_ff   }:{fmt_comment}<^{}:{fmt_cc}S^{}:{fmt_comment}>^{} form feed         :{fmt_comment}FF  "^{bold}\f^{}:{fmt_comment}"^{}
  :{ex_s_cr   }:{fmt_comment}<^{}:{fmt_cc}S^{}:{fmt_comment}>^{} carriage return   :{fmt_comment}CR  "^{bold}\r^{}:{fmt_comment}"^{}
  :{ex_s_space}:{fmt_comment}<^{}:{fmt_cc}S^{}:{fmt_comment}>^{} space             :{fmt_comment}SP
  :{separator}
- :{ex_c_misc0}:{fmt_comment}<^{}:{fmt_cc}C^{}:{fmt_comment}>^{} generic control char    :{fmt_comment}CCs without unique sigil^{}
- :{ex_c_misc1}    :{fmt_param}--text --marker=:{fmt_m1}1^{}   :{fmt_comment}char from caret notation: ^C
- :{ex_c_misc2}    :{fmt_param}--text --marker=:{fmt_m2}2^{}    :{fmt_comment}real char hexadecimal value
+ :{ex_c_misc0}:{fmt_comment}<^{}:{fmt_cc}C^{}:{fmt_comment}>^{} generic control char   :{fmt_comment}(CCs without unique sigil)^{}
+ :{ex_c_misc1}    :{fmt_param}--text --marker=:{fmt_m1}1^{}       :{fmt_comment}(caret notation, e.g. ^C)
+ :{ex_c_misc2}    :{fmt_param}--text --marker=:{fmt_m2}2^{}        :{fmt_comment}(byte hexadecimal value)
 
  :{ex_c_null }:{fmt_comment}<^{}:{fmt_cc}C^{}:{fmt_comment}>^{} null byte        :{fmt_comment}NUL  "^{bold}\0^{}:{fmt_comment}"^{}
  :{ex_c_bskpc}:{fmt_comment}<^{}:{fmt_cc}C^{}:{fmt_comment}>^{} backspace        :{fmt_comment} BS  "^{bold}\b^{}:{fmt_comment}"^{}
@@ -35,32 +35,33 @@
  :{ex_p_print}:{fmt_comment}<^{}:{fmt_cc}P^{}:{fmt_comment}>^{} ASCII printable char
  :{ex_p_print2}
  :{separator}
- :{ex_i_2    }:{fmt_comment}<^{}:{fmt_cc}I^{}:{fmt_comment}>^{} binary data  :{fmt_param}-t^{}    :{fmt_comment}sequences that cannot be cla-^{}
- :{ex_i_1    }                 :{fmt_param}-b^{}     :{fmt_comment}ssified as any of the others^{}
+ :{ex_i_2    }:{fmt_comment}<^{}:{fmt_cc}I^{}:{fmt_comment}>^{} binary data  :{fmt_param}-t^{}   :{fmt_comment}(sequences that cannot be cla-^{}
+ :{ex_i_1    }                 :{fmt_param}-b^{}     :{fmt_comment}ssified as any of the others)^{}
  :{separator}
- :{ex_u_3    }:{fmt_comment}<^{}:{fmt_cc}U^{}:{fmt_comment}>^{} UTF-8 sequence  :{fmt_param}--text^{}:{fmt_comment}        decoded by default^{}
+ :{ex_u_3    }:{fmt_comment}<^{}:{fmt_cc}U^{}:{fmt_comment}>^{} UTF-8 sequence  :{fmt_param}--text^{}:{fmt_comment}       (decoded by default)^{}
  :{ex_u_1    }                    :{fmt_param}--binary^{}
  :{ex_u_2    }                    :{fmt_param}--binary^{} :{fmt_param}--decode^{}
  :{separator}
- :{ex_e_reset_m0}:{fmt_comment}<^{}:{fmt_cc}E^{}:{fmt_comment}>^{} SGR reset sequence  :{fmt_comment}all params always underlined^{}
- :{ex_e_reset_m1}    :{fmt_param}-m1:{fmt_m1}·^{}  :{fmt_comment}separators become visible when ^{bold}m^{}:{fmt_comment} is 1 or 2^{}
- :{ex_e_reset_m2}    :{fmt_param}-m2:{fmt_m2}·^{}  :{fmt_comment}real SGR contents except ESC -> "^{bold}ǝ^{}:{fmt_comment}" or "^{bold}θ^{}:{fmt_comment}"
+ :{ex_e_reset_m0}:{fmt_comment}<^{}:{fmt_cc}E^{}:{fmt_comment}>^{} SGR reset sequence     :{fmt_comment}(params always underlined)^{}
+ :{ex_e_reset_m1}    :{fmt_param}-m1:{fmt_m1}·^{}                        :{fmt_comment}(separators if ^{bold}m^{}:{fmt_comment} > 0)^{}
+ :{ex_e_reset_m2}    :{fmt_param}-m2:{fmt_m2}·^{}            :{fmt_comment}(SGR as is, except ESC → "^{bold}ǝ^{}:{fmt_comment}"/"^{bold}θ^{}:{fmt_comment}")
 
- :{ex_e_sgr_m0  }:{fmt_comment}<^{}:{fmt_cc}E^{}:{fmt_comment}>^{} SGR sequence    :{fmt_comment}label color similar to <^{}:{fmt_cc}C^{}:{fmt_comment}> class^{}
- :{ex_e_sgr_m0c }          :{fmt_param}--color-markers^{}  :{fmt_comment}marker colors match SGR's^{}
- :{ex_e_sgr_m1  }    :{fmt_param}-m1:{fmt_m1}·^{}  :{fmt_param}--color-markers^{}  :{fmt_comment}index-16 fg and bold code^{}
- :{ex_e_sgr_m1_2}    :{fmt_param}-m1:{fmt_m1}·^{}  :{fmt_param}--color-markers^{}  :{fmt_comment}index-256 fg and bg codes^{}
- :{ex_e_sgr_m1_3}    :{fmt_param}-m1:{fmt_m1}·^{}  :{fmt_param}--color-markers^{}  :{fmt_comment}true color RGB hex. value^{}
- :{ex_e_sgr_m2}      :{fmt_param}-m2:{fmt_m2}·^{}  :{fmt_comment}real SGR contents; same data as in prev.ex.^{}
+ :{ex_e_sgr_m0  }:{fmt_comment}<^{}:{fmt_cc}E^{}:{fmt_comment}>^{} SGR sequence        :{fmt_comment}(marker color similar to CCs)^{}
+ :{ex_e_sgr_m0c }          :{fmt_param}--color-markers^{}   :{fmt_comment}(marker color match SGRs)^{}
+ :{ex_e_sgr_m1  }    :{fmt_param}-m1:{fmt_m1}·^{}  :{fmt_param}--color-markers^{}   :{fmt_comment}(index-16 fg + bold code)^{}
+ :{ex_e_sgr_m1_2}    :{fmt_param}-m1:{fmt_m1}·^{}  :{fmt_param}--color-markers^{}   :{fmt_comment}(index-256 fg + bg codes)^{}
+ :{ex_e_sgr_m1_3}    :{fmt_param}-m1:{fmt_m1}·^{}  :{fmt_param}--color-markers^{}  :{fmt_comment}(true color RGB hex value)^{}
+ :{ex_e_sgr_m2}      :{fmt_param}-m2:{fmt_m2}·^{}        :{fmt_comment}(SGR as is; same SGR as in prev. ex.)^{}
 
- :{ex_e_csi  }:{fmt_comment}<^{}:{fmt_cc}E^{}:{fmt_comment}>^{} CSI sequence  :{fmt_param}-m2:{fmt_m2}·^{}     :{fmt_comment}color depends on sequence^{}
- :{ex_e_nf   }:{fmt_comment}<^{}:{fmt_cc}E^{}:{fmt_comment}>^{}  nF sequence  :{fmt_param}-m2:{fmt_m2}·^{}  :{fmt_param}-e^{}   :{fmt_comment}type, not on seq params^{}
- :{ex_e_fp   }:{fmt_comment}<^{}:{fmt_cc}E^{}:{fmt_comment}>^{}  Fp sequence  :{fmt_param}-m2:{fmt_m2}·^{}  :{fmt_param}-e^{}
- :{ex_e_fe   }:{fmt_comment}<^{}:{fmt_cc}E^{}:{fmt_comment}>^{}  Fe sequence  :{fmt_param}-m1:{fmt_m1}·^{}
+ :{ex_e_csi  }:{fmt_comment}<^{}:{fmt_cc}E^{}:{fmt_comment}>^{} CSI sequence  :{fmt_param}-m2:{fmt_m2}·^{}         :{fmt_comment}(color depends on^{}
+ :{ex_e_nf   }:{fmt_comment}<^{}:{fmt_cc}E^{}:{fmt_comment}>^{}  nF sequence  :{fmt_param}-m2:{fmt_m2}·^{}  :{fmt_param}-e^{}       :{fmt_comment}sequence type, not^{}
+ :{ex_e_fp   }:{fmt_comment}<^{}:{fmt_cc}E^{}:{fmt_comment}>^{}  Fp sequence  :{fmt_param}-m2:{fmt_m2}·^{}  :{fmt_param}-e^{}        :{fmt_comment}on sequence params)^{}
+ :{ex_e_fe   }:{fmt_comment}<^{}:{fmt_cc}E^{}:{fmt_comment}>^{}  Fe sequence  :{fmt_param}-m1:{fmt_m1}·^{}             
  :{ex_e_fs   }:{fmt_comment}<^{}:{fmt_cc}E^{}:{fmt_comment}>^{}  Fs sequence
 
 
-:{fmt_comment}For best view your terminal should be ^{bold}88^{bold_dim_off} chars wide (or wider)^{}
+:{fmt_comment}For best view your terminal should be ^{}:{fmt_param}88^{}:{fmt_comment} chars wide (or wider)^{}
 
+:{fmt_comment}(c) 2022—2023 A. Shavykin^{}
+:{fmt_comment}(e) ^{yellow}0:{fmt_comment}.delameter@gmail.com^{}
 :{fmt_comment}Is a part of ^{bold;white}es7s:{fmt_comment} pack^{}
-:{fmt_comment}(c) 2022 A. Shavykin <^{yellow}0:{fmt_comment}.delameter@gmail.com>^{}
