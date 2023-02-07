@@ -35,6 +35,15 @@ demolish-build:  ## Purge build output folders
 	rm -f -v dist/* ${PROJECT_NAME_PUBLIC}.egg-info/* ${PROJECT_NAME_PRIVATE}.egg-info/*
 
 
+## Automation
+
+auto-all: generate-legend
+
+generate-legend: ## Update legend.ansi from the template
+	@. venv/bin/activate
+	PYTHONPATH=${PWD} python3 dev/generate_legend.py
+
+
 ## Testing / Pre-build
 
 set-version: ## Set new package version
@@ -48,10 +57,6 @@ set-version: ## Set new package version
 	sed -E -i "s/^__version__.+/__version__ = '$$VERSION'/" ${PROJECT_NAME}/version.py
 	echo "Updated version: ${GREEN}$$VERSION${RESET}"
 
-generate-legend: ## Update legend.ansi from the template
-	@. venv/bin/activate
-	PYTHONPATH=${PWD} python3 dev/generate_legend.py
-
 test: ## Run tests
 	@. venv/bin/activate
 	python3 -s -m unittest -v
@@ -64,7 +69,7 @@ depends:  ## Build and display module dependency graph
 ## Releasing (dev)
 
 build-dev: ## Create new private build (<kolombos-delameter>)
-build-dev: demolish-build
+build-dev: demolish-build auto-all
 	sed -E -i "s/^name.+/name = ${PROJECT_NAME_PRIVATE}/" setup.cfg
 	. venv/bin/activate
 	python3 -m build
@@ -87,7 +92,7 @@ install-dev-public: ## Install latest public build from dev repo
 ## Releasing (PRIMARY)
 
 build: ## Create new public build (<kolombos>)
-build: demolish-build
+build: demolish-build auto-all
 	. venv/bin/activate
 	python3 -m build
 
