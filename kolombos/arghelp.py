@@ -3,10 +3,14 @@
 # (C) 2022 A. Shavykin <0.delameter@gmail.com>
 # -----------------------------------------------------------------------------
 import re
+import textwrap
 from argparse import HelpFormatter, Action, ArgumentParser, SUPPRESS
 from typing import Optional, Iterable, List
 
-from pytermor import Spans
+import pytermor.common
+
+import pytermor as pt
+from pytermor import Spans, Style, Text, render
 
 from .byteio import Reader
 from .byteio.template import Template
@@ -94,14 +98,15 @@ class CustomArgumentParser(ArgumentParser):
 
 class AppArgumentParser(CustomArgumentParser):
     def __init__(self):
-        fmt_b = Spans.BOLD
-        fmt_u = Spans.UNDERLINED
-        fmt_default = Spans.YELLOW
+        fmt_b = lambda s: Text(s, Style(bold=True))
+        fmt_u = lambda s: Text(s, Style(underlined=True))
+        fmt_default = lambda s: Text(s, Style(fg=pt.Colors.YELLOW))
+        ren = pt.SgrRenderer.render
 
         super().__init__(
             description='Escape sequences and control characters visualiser',
             usage=[
-                '%(prog)s [[--text] | --binary] [<options>] [<file>]',
+                '%(prog)s [[--text] | --binary] [<options>] [--demo | <file>]',
                 '%(prog)s --legend',
                 '%(prog)s --version',
                 '%(prog)s --help',
@@ -112,7 +117,9 @@ class AppArgumentParser(CustomArgumentParser):
                 '',
                 f'Binary mode disables {fmt_b("--marker")} setting, because marker length should be always equal to actual sequence length. Therefore, control chars have 0 details level, while escape seqs are displayed with full details (2). Also, debug mode sets {fmt_b("--buffer")} setting to {Reader.READ_CHUNK_SIZE_DEBUG} bytes (however, it can be overriden as usual).',
                 '',
-                '(c) 2022 A. Shavykin <0.delameter@gmail.com>',
+                f'Demo mode effectively fixes <filename> to a preset path for the current run, as well as implies -b, -d and -w16 (can be overriden).',
+                '',
+                '(c) 2022-2023 A. Shavykin <0.delameter@gmail.com>',
             ],
             examples=[
                 'Read file in text mode, highlight escape sequences, marker verbosity 2 (max)',
@@ -124,6 +131,9 @@ class AppArgumentParser(CustomArgumentParser):
                 'Read stdin in binary mode, highlight control characters, process 128 first bytes and exit',
                 ''.ljust(4) + f"{fmt_u('%(prog)s')} --binary --focus-control -B{fmt_u(128)}",
                 '',
+                'Show demo in binary mode, 32 bytes per line, with decimal offsets',
+                ''.ljust(4) + f"{fmt_u('%(prog)s')} -w32 --decimal-offsets --demo",
+                '',
                 'Display annotation symbol list and color map',
                 ''.ljust(4) + f"{fmt_u('%(prog)s')} --legend",
                 '\n'
@@ -133,12 +143,15 @@ class AppArgumentParser(CustomArgumentParser):
             prog='kolombos'
         )
 
-        self.add_argument('filename', metavar='<file>', nargs='?', help='file to read from; if empty or "-", read stdin instead')
+        input_group = self.add_argument_group('input')
+        input_group_nested = input_group.add_mutually_exclusive_group()
+        input_group_nested.add_argument('filename', metavar='<file>', nargs='?', help='file to read from; if empty or "-", read stdin instead; ignored if --demo is present')
+        input_group_nested.add_argument('-M', '--demo', action='store_true', default=False, help='show output examples and exit; see --legend for the description')
 
         modes_group = self.add_argument_group('operating mode')
         modes_group_nested = modes_group.add_mutually_exclusive_group()
         # modes_group_nested.add_argument('-a', '--auto', action='store_true', default=True, help='open file in text mode, fallback to binary on failure (default)')
-        modes_group_nested.add_argument('-t', '--text', action='store_true', default=True, help='open file in text mode '+fmt_default('[this is a default]'))
+        modes_group_nested.add_argument('-t', '--text', action='store_true', default=True, help=ren('open file in text mode '+fmt_default('[this is a default]')))
         modes_group_nested.add_argument('-b', '--binary', action='store_true', default=False, help='open file in binary mode')
         modes_group_nested.add_argument('-l', '--legend', action='store_true', default=False, help='show annotation symbol list and exit')
         modes_group.add_argument('-v', '--version', action='store_true', default=False, help='show app version and exit')
@@ -165,22 +178,22 @@ class AppArgumentParser(CustomArgumentParser):
         binary_output_group.add_argument('-I', '--ignore-binary', action='store_true', default=False, help='dim/hide binary data')
 
         generic_group = self.add_argument_group('generic options')
-        generic_group.add_argument('-f', '--buffer', metavar='<size>', type=int, default=None, help='read buffer size, in bytes '+fmt_default(f'[default: {Reader.READ_CHUNK_SIZE}]'))
-        generic_group.add_argument('-L', '--max-lines', metavar='<num>', action='store', type=int, default=0, help='stop after reading <num> lines '+fmt_default('[default: no limit]'))
-        generic_group.add_argument('-B', '--max-bytes', metavar='<num>', action='store', type=int, default=0, help='stop after reading <num> bytes '+fmt_default('[default: no limit]'))
+        generic_group.add_argument('-f', '--buffer', metavar='<size>', type=int, default=None, help=ren('read buffer size, in bytes '+fmt_default(f'[default: {Reader.READ_CHUNK_SIZE}]')))
+        generic_group.add_argument('-L', '--max-lines', metavar='<num>', action='store', type=int, default=0, help=ren('stop after reading <num> lines '+fmt_default('[default: no limit]')))
+        generic_group.add_argument('-B', '--max-bytes', metavar='<num>', action='store', type=int, default=0, help=ren('stop after reading <num> bytes '+fmt_default('[default: no limit]')))
         generic_group.add_argument('-D', '--debug', action='count', default=0, help='enable debug mode; can be used from 1 to 4 times, each level increases verbosity (-D|DD|DDD|DDDD)')
         generic_group.add_argument('--color-markers', action='store_true', default=False, help='apply SGR marker format to themselves')
 
         text_mode_group = self.add_argument_group('text mode options')
-        text_mode_group.add_argument('-m', '--marker', metavar='<details>', action='store', type=int, default=0, help='marker details: 0 is none, 1 is brief, 2 is full '+fmt_default('[default: %(default)s]'))
-        text_mode_group.add_argument('--no-separators', action='store_true', default=False, help='do not print '+Template.wrap_in_separators('separators')+' around escape sequences')
+        text_mode_group.add_argument('-m', '--marker', metavar='<details>', action='store', type=int, default=0, help=ren('marker details: 0 is none, 1 is brief, 2 is full '+fmt_default('[default: %(default)s]')))
+        text_mode_group.add_argument('--no-separators', action='store_true', default=False, help=ren('do not print '+Template.wrap_in_separators('separators')+' around escape sequences'))
         # text_mode_group.add_argument('-Q', '--squash-ignored', action='store_true', default=False, help=Span(Seqs.HI_YELLOW)('TODO ')+'replace sequences of ignored characters with one character')
         # text_mode_group.add_argument('-H', '--hide-ignored', action='store_true', default=False, help=Span(Seqs.HI_YELLOW)('TODO ')+'completely hide ignored character classes')
         text_mode_group.add_argument('--no-line-numbers', action='store_true', default=False, help='do not print line numbers')
 
         bin_mode_group = self.add_argument_group('binary mode options')
-        bin_mode_group.add_argument('-w', '--columns', metavar='<num>', action='store', type=int, default=0, help='format output as <num>-columns wide table '+fmt_default('[default: auto]'))
+        bin_mode_group.add_argument('-w', '--columns', metavar='<num>', action='store', type=int, default=0, help=ren('format output as <num>-columns wide table '+fmt_default('[default: auto]')))
         bin_mode_group.add_argument('-d', '--decode', action='store_true', default=False, help='decode valid UTF-8 sequences, print as unicode chars')
         offsets_group = bin_mode_group.add_mutually_exclusive_group()
-        offsets_group.add_argument('--decimal-offsets', action='store_true', default=False, help='output offsets in decimal format '+fmt_default('[default: hex format]'))
+        offsets_group.add_argument('--decimal-offsets', action='store_true', default=False, help=ren('output offsets in decimal format '+fmt_default('[default: hex format]')))
         offsets_group.add_argument('--no-offsets', action='store_true', default=False, help='do not print offsets')

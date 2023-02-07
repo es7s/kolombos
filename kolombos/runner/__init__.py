@@ -5,6 +5,7 @@
 from ._abstract import AbstractRunner
 
 from .byteio import ByteIoRunner
+from .demo import DemoRunner
 from .legend import LegendRunner
 from .version import VersionRunner
 

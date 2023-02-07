@@ -261,7 +261,7 @@ class Console:
         if SettingsManager.app_settings.decimal_offsets:
             offset_str = f'{offset:d}'
         else:
-            offset_str = f'0x{offset:0{ceil(len(str(offset))/2)*2}x}'
+            offset_str = f'0x{offset:0{max(4,ceil(len(str(offset))/2)*2)}x}'
         return Console.format_prefix(offset_str, f)
 
     @staticmethod
