@@ -20,7 +20,7 @@ class Settings(Namespace):
         self.columns: int|None = None  # auto
         self.decimal_offsets: bool = False
         self.debug: int = 0
-        self.decode: bool = False  # @TODO get rid of; will be useless after breakdown mode impl
+        self.decode: bool|None = None  # @TODO get rid of; will be useless after breakdown mode impl
         self.filename: str|None = None
         self.focus_control: bool = False
         self.focus_esc: bool = False
@@ -44,8 +44,11 @@ class Settings(Namespace):
         self.no_separators: bool = False
         self.no_offsets: bool = False
         self.squash_ignored: bool = False  # TODO
-        self.text: bool = True
+        self.text: bool = False
         self.version: bool = False
+        self.demo: bool = False
+
+        self._default_read_mode: ReadMode = ReadMode.TEXT
 
     @property
     def read_mode(self) -> ReadMode:
@@ -54,7 +57,13 @@ class Settings(Namespace):
         elif self.text:
             return ReadMode.TEXT
         # auto
-        raise ValueError('Read mode is undefined')
+
+        self.text = self._default_read_mode.is_text
+        self.binary = self._default_read_mode.is_binary
+        return self._default_read_mode
+
+    def set_default_read_mode(self, val: ReadMode):
+        self._default_read_mode = val
 
     def get_char_class_display_mode(self, char_class: CharClass) -> DisplayMode:
         attr_ignored = f'ignore_{char_class.value}'

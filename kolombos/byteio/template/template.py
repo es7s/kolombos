@@ -53,7 +53,7 @@ class Template:
         self._display_mode = app_settings.get_char_class_display_mode(self._char_class)
         self._read_mode = app_settings.read_mode
         self._marker_details = app_settings.effective_marker_details
-        self._decode = app_settings.decode
+        self._decode = app_settings.decode if isinstance(app_settings.decode, bool) else False
 
     def substitute(self, raw: bytes) -> List[Segment]:
         self._substituted.clear()

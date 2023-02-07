@@ -2,9 +2,11 @@
 # es7s/kolombos [Escape sequences and control characters visualiser]
 # (C) 2022 A. Shavykin <0.delameter@gmail.com>
 # -----------------------------------------------------------------------------
+from pytermor import Spans
+
 
 class ArgumentError(Exception):
-    USAGE_MSG = "Run the app with '--help' argument to see the usage"
+    USAGE_MSG = "Run the app with '" + Spans.BOLD('--help') + "' argument to see the usage"
 
 
 def get_terminal_width(exact: bool = False) -> int:

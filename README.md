@@ -43,18 +43,20 @@ CLI application for visualising usually invisible characters and bytes:
 Application can be useful for a variety of tasks, e.g. browsing unknown data formats, searching for patterns or debugging combinations of SGR sequences.
 
 ```
-USAGE
-  kolombos [[--text] | --binary] [<options>] [<file>]
-
-POSITIONAL ARGUMENTS
-  <file>                  file to read from; if empty or "-", read stdin instead
-
+USAGE                                                                                                                                                   
+  kolombos [[--text] | --binary] [<options>] [--demo | <file>]     
+  
+INPUT
+  <file>                  file to read from; if empty or "-", read stdin
+                          instead; ignored if --demo is present
+  -M, --demo              show output examples and exit; see --legend for the
+                          description
 OPERATING MODE
   -t, --text              open file in text mode [this is a default]
   -b, --binary            open file in binary mode
   -l, --legend            show annotation symbol list and exit
   -v, --version           show app version and exit
-  -h, --help              show this help message and exit
+  -h, --help              show this help message and exit 
 
 [...]
 ```
@@ -72,11 +74,13 @@ GENERIC OPTIONS
   -f, --buffer <size>     read buffer size, in bytes [default: 4096]
   -L, --max-lines <num>   stop after reading <num> lines [default: no limit]
   -B, --max-bytes <num>   stop after reading <num> bytes [default: no limit]
-  -D, --debug             enable debug mode; can be used from 1 to 4 times, each level increases verbosity (-D|DD|DDD|DDDD)
+  -D, --debug             enable debug mode; can be used from 1 to 4 times,
+                          each level increases verbosity (-D|DD|DDD|DDDD)
   --color-markers         apply SGR marker format to themselves
 
 TEXT MODE OPTIONS
-  -m, --marker <details>  marker details: 0 is none, 1 is brief, 2 is full [default: 0]
+  -m, --marker <details>  marker details: 0 is none, 1 is brief, 2 is full
+                          [default: 0]
   --no-separators         do not print ⢸separators⡇ around escape sequences
   --no-line-numbers       do not print line numbers
 
@@ -197,6 +201,12 @@ Even more information can be seen after running `kolombos --legend`.
 
 
 ## Changelog
+
+
+
+### v1.5
+- NEW: `--demo` mode
+
 
 ### v1.4.1
 - Temporarily injected `pytermor` v2.1
