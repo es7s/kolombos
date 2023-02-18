@@ -1,17 +1,17 @@
+<div align="center">
+   <img src="https://user-images.githubusercontent.com/50381946/167742137-3c250ada-0b2c-4124-9604-e02abec50b7e.png" width="96" height="96"><br>
+   <img src="https://user-images.githubusercontent.com/50381946/219900506-491a3fc0-2e84-4782-ae3d-da4ae9825664.png" width="400" height="64">
+</div>
 
-<h1 align="center">
-  <img src="https://user-images.githubusercontent.com/50381946/167742137-3c250ada-0b2c-4124-9604-e02abec50b7e.png">
-  <br>
-  <code>kolombos</code>
-  <br>
-</h1>
-  
-  <p align="center">
-    <a href="https://pypi.org/project/kolombos/"><img alt="PyPI" src="https://img.shields.io/pypi/v/kolombos"></a>
-    <a href="https://pepy.tech/project/kolombos/">
-      <img alt="Downloads" src="https://pepy.tech/badge/kolombos">
-    </a>
-  </p>
+<div align="center">
+  <img src="https://img.shields.io/badge/python-3.7-3776AB?logo=python&logoColor=white&labelColor=333333">
+  <a href="https://pypi.org/project/kolombos/"><img alt="PyPI" src="https://img.shields.io/pypi/v/kolombos"></a>
+  <a href="https://pepy.tech/project/kolombos/">
+    <img alt="Downloads" src="https://pepy.tech/badge/kolombos">
+  </a>
+</div>
+<h1> </h1>
+
 
 CLI application for visualising usually invisible characters and bytes:
 
