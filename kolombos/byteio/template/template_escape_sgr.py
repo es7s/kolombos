@@ -15,9 +15,7 @@ from ...settings import SettingsManager
 class EscapeSequenceSGRTemplate(EscapeSequenceTemplate):
     M1_SEPARATOR = '･'
 
-    ALLOWED_SGRS_FOR_MARKER_FORMAT = [  # INVERSED, BOLD, UNDERLINED are reserved for markers themself
-        IntCodes.DIM, IntCodes.ITALIC,
-        IntCodes.OVERLINED, IntCodes.CROSSLINED,
+    ALLOWED_SGRS_FOR_MARKER_FORMAT = [  # colors only allowed
         *IntCodes.LIST_ALL_COLORS,
     ]
 

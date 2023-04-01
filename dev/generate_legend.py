@@ -52,6 +52,7 @@ def invoke_default(
     print_label: bool = True,
     print_hex: bool = True,
     marker: MD = MD.DEFAULT,
+    blink_focused: bool = False,
 ) -> str:
     result = [""] * 5
 
@@ -91,8 +92,8 @@ def invoke_default(
 
         if cur_raw:
             if print_hex:
-                result[col_hex] += segs_to_hex(substitute_with(t, cur_raw, display_mode, RM.BINARY, marker))
-            result[col_chr] += segs_to_processed(substitute_with(t, cur_raw, display_mode, read_mode, marker))
+                result[col_hex] += segs_to_hex(substitute_with(t, cur_raw, display_mode, RM.BINARY, marker, blink_focused=blink_focused))
+            result[col_chr] += segs_to_processed(substitute_with(t, cur_raw, display_mode, read_mode, marker, blink_focused=blink_focused))
 
     # if raws == (b'',):
     #     for col in [COL_HEX_DEFAULT, COL_HEX_FOCUSED, COL_CHR_DEFAULT, COL_CHR_FOCUSED]:
@@ -185,6 +186,7 @@ def substitute_with(
     marker_details: MD = MD.BRIEF_DETAILS,
     decode: bool = False,
     color_markers: bool = False,
+    blink_focused: bool = False,
     separators: bool = True,
     details_fmt_str: bytes = None,
 ) -> List[Segment]:
@@ -195,9 +197,10 @@ def substitute_with(
     app_settings.marker = marker_details.value
     app_settings.decode = decode
     app_settings.color_markers = color_markers
+    app_settings.blink_focused = blink_focused
     app_settings.no_separators = not separators
 
-    t.update_settings()
+    t.update_settings(app_settings)
     if isinstance(t, EscapeSequenceSGRTemplate) and details_fmt_str is not None:
         t.set_details_fmt_str(details_fmt_str)
     return t.substitute(raw)
@@ -275,7 +278,7 @@ VARIABLES = {
     "ex_s_lf": idef(reg.WHITESPACE_NEWLINE, b"\x0a"),
     "ex_s_vtab": idef(reg.WHITESPACE_VERT_TAB, b"\x0b"),
     "ex_s_ff": idef(reg.WHITESPACE_FORM_FEED, b"\x0c"),
-    "ex_s_cr": idef(reg.WHITESPACE_CARR_RETURN, b"\x0d"),
+    "ex_s_cr": idef(reg.CONTROL_CARR_RETURN, b"\x0d"),
     "ex_s_space": idef(reg.WHITESPACE_SPACE, b"\x20"),
     "ex_c_misc0": idef(reg.CONTROL_CHAR, b"\x03", b"\x1e"),
     "ex_c_misc1": idef(
@@ -300,7 +303,7 @@ VARIABLES = {
     "ex_c_bskpc": idef(reg.CONTROL_CHAR_BACKSPACE, b"\x08"),
     "ex_c_del": idef(reg.CONTROL_CHAR_DELETE, b"\x7f"),
     "ex_c_esc": idef(reg.CONTROL_CHAR_ESCAPE, b"\x1b"),
-    "ex_p_print": idef(reg.PRINTABLE_CHAR, b"!", b'"', b"1", b"2"),
+    "ex_p_print": idef(reg.PRINTABLE_CHAR, b"!", b'"', b"1", b"2", blink_focused=True),
     "ex_p_print2": idef(reg.PRINTABLE_CHAR, b"A", b"B", b"}", b"~", print_label=False),
     "ex_e_reset_lbl": idef(ESQ_SGR0, b""),
     "ex_e_reset_m0": iesq(ESQ_SGR0, Seqs.RESET, no_details=True),

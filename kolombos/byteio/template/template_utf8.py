@@ -4,10 +4,11 @@
 # -----------------------------------------------------------------------------
 from __future__ import annotations
 
-from pytermor import SequenceSGR
+from pytermor import SequenceSGR, Seqs
 
 from . import Template
-from .. import CharClass, OpeningSeqPOV, LabelPOV
+from .. import CharClass, OpeningSeqPOV, LabelPOV, DisplayMode
+from ...settings import Settings
 
 
 class Utf8SequenceTemplate(Template):
@@ -32,3 +33,8 @@ class Utf8SequenceTemplate(Template):
             return decoded
 
         return default()
+
+    def _get_focused_seq(self, app_settings: Settings) -> SequenceSGR:
+        if app_settings.blink_focused:
+            return self._opening_seq_stack.get(DisplayMode.FOCUSED) + Seqs.BLINK_DEFAULT
+        return self._opening_seq_stack.get(DisplayMode.FOCUSED) + Seqs.INVERSED

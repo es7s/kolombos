@@ -5,14 +5,13 @@
 from __future__ import annotations
 
 from pytermor import SequenceSGR, Seqs
+from .template_whitespace import WhitespaceTemplate
+from .. import OpeningSeqPOV, LabelPOV
 
-from . import Template
-from .. import CharClass, OpeningSeqPOV, LabelPOV
 
-
-class NewlineTemplate(Template):
-    def __init__(self, opening_seq: SequenceSGR | OpeningSeqPOV, label: str | LabelPOV = ''):
-        super().__init__(CharClass.WHITESPACE, opening_seq, label)
+class NewlineTemplate(WhitespaceTemplate):
+    def __init__(self, label: str | LabelPOV = ''):
+        super().__init__(label)
 
     def _process_byte(self, b: int) -> str:
         default = super()._process_byte(b)

@@ -4,9 +4,10 @@
 # -----------------------------------------------------------------------------
 from __future__ import annotations
 
+from copy import copy, deepcopy
 from typing import TypeVar, Generic, Dict
 
-from pytermor import SequenceSGR
+from pytermor import SequenceSGR, NOOP_SEQ
 
 from kolombos.byteio import ByteIOMode
 
@@ -46,10 +47,15 @@ class PartialOverride(Generic[KT, VT]):
             return False
         return key in self._override.keys()
 
+    def clone(self) -> PartialOverride[KT, VT]:
+        return self.__class__(self._default, {k: self._clone(v) for k, v in (self._override or {}).items()})
 
-class OpeningSeqPOV(PartialOverride[ByteIOMode, SequenceSGR]):
-    pass
+    def _clone(self, v: VT) -> VT:
+        if isinstance(v, SequenceSGR):
+            return SequenceSGR(*v.params)
+        return copy(v)
 
 
-class LabelPOV(PartialOverride[ByteIOMode, str]):
-    pass
+OpeningSeqPOV = PartialOverride[ByteIOMode, SequenceSGR]
+
+LabelPOV = PartialOverride[ByteIOMode, str]

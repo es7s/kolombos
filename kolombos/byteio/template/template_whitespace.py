@@ -5,21 +5,17 @@
 from __future__ import annotations
 
 from pytermor import SequenceSGR, Seqs
+
 from . import Template
-from .. import CharClass, LabelPOV, DisplayMode
+from .. import CharClass, OpeningSeqPOV, LabelPOV, DisplayMode
 from ...settings import Settings
 
 
-class PrintableCharTemplate(Template):
+class WhitespaceTemplate(Template):
     def __init__(self, label: str | LabelPOV = ''):
-        super().__init__(CharClass.PRINTABLE_CHAR, SequenceSGR.init_color_indexed(102), label)
-
-    def _process_byte(self, b: int) -> str:
-        if self._display_mode.is_ignored:
-            return super()._process_byte(b)
-        return chr(b)
+        super().__init__(CharClass.WHITESPACE, Seqs.HI_CYAN, label)
 
     def _get_focused_seq(self, app_settings: Settings) -> SequenceSGR:
         if app_settings.blink_focused:
-            return self._opening_seq_stack.get() + Seqs.BLINK_DEFAULT
-        return self._opening_seq_stack.get(DisplayMode.FOCUSED)
+            return Seqs.HI_CYAN + Seqs.BG_BLACK + Seqs.BLINK_DEFAULT
+        return Seqs.BG_CYAN + Seqs.BLACK

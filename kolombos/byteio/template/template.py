@@ -11,7 +11,7 @@ from pytermor import SequenceSGR, Seqs, ansi
 from .. import CharClass, DisplayMode, MarkerDetailsEnum, ReadMode, PartialOverride, OpeningSeqPOV, LabelPOV
 from ..const import TYPE_LABEL_MAP, TYPE_LABEL_DETAILS
 from ..segment import Segment
-from ...settings import SettingsManager
+from ...settings import SettingsManager, Settings
 
 
 class Template:
@@ -29,7 +29,7 @@ class Template:
             label = LabelPOV(label)
 
         self._char_class: CharClass = char_class
-        self._opening_seq_stack: OpeningSeqPOV = opening_seq
+        self._opening_seq_stack: OpeningSeqPOV = opening_seq.clone()
         self._label_stack: LabelPOV = label
         self._substituted: List[Segment] = []
 
@@ -38,22 +38,22 @@ class Template:
         self._marker_details: MarkerDetailsEnum = MarkerDetailsEnum.NO_DETAILS
         self._decode: bool = False
 
-        if not self._opening_seq_stack.has_key(DisplayMode.FOCUSED):
-            self._opening_seq_stack.set(DisplayMode.FOCUSED, self._opening_seq_stack.get() + Seqs.INVERSED)
+        self.update_settings()
+
+    def update_settings(self, override: Settings = None):
+        app_settings = override or SettingsManager.app_settings
+        self._display_mode = app_settings.get_char_class_display_mode(self._char_class)
+        self._read_mode = app_settings.read_mode
+        self._marker_details = app_settings.effective_marker_details
+        self._decode = app_settings.decode if isinstance(app_settings.decode, bool) else False
+
+        self._opening_seq_stack.set(DisplayMode.FOCUSED, self._get_focused_seq(app_settings))
+
         if not self._opening_seq_stack.has_key(DisplayMode.IGNORED):
             self._opening_seq_stack.set(DisplayMode.IGNORED, self.IGNORED_OPENING_SEQ)
 
         if not self._label_stack.has_key(DisplayMode.IGNORED):
             self._label_stack.set(DisplayMode.IGNORED, self.IGNORED_LABEL)
-
-        self.update_settings()
-
-    def update_settings(self):
-        app_settings = SettingsManager.app_settings
-        self._display_mode = app_settings.get_char_class_display_mode(self._char_class)
-        self._read_mode = app_settings.read_mode
-        self._marker_details = app_settings.effective_marker_details
-        self._decode = app_settings.decode if isinstance(app_settings.decode, bool) else False
 
     def substitute(self, raw: bytes) -> List[Segment]:
         self._substituted.clear()
@@ -91,6 +91,11 @@ class Template:
 
     def _get_details_opening_seq(self) -> SequenceSGR:
         raise NotImplemented
+
+    def _get_focused_seq(self, app_settings: Settings) -> SequenceSGR:
+        if app_settings.blink_focused:
+            return self._opening_seq_stack.get(DisplayMode.FOCUSED) + Seqs.BLINK_DEFAULT
+        return self._opening_seq_stack.get(DisplayMode.FOCUSED) + Seqs.INVERSED
 
     @staticmethod
     def wrap_in_separators(s: str|List[Segment]) -> str|None:

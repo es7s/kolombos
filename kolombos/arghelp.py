@@ -183,6 +183,7 @@ class AppArgumentParser(CustomArgumentParser):
         generic_group.add_argument('-B', '--max-bytes', metavar='<num>', action='store', type=int, default=0, help=ren('stop after reading <num> bytes '+fmt_default('[default: no limit]')))
         generic_group.add_argument('-D', '--debug', action='count', default=0, help='enable debug mode; can be used from 1 to 4 times, each level increases verbosity (-D|DD|DDD|DDDD)')
         generic_group.add_argument('--color-markers', action='store_true', default=False, help='apply SGR marker format to themselves')
+        generic_group.add_argument('--blink-focused', action='store_true', default=False, help=ren('render focused characters with blinking effect instead of '+fmt_default('[default] inverse')+' effect'))
 
         text_mode_group = self.add_argument_group('text mode options')
         text_mode_group.add_argument('-m', '--marker', metavar='<details>', action='store', type=int, default=0, help=ren('marker details: 0 is none, 1 is brief, 2 is full '+fmt_default('[default: %(default)s]')))

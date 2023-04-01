@@ -76,7 +76,7 @@ class Parser:
             28: self._template_registry.WHITESPACE_NEWLINE,
             29: self._template_registry.WHITESPACE_VERT_TAB,
             30: self._template_registry.WHITESPACE_FORM_FEED,
-            31: self._template_registry.WHITESPACE_CARR_RETURN,
+            31: self._template_registry.CONTROL_CARR_RETURN,
             32: self._template_registry.WHITESPACE_SPACE,
             33: self._template_registry.PRINTABLE_CHAR,
         }
