@@ -204,6 +204,16 @@ Even more information can be seen after running `kolombos --legend`.
 
 
 
+### v1.5.2
+
+- UPDATE: icon redraw
+
+
+### v1.5.1
+
+- FIX: packaging assets
+
+
 ### v1.5
 - NEW: `--demo` mode
 
