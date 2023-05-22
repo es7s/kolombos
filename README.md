@@ -203,20 +203,20 @@ Even more information can be seen after running `kolombos --legend`.
 ## Changelog
 
 
+### v1.5.4
+- FIX: reverted default column amount in `--demo` mode
+
+### v1.5.3
+- FIX: errors while processing SGR with subparams (e.g. `4:3;`)
 
 ### v1.5.2
-
 - UPDATE: icon redraw
 
-
 ### v1.5.1
-
 - FIX: packaging assets
-
 
 ### v1.5
 - NEW: `--demo` mode
-
 
 ### v1.4.1
 - Temporarily injected `pytermor` v2.1
@@ -226,7 +226,6 @@ Even more information can be seen after running `kolombos --legend`.
 - REFACTOR: extended legend 
 - DOCS:  update README and screenshots 
 
-
 ### v1.3
 - Swap -D and -d (debug/decode)
 - Make '--marker 0' default (was 1)
@@ -234,11 +233,9 @@ Even more information can be seen after running `kolombos --legend`.
 - Upgrade `pytermor` to 2.1
 
 ### v1.2.1
-
 - Minor update.
 
 ### v1.2
-
 - Separators additional styling.
 - Separators auto-hide from `-m0`.
 - `--no-sep[arators]` launch option.
@@ -248,14 +245,11 @@ Even more information can be seen after running `kolombos --legend`.
 - Updated legend.
 
 ### v1.1
-
 - Additional separators around escape seqs (in text mode) for better readability.
 
 ### v1.0.2
-
 - Added logos.
 - Fixed pipy README images.
 
 ### v1.0.1
-
 - First public version.
