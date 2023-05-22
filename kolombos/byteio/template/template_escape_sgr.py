@@ -36,7 +36,7 @@ class EscapeSequenceSGRTemplate(EscapeSequenceTemplate):
         self._details_fmt_str = s.decode('ascii')
 
         params = self._details_fmt_str.split(';')
-        pcodes = [int(p) for p in params if p]
+        pcodes = [int(p.split(":")[0]) for p in params if p]
         pcodes_allowed = []
         brief_names = []
         while len(pcodes):  # @TODO automatically set black/white text if only bg color is defined, and vice versa
