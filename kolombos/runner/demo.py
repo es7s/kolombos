@@ -22,6 +22,6 @@ class DemoRunner(AbstractRunner):
             if aps.decode is None:
                 aps.decode = True
             if aps.columns is None:
-                aps.columns = 32
+                aps.columns = 16  # @TODO auto-detection
             ByteIoRunner().run()
         Console.info("\nRun the app with '"+Spans.BOLD('--legend')+"' option to learn how to read the output")
