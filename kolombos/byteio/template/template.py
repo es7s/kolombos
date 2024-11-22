@@ -4,6 +4,8 @@
 # -----------------------------------------------------------------------------
 from __future__ import annotations
 
+from collections.abc import Iterable
+from dataclasses import dataclass
 from typing import List
 
 from pytermor import SequenceSGR, Seqs, ansi
@@ -14,9 +16,21 @@ from ..segment import Segment
 from ...settings import SettingsManager
 
 
+@dataclass(frozen=True)
+class Separators(Iterable):
+    left: str
+    right: str
+
+    def __iter__(self):
+        yield self.left
+        yield self.right
+
+
 class Template:
-    SEPARATOR_LEFT =  '⢸'
-    SEPARATOR_RIGHT = '⡇'
+    SEPARATOR_MAP: dict[str|None, Separators] = {  # @TODO keys to enum?
+        None: Separators('⢸', '⡇'),
+        "alt": Separators('｣', '｢'),
+    }
 
     IGNORED_LABEL: str = '×'
     IGNORED_OPENING_SEQ: SequenceSGR = Seqs.GRAY + Seqs.DIM
@@ -37,6 +51,7 @@ class Template:
         self._read_mode: ReadMode = ReadMode.TEXT
         self._marker_details: MarkerDetailsEnum = MarkerDetailsEnum.NO_DETAILS
         self._decode: bool = False
+        self._separators: Separators = self._get_separators_default()
 
         if not self._opening_seq_stack.has_key(DisplayMode.FOCUSED):
             self._opening_seq_stack.set(DisplayMode.FOCUSED, self._opening_seq_stack.get() + Seqs.INVERSED)
@@ -54,6 +69,8 @@ class Template:
         self._read_mode = app_settings.read_mode
         self._marker_details = app_settings.effective_marker_details
         self._decode = app_settings.decode if isinstance(app_settings.decode, bool) else False
+        if app_settings.alt_separators:
+            self._separators = self.SEPARATOR_MAP.get('alt')
 
     def substitute(self, raw: bytes) -> List[Segment]:
         self._substituted.clear()
@@ -92,14 +109,33 @@ class Template:
     def _get_details_opening_seq(self) -> SequenceSGR:
         raise NotImplemented
 
+    @classmethod
+    def _get_separators_default(cls) -> Separators:
+        return cls.SEPARATOR_MAP.get(None)
+
+    @classmethod
+    def _get_separators_alt(cls) -> Separators:
+        return cls.SEPARATOR_MAP.get('alt')
+
     @staticmethod
-    def wrap_in_separators(s: str|List[Segment]) -> str|None:
+    def _wrap_in_separators(separators: Separators, s: str|List[Segment]) -> str|None:
         if isinstance(s, str):
-            return f'{Template.SEPARATOR_LEFT}{s}{Template.SEPARATOR_RIGHT}'
+            return s.join(separators)
 
         if isinstance(s, list):
-            s.insert(0, Segment(SequenceSGR.init_color_indexed(255), '', b'', Template.SEPARATOR_LEFT))
-            s.append(Segment(SequenceSGR.init_color_indexed(255), '', b'', Template.SEPARATOR_RIGHT))
-            return
+            s.insert(0, Segment(SequenceSGR.init_color_indexed(255), '', b'',  separators.left))
+            s.append(Segment(SequenceSGR.init_color_indexed(255), '', b'', separators.right))
+            return  # @FIXME WTF modifying a list which is provided to the method by value (copy)??
 
         raise TypeError(f'Invalid argument type {type(s)}')
+
+    @staticmethod
+    def wrap_in_default_separators(s: str|List[Segment]) -> str|None:
+        return Template._wrap_in_separators(Template._get_separators_default(), s)
+
+    @staticmethod
+    def wrap_in_alt_separators(s: str|List[Segment]) -> str|None:
+        return Template._wrap_in_separators(Template._get_separators_alt(), s)
+
+    def _wrap_in_configured_separators(self, s: str|List[Segment]) -> str|None:
+        return self._wrap_in_separators(self._separators, s)

@@ -4,3 +4,4 @@ dist
 .env
 venv
 /dev/diagrams/
+.wakatime-project

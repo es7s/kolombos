@@ -42,7 +42,7 @@ class EscapeSequenceTemplate(Template):
                 self._marker_details is MarkerDetailsEnum.BRIEF_DETAILS or
                 self._marker_details is MarkerDetailsEnum.FULL_DETAILS
             )):
-            self._wrap_in_separators()
+            self._wrap_in_configured_separators(self._substituted)
 
         return self._substituted
 
@@ -67,6 +67,3 @@ class EscapeSequenceTemplate(Template):
 
     def _get_details_opening_seq(self) -> SequenceSGR:
         return self._opening_seq_stack.get() + self.DETAILS_OPENING_SEQ
-
-    def _wrap_in_separators(self):
-        self.wrap_in_separators(self._substituted)

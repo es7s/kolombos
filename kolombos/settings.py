@@ -42,6 +42,7 @@ class Settings(Namespace):
         self.color_markers: bool = False
         self.no_line_numbers: bool = False
         self.no_separators: bool = False
+        self.alt_separators: bool = False
         self.no_offsets: bool = False
         self.squash_ignored: bool = False  # TODO
         self.text: bool = False

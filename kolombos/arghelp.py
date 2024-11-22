@@ -186,7 +186,8 @@ class AppArgumentParser(CustomArgumentParser):
 
         text_mode_group = self.add_argument_group('text mode options')
         text_mode_group.add_argument('-m', '--marker', metavar='<details>', action='store', type=int, default=0, help=ren('marker details: 0 is none, 1 is brief, 2 is full '+fmt_default('[default: %(default)s]')))
-        text_mode_group.add_argument('--no-separators', action='store_true', default=False, help=ren('do not print '+Template.wrap_in_separators('separators')+' around escape sequences'))
+        text_mode_group.add_argument('--no-separators', action='store_true', default=False, help=ren('do not print '+Template.wrap_in_default_separators('separators')+' around escape sequences'))
+        text_mode_group.add_argument('--alt-separators', action='store_true', default=False, help=ren('use alternative '+'separators'.join(Template.wrap_in_alt_separators("")[::-1])+' around escape sequences'))
         # text_mode_group.add_argument('-Q', '--squash-ignored', action='store_true', default=False, help=Span(Seqs.HI_YELLOW)('TODO ')+'replace sequences of ignored characters with one character')
         # text_mode_group.add_argument('-H', '--hide-ignored', action='store_true', default=False, help=Span(Seqs.HI_YELLOW)('TODO ')+'completely hide ignored character classes')
         text_mode_group.add_argument('--no-line-numbers', action='store_true', default=False, help='do not print line numbers')
